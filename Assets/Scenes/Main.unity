@@ -1377,6 +1377,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   solve: 0
+  robotData: {fileID: 11400000, guid: 64a507e3086abb849bbfa9bf17d5d0b0, type: 2}
   joints:
   - {fileID: 1266366584}
   - {fileID: 1382872282}
@@ -1386,11 +1387,6 @@ MonoBehaviour:
   - {fileID: 703460613}
   tcp: {fileID: 886252802}
   target: {fileID: 1689352409}
-  generations: 100
-  solvers: 100
-  elites: 25
-  randoms: 50
-  mutationChance: 0.05
 --- !u!114 &1634662497
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1400,24 +1396,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 1634662494}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b5b4336a1b694325a4994f7ef2242ad9, type: 3}
+  m_Script: {fileID: 11500000, guid: 5945aaacdf714714bd394bffc7358b5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  solve: 0
-  joints:
-  - {fileID: 1266366584}
-  - {fileID: 1382872282}
-  - {fileID: 44216939}
-  - {fileID: 1898101832}
-  - {fileID: 1146502568}
-  - {fileID: 703460613}
-  tcp: {fileID: 886252802}
-  target: {fileID: 1689352409}
-  generations: 200
   solvers: 200
-  elites: 50
-  randoms: 50
-  mutationChance: 1
+  elites: 10
+  randoms: 100
+  mutationChance: 0.05
 --- !u!1 &1689352405
 GameObject:
   m_ObjectHideFlags: 0
