@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Unity.MLAgents;
 using UnityEngine;
@@ -64,28 +63,27 @@ public class RobotAgent : Agent
 
         if (_home.Count != maxSpeeds.Length)
         {
-            Debug.LogError($"{name} has {_home.Count} degrees of freedom but {maxSpeeds.Length} defined.");
+            Debug.LogError($"{name} has {_home.Count} degrees of freedom but {maxSpeeds.Length} speeds defined.");
         }
     }
 
-    public void MoveJoints(List<float> degrees)
+    public void Move(List<float> degrees)
     {
-        MoveJointsRadians(DegreesToRadians(degrees));
+        MoveRadians(DegreesToRadians(degrees));
     }
 
-    public void MoveJointsRadians(List<float> radians)
+    public void MoveRadians(List<float> radians)
     {
-        //_root.SetDriveTargets(radians);
         _targets = radians;
         _move = true;
     }
     
-    public void SetJoints(List<float> degrees)
+    public void Snap(List<float> degrees)
     {
-        SetJointsRadians(DegreesToRadians(degrees));
+        SnapRadians(DegreesToRadians(degrees));
     }
 
-    public void SetJointsRadians(List<float> radians)
+    public void SnapRadians(List<float> radians)
     {
         _move = false;
         _root.SetDriveTargets(radians);
@@ -97,12 +95,12 @@ public class RobotAgent : Agent
 
     public void MoveHome()
     {
-        MoveJointsRadians(_home);
+        MoveRadians(_home);
     }
 
     public void SnapHome()
     {
-        SetJointsRadians(_home);
+        SnapRadians(_home);
     }
 
     private void FixedUpdate()

@@ -1691,6 +1691,7 @@ GameObject:
   - component: {fileID: 1634662495}
   - component: {fileID: 1634662497}
   - component: {fileID: 1634662496}
+  - component: {fileID: 1634662500}
   - component: {fileID: 1634662498}
   - component: {fileID: 1634662499}
   m_Layer: 0
@@ -1781,7 +1782,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1be0994bbddc4c038d285f318e42f7c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  reset: 0
   move: 0
   snap: 0
   angles:
@@ -1803,7 +1803,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1be0994bbddc4c038d285f318e42f7c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  reset: 0
   move: 0
   snap: 0
   angles:
@@ -1813,6 +1812,20 @@ MonoBehaviour:
   - 60
   - 60
   - 60
+--- !u!114 &1634662500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1634662494}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 256b525eae724e4fb008e6364bb7a7e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  move: 0
+  snap: 0
 --- !u!1 &1898101831
 GameObject:
   m_ObjectHideFlags: 0
