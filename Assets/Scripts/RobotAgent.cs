@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Unity.MLAgents;
 using UnityEngine;
 
@@ -7,16 +6,45 @@ public class RobotAgent : Agent
 {
     private ArticulationBody _root;
 
+    private Transform _lastJoint;
+
+    private List<float> _home;
+
     private void Awake()
     {
         _root = GetComponent<ArticulationBody>();
+        
+        ArticulationBody[] children = GetComponentsInChildren<ArticulationBody>();
+        
         if (_root == null)
         {
-            _root = GetComponentInChildren<ArticulationBody>();
+            if (children.Length == 0)
+            {
+                Debug.LogError($"No Articulation Bodies attached to robot {name}.");
+                Destroy(this);
+                return;
+            }
+            
+            _root = children[0];
         }
+
+        ArticulationBody last = _root;
+        for (int i = children.Length - 1; i > 0; i--)
+        {
+            if (children[i].index > last.index)
+            {
+                last = children[i];
+            }
+        }
+
+        _lastJoint = last.transform;
+
+        List<float> home = new();
+        _root.GetJointPositions(home);
+        _home = home;
     }
 
-    public void MoveJoints(IEnumerable<float> degrees)
+    public void MoveJoints(List<float> degrees)
     {
         MoveJointsRadians(DegreesToRadians(degrees));
     }
@@ -26,25 +54,35 @@ public class RobotAgent : Agent
         _root.SetDriveTargets(radians);
     }
     
-    public void SetJoints(IEnumerable<float> degrees)
+    public void SetJoints(List<float> degrees)
     {
         SetJointsRadians(DegreesToRadians(degrees));
     }
 
     public void SetJointsRadians(List<float> radians)
     {
-        MoveJointsRadians(radians);
+        _root.SetDriveTargets(radians);
         _root.SetJointPositions(radians);
     }
 
-    private static List<float> DegreesToRadians(IEnumerable<float> degrees)
+    public void MoveHome()
     {
-        List<float> radians = degrees.ToList();
-        for (int i = 0; i < radians.Count; i++)
+        _root.SetDriveTargets(_home);
+    }
+
+    public void SnapHome()
+    {
+        _root.SetDriveTargets(_home);
+        _root.SetJointPositions(_home);
+    }
+
+    private static List<float> DegreesToRadians(List<float> degrees)
+    {
+        for (int i = 0; i < degrees.Count; i++)
         {
-            radians[i] *= Mathf.Deg2Rad;
+            degrees[i] *= Mathf.Deg2Rad;
         }
 
-        return radians;
+        return degrees;
     }
 }

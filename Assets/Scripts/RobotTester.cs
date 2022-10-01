@@ -1,7 +1,12 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 
 public class RobotTester : MonoBehaviour
 {
+    [SerializeField]
+    private bool reset;
+    
     [SerializeField]
     private bool move;
 
@@ -20,16 +25,22 @@ public class RobotTester : MonoBehaviour
 
     private void Update()
     {
+        if (reset)
+        {
+            reset = false;
+            _robotAgent.SnapHome();
+        }
+        
         if (move)
         {
             move = false;
-            _robotAgent.MoveJoints(angles);
+            _robotAgent.MoveJoints(angles.ToList());
         }
 
         if (snap)
         {
             snap = false;
-            _robotAgent.SetJoints(angles);
+            _robotAgent.SetJoints(angles.ToList());
         }
     }
 }
