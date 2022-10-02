@@ -6,7 +6,7 @@ public class RobotAgent : Agent
 {
     [SerializeField]
     private float[] maxSpeeds;
-    
+
     private ArticulationBody _root;
 
     private Transform _lastJoint;
@@ -18,6 +18,8 @@ public class RobotAgent : Agent
     private List<float> _targets;
 
     private bool _move;
+
+    private float[] _currentSpeeds;
 
     private void Start()
     {
@@ -51,14 +53,20 @@ public class RobotAgent : Agent
             _lastJoint = last.transform;
         }
 
-        List<float> home = new();
-        _root.GetJointPositions(home);
-        _home = home;
+        _home = new();
+        _root.GetJointPositions(_home);
         
         _zeros = new();
         for (int i = 0; i < _home.Count; i++)
         {
             _zeros.Add(0);
+        }
+
+        SetMaxSpeeds(maxSpeeds);
+        _currentSpeeds = new float[maxSpeeds.Length];
+        for (int i = 0; i < _currentSpeeds.Length; i++)
+        {
+            _currentSpeeds[i] = maxSpeeds[i];
         }
 
         if (_home.Count != maxSpeeds.Length)
@@ -75,6 +83,25 @@ public class RobotAgent : Agent
     public void MoveRadians(List<float> radians)
     {
         _targets = radians;
+
+        List<float> angles = GetJoints();
+        int slowest = -1;
+        float time = 0;
+        for (int i = 0; i < angles.Count; i++)
+        {
+            angles[i] = Mathf.Abs(angles[i] - _targets[i]);
+            if (slowest < 0 || angles[i] / maxSpeeds[i] > time)
+            {
+                slowest = i;
+                time = angles[i] / maxSpeeds[i];
+            }
+        }
+
+        for (int i = 0; i < _currentSpeeds.Length; i++)
+        {
+            _currentSpeeds[i] = angles[i] / time;
+        }
+        
         _move = true;
     }
     
@@ -86,11 +113,7 @@ public class RobotAgent : Agent
     public void SnapRadians(List<float> radians)
     {
         _move = false;
-        _root.SetDriveTargets(radians);
-        _root.SetJointVelocities(_zeros);
-        _root.SetJointAccelerations(_zeros);
-        _root.SetJointForces(_zeros);
-        _root.SetJointPositions(radians);
+        Stop(radians);
     }
 
     public void MoveHome()
@@ -103,6 +126,28 @@ public class RobotAgent : Agent
         SnapRadians(_home);
     }
 
+    public void SetMaxSpeeds(float[] degrees)
+    {
+        for (int i = 0; i < degrees.Length; i++)
+        {
+            degrees[i] *= Mathf.Deg2Rad;
+        }
+
+        SetMaxSpeedsRadians(degrees);
+    }
+
+    public void SetMaxSpeedsRadians(float[] radians)
+    {
+        maxSpeeds = radians;
+    }
+
+    public List<float> GetJoints()
+    {
+        List<float> angles = new();
+        _root.GetJointPositions(angles);
+        return angles;
+    }
+
     private void FixedUpdate()
     {
         if (!_move)
@@ -112,13 +157,12 @@ public class RobotAgent : Agent
 
         _move = false;
 
-        List<float> delta = new();
-        _root.GetJointPositions(delta);
+        List<float> delta = GetJoints();
         for (int i = 0; i < delta.Count; i++)
         {
             if (delta[i] >= _targets[i])
             {
-                delta[i] -= maxSpeeds[i] * Mathf.Deg2Rad * Time.fixedDeltaTime;
+                delta[i] -= _currentSpeeds[i] * Time.fixedDeltaTime;
                 if (delta[i] <= _targets[i])
                 {
                     delta[i] = _targets[i];
@@ -130,7 +174,7 @@ public class RobotAgent : Agent
             }
             else
             {
-                delta[i] += maxSpeeds[i] * Mathf.Deg2Rad * Time.fixedDeltaTime;
+                delta[i] += _currentSpeeds[i] * Time.fixedDeltaTime;
                 if (delta[i] >= _targets[i])
                 {
                     delta[i] = _targets[i];
@@ -141,8 +185,24 @@ public class RobotAgent : Agent
                 }
             }
         }
-        
-        _root.SetDriveTargets(delta);
+
+        if (_move)
+        {
+            _root.SetDriveTargets(delta);
+        }
+        else
+        {
+            Stop(delta);
+        }
+    }
+
+    private void Stop(List<float> radians)
+    {
+        _root.SetDriveTargets(radians);
+        _root.SetJointVelocities(_zeros);
+        _root.SetJointAccelerations(_zeros);
+        _root.SetJointForces(_zeros);
+        _root.SetJointPositions(radians);
     }
 
     private static List<float> DegreesToRadians(List<float> degrees)
