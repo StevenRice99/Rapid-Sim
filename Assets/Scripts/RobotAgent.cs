@@ -1,5 +1,10 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.MLAgents;
+using Unity.MLAgents.Actuators;
+using Unity.MLAgents.Policies;
+using Unity.MLAgents.Sensors;
 using UnityEngine;
 
 public class RobotAgent : Agent
@@ -20,6 +25,8 @@ public class RobotAgent : Agent
     private bool _move;
 
     private float[] _currentSpeeds;
+
+    private Transform _target;
 
     private void Start()
     {
@@ -53,8 +60,7 @@ public class RobotAgent : Agent
             _lastJoint = last.transform;
         }
 
-        _home = new();
-        _root.GetJointPositions(_home);
+        _home = GetJoints();
         
         _zeros = new();
         for (int i = 0; i < _home.Count; i++)
@@ -73,6 +79,55 @@ public class RobotAgent : Agent
         {
             Debug.LogError($"{name} has {_home.Count} degrees of freedom but {maxSpeeds.Length} speeds defined.");
         }
+
+        _target = new GameObject("Target").transform;
+        _target.parent = _root.transform;
+        _target.position = _lastJoint.position;
+        _target.rotation = _lastJoint.rotation;
+
+        BehaviorParameters parameters = GetComponent<BehaviorParameters>();
+        if (parameters == null)
+        {
+            parameters = gameObject.AddComponent<BehaviorParameters>();
+        }
+
+        parameters.BrainParameters.VectorObservationSize = 7 + _home.Count;
+        parameters.BrainParameters.NumStackedVectorObservations = 1;
+        ActionSpec spec = parameters.BrainParameters.ActionSpec;
+        spec.NumContinuousActions = _home.Count;
+        spec.BranchSizes = Array.Empty<int>();
+        parameters.BrainParameters.ActionSpec = spec;
+    }
+
+    public void Move(GameObject target)
+    {
+        Move(target.transform);
+    }
+
+    public void Move(Component target)
+    {
+        Move(target.transform);
+    }
+
+    public void Move(Transform target)
+    {
+        Move(target.position, target.rotation);
+    }
+
+    public void Move(Vector3 position)
+    {
+        Move(position, _target.rotation);
+    }
+
+    public void Move(Quaternion rotation)
+    {
+        Move(_target.position, rotation);
+    }
+
+    public void Move(Vector3 position, Quaternion rotation)
+    {
+        _target.position = position;
+        _target.rotation = rotation;
     }
 
     public void Move(List<float> degrees)
@@ -90,11 +145,13 @@ public class RobotAgent : Agent
         for (int i = 0; i < angles.Count; i++)
         {
             angles[i] = Mathf.Abs(angles[i] - _targets[i]);
-            if (slowest < 0 || angles[i] / maxSpeeds[i] > time)
+            if (slowest >= 0 && angles[i] / maxSpeeds[i] <= time)
             {
-                slowest = i;
-                time = angles[i] / maxSpeeds[i];
+                continue;
             }
+
+            slowest = i;
+            time = angles[i] / maxSpeeds[i];
         }
 
         for (int i = 0; i < _currentSpeeds.Length; i++)
@@ -126,14 +183,9 @@ public class RobotAgent : Agent
         SnapRadians(_home);
     }
 
-    public void SetMaxSpeeds(float[] degrees)
+    public void SetMaxSpeeds(IEnumerable<float> degrees)
     {
-        for (int i = 0; i < degrees.Length; i++)
-        {
-            degrees[i] *= Mathf.Deg2Rad;
-        }
-
-        SetMaxSpeedsRadians(degrees);
+        SetMaxSpeedsRadians(DegreesToRadians(degrees.ToList()).ToArray());
     }
 
     public void SetMaxSpeedsRadians(float[] radians)
@@ -146,6 +198,13 @@ public class RobotAgent : Agent
         List<float> angles = new();
         _root.GetJointPositions(angles);
         return angles;
+    }
+
+    public override void CollectObservations(VectorSensor sensor)
+    {
+        sensor.AddObservation(_target.localPosition);
+        sensor.AddObservation(_target.localRotation);
+        sensor.AddObservation(GetJoints());
     }
 
     private void FixedUpdate()
