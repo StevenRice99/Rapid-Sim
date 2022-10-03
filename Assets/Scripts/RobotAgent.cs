@@ -6,6 +6,7 @@ using Unity.MLAgents.Actuators;
 using Unity.MLAgents.Policies;
 using Unity.MLAgents.Sensors;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class RobotAgent : Agent
 {
@@ -26,9 +27,15 @@ public class RobotAgent : Agent
 
     private float[] _currentSpeeds;
 
-    private Transform _target;
+    private Vector3 _goalPosition;
 
-    private void Start()
+    private Quaternion _goalRotation;
+
+    private float[] _lowerLimits;
+
+    private float[] _upperLimits;
+
+    public override void Initialize()
     {
         _root = GetComponent<ArticulationBody>();
         
@@ -46,21 +53,35 @@ public class RobotAgent : Agent
             }
         }
 
+        _home = GetJoints();
+        _lowerLimits = new float[_home.Count];
+        _upperLimits = new float[_home.Count];
+
         ArticulationBody last = _root;
-        for (int i = children.Length - 1; i > 0; i--)
+
+        int dofIndex = 0;
+        
+        for (int i = 0; i < children.Length; i++)
         {
             if (children[i].index > last.index)
             {
                 last = children[i];
             }
+
+            dofIndex = GetLimits(children[i].xDrive, dofIndex);
+            dofIndex = GetLimits(children[i].yDrive, dofIndex);
+            dofIndex = GetLimits(children[i].zDrive, dofIndex);
+        }
+
+        if (dofIndex != _lowerLimits.Length)
+        {
+            Debug.LogError($"Ensure all joints on {name} have limits defined.");
         }
 
         if (last != null)
         {
             _lastJoint = last.transform;
         }
-
-        _home = GetJoints();
         
         _zeros = new();
         for (int i = 0; i < _home.Count; i++)
@@ -80,10 +101,7 @@ public class RobotAgent : Agent
             Debug.LogError($"{name} has {_home.Count} degrees of freedom but {maxSpeeds.Length} speeds defined.");
         }
 
-        _target = new GameObject("Target").transform;
-        _target.parent = _root.transform;
-        _target.position = _lastJoint.position;
-        _target.rotation = _lastJoint.rotation;
+        MaxStep = 1;
 
         BehaviorParameters parameters = GetComponent<BehaviorParameters>();
         if (parameters == null)
@@ -116,18 +134,19 @@ public class RobotAgent : Agent
 
     public void Move(Vector3 position)
     {
-        Move(position, _target.rotation);
+        Move(position, _goalRotation);
     }
 
     public void Move(Quaternion rotation)
     {
-        Move(_target.position, rotation);
+        Move(_goalPosition, rotation);
     }
 
     public void Move(Vector3 position, Quaternion rotation)
     {
-        _target.position = position;
-        _target.rotation = rotation;
+        SetGoals(position, rotation);
+        _move = true;
+        RequestDecision();
     }
 
     public void Move(List<float> degrees)
@@ -202,9 +221,29 @@ public class RobotAgent : Agent
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        sensor.AddObservation(_target.localPosition);
-        sensor.AddObservation(_target.localRotation);
+        sensor.AddObservation(_goalPosition);
+        sensor.AddObservation(_goalRotation);
         sensor.AddObservation(GetJoints());
+    }
+
+    public override void OnEpisodeBegin()
+    {
+        SnapRadians(RandomOrientation().ToList());
+        SetGoals(_lastJoint.position, _lastJoint.rotation);
+        SnapRadians(RandomOrientation().ToList());
+    }
+
+    public override void OnActionReceived(ActionBuffers actions)
+    {
+        if (_move)
+        {
+            MoveRadians(actions.ContinuousActions.ToList());
+        }
+        else
+        {
+            // ADD REWARDS
+            SnapRadians(actions.ContinuousActions.ToList());
+        }
     }
 
     private void FixedUpdate()
@@ -262,6 +301,36 @@ public class RobotAgent : Agent
         _root.SetJointAccelerations(_zeros);
         _root.SetJointForces(_zeros);
         _root.SetJointPositions(radians);
+    }
+
+    private void SetGoals(Vector3 position, Quaternion rotation)
+    {
+        Transform rootTransform = _root.transform;
+        _goalPosition = rootTransform.InverseTransformPoint(position);
+        _goalRotation = Quaternion.Inverse(rootTransform.rotation) * rotation;
+    }
+
+    private IEnumerable<float> RandomOrientation()
+    {
+        float[] randomAngles = new float[_lowerLimits.Length];
+        for (int i = 0; i < _lowerLimits.Length; i++)
+        {
+            randomAngles[i] = Random.Range(_lowerLimits[i], _upperLimits[i]) * Mathf.Deg2Rad;
+        }
+
+        return randomAngles;
+    }
+
+    private int GetLimits(ArticulationDrive drive, int dofIndex)
+    {
+        if (drive.lowerLimit == 0 && drive.upperLimit == 0)
+        {
+            return dofIndex;
+        }
+
+        _lowerLimits[dofIndex] = drive.lowerLimit;
+        _upperLimits[dofIndex] = drive.upperLimit;
+        return ++dofIndex;
     }
 
     private static List<float> DegreesToRadians(List<float> degrees)
