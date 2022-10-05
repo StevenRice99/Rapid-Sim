@@ -26,6 +26,8 @@ public class RobotAgent : Agent
 
     private bool _move;
 
+    private bool _canSolve;
+
     private float[] _currentSpeeds;
 
     private Vector3 _goalPosition;
@@ -108,13 +110,13 @@ public class RobotAgent : Agent
             Debug.LogError($"{name} has {_home.Count} degrees of freedom but {maxSpeeds.Length} speeds defined.");
         }
 
-        MaxStep = 1;
-
         BehaviorParameters parameters = GetComponent<BehaviorParameters>();
         if (parameters == null)
         {
             parameters = gameObject.AddComponent<BehaviorParameters>();
         }
+
+        MaxStep = Academy.Instance.IsCommunicatorOn ? 1 : 0;
 
         parameters.BrainParameters.VectorObservationSize = 7 + _home.Count;
         parameters.BrainParameters.NumStackedVectorObservations = 1;
@@ -153,6 +155,7 @@ public class RobotAgent : Agent
     {
         SetGoals(position, rotation);
         _move = true;
+        _canSolve = false;
         RequestDecision();
     }
 
@@ -185,6 +188,40 @@ public class RobotAgent : Agent
         }
 
         _move = true;
+        _canSolve = true;
+    }
+    
+    public void Snap(GameObject target)
+    {
+        Snap(target.transform);
+    }
+
+    public void Snap(Component target)
+    {
+        Snap(target.transform);
+    }
+
+    public void Snap(Transform target)
+    {
+        Snap(target.position, target.rotation);
+    }
+
+    public void Snap(Vector3 position)
+    {
+        Snap(position, _goalRotation);
+    }
+
+    public void Snap(Quaternion rotation)
+    {
+        Snap(_goalPosition, rotation);
+    }
+    
+    public void Snap(Vector3 position, Quaternion rotation)
+    {
+        SetGoals(position, rotation);
+        _move = false;
+        _canSolve = false;
+        RequestDecision();
     }
     
     public void Snap(List<float> degrees)
@@ -195,6 +232,7 @@ public class RobotAgent : Agent
     public void SnapRadians(List<float> radians)
     {
         _move = false;
+        _canSolve = false;
         Stop(radians);
     }
 
@@ -234,8 +272,14 @@ public class RobotAgent : Agent
 
     public override void OnEpisodeBegin()
     {
+        if (!Academy.Instance.IsCommunicatorOn)
+        {
+            return;
+        }
+        
         Randomize();
         Evaluate(GetJoints());
+        RequestDecision();
     }
 
     public override void OnActionReceived(ActionBuffers actions)
@@ -245,6 +289,8 @@ public class RobotAgent : Agent
         {
             angles[i] = Mathf.Clamp(angles[i], _lowerLimits[i], _upperLimits[i]);
         }
+
+        _canSolve = true;
         
         if (_move)
         {
@@ -252,13 +298,17 @@ public class RobotAgent : Agent
         }
         else
         {
-            Evaluate(angles);
+            SnapRadians(angles);
+            if (Academy.Instance.IsCommunicatorOn)
+            {
+                Evaluate(angles);
+            }
         }
     }
 
     private void FixedUpdate()
     {
-        if (!_move)
+        if (!_move || !_canSolve)
         {
             return;
         }
@@ -304,13 +354,14 @@ public class RobotAgent : Agent
         }
     }
 
-    private void Stop(List<float> radians)
+    private void Stop(IEnumerable<float> radians)
     {
-        _root.SetDriveTargets(radians);
+        List<float> list = radians.ToList();
+        _root.SetDriveTargets(list);
         _root.SetJointVelocities(_zeros);
         _root.SetJointAccelerations(_zeros);
         _root.SetJointForces(_zeros);
-        _root.SetJointPositions(radians);
+        _root.SetJointPositions(list);
     }
 
     private void SetGoals(Vector3 position, Quaternion rotation)
