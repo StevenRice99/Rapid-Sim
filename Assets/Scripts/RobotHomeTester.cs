@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 
+[RequireComponent(typeof(RobotAgent))]
 public class RobotHomeTester : MonoBehaviour
 {
     [SerializeField]

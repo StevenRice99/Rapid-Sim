@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using UnityEngine;
 
+[RequireComponent(typeof(RobotAgent))]
 public class RobotMoveTester : RobotHomeTester
 {
     [SerializeField]

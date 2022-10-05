@@ -8,6 +8,7 @@ using Unity.MLAgents.Sensors;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
+[DisallowMultipleComponent]
 public class RobotAgent : Agent
 {
     [SerializeField]
@@ -34,6 +35,12 @@ public class RobotAgent : Agent
     private float[] _lowerLimits;
 
     private float[] _upperLimits;
+
+    private List<float> _startAngles;
+
+    private Vector3 _startPosition;
+
+    private Quaternion _startRotation;
 
     public override void Initialize()
     {
@@ -159,25 +166,24 @@ public class RobotAgent : Agent
         _targets = radians;
 
         List<float> angles = GetJoints();
-        int slowest = -1;
         float time = 0;
         for (int i = 0; i < angles.Count; i++)
         {
             angles[i] = Mathf.Abs(angles[i] - _targets[i]);
-            if (slowest >= 0 && angles[i] / maxSpeeds[i] <= time)
+            if (angles[i] / maxSpeeds[i] > time)
             {
-                continue;
+                time = angles[i] / maxSpeeds[i];
             }
-
-            slowest = i;
-            time = angles[i] / maxSpeeds[i];
         }
 
-        for (int i = 0; i < _currentSpeeds.Length; i++)
+        if (time > 0)
         {
-            _currentSpeeds[i] = angles[i] / time;
+            for (int i = 0; i < _currentSpeeds.Length; i++)
+            {
+                _currentSpeeds[i] = angles[i] / time;
+            }
         }
-        
+
         _move = true;
     }
     
@@ -228,21 +234,25 @@ public class RobotAgent : Agent
 
     public override void OnEpisodeBegin()
     {
-        SnapRadians(RandomOrientation().ToList());
-        SetGoals(_lastJoint.position, _lastJoint.rotation);
-        SnapRadians(RandomOrientation().ToList());
+        Randomize();
+        Evaluate(GetJoints());
     }
 
     public override void OnActionReceived(ActionBuffers actions)
     {
+        List<float> angles = actions.ContinuousActions.ToList();
+        for (int i = 0; i < angles.Count; i++)
+        {
+            angles[i] = Mathf.Clamp(angles[i], _lowerLimits[i], _upperLimits[i]);
+        }
+        
         if (_move)
         {
-            MoveRadians(actions.ContinuousActions.ToList());
+            MoveRadians(angles);
         }
         else
         {
-            // ADD REWARDS
-            SnapRadians(actions.ContinuousActions.ToList());
+            Evaluate(angles);
         }
     }
 
@@ -310,12 +320,38 @@ public class RobotAgent : Agent
         _goalRotation = Quaternion.Inverse(rootTransform.rotation) * rotation;
     }
 
+    private void Randomize()
+    {
+        Physics.autoSimulation = false;
+        RandomGoal();
+        RandomStart();
+        Physics.autoSimulation = true;
+    }
+
+    private void RandomStart()
+    {
+        SnapRadians(RandomOrientation().ToList());
+        Physics.Simulate(Time.fixedDeltaTime);
+        Transform rootTransform = _root.transform;
+        _startPosition = rootTransform.InverseTransformPoint(_lastJoint.position);
+        _startRotation = Quaternion.Inverse(rootTransform.rotation) * _lastJoint.rotation;
+        _startAngles = GetJoints();
+    }
+
+    private void RandomGoal()
+    {
+        SnapRadians(RandomOrientation().ToList());
+        Physics.Simulate(Time.fixedDeltaTime);
+        SetGoals(_lastJoint.position, _lastJoint.rotation);
+        _targets = GetJoints();
+    }
+
     private IEnumerable<float> RandomOrientation()
     {
         float[] randomAngles = new float[_lowerLimits.Length];
         for (int i = 0; i < _lowerLimits.Length; i++)
         {
-            randomAngles[i] = Random.Range(_lowerLimits[i], _upperLimits[i]) * Mathf.Deg2Rad;
+            randomAngles[i] = Random.Range(_lowerLimits[i], _upperLimits[i]);
         }
 
         return randomAngles;
@@ -328,9 +364,58 @@ public class RobotAgent : Agent
             return dofIndex;
         }
 
-        _lowerLimits[dofIndex] = drive.lowerLimit;
-        _upperLimits[dofIndex] = drive.upperLimit;
+        _lowerLimits[dofIndex] = drive.lowerLimit * Mathf.Deg2Rad;
+        _upperLimits[dofIndex] = drive.upperLimit * Mathf.Deg2Rad;
         return ++dofIndex;
+    }
+
+    private void Evaluate(List<float> angles)
+    {
+        SnapRadians(angles);
+
+        float total = 0;
+        
+        Transform rootTransform = _root.transform;
+        
+        const float positionValue = 100;
+        const float rotationValue = 10;
+        const float timeValue = 1;
+        
+        float starting = Vector3.Distance(_goalPosition, _startPosition);
+        float ending = Vector3.Distance(_goalPosition, rootTransform.InverseTransformPoint(_lastJoint.position));
+        float score = (starting - ending) / starting * positionValue;
+        if (float.IsNaN(score))
+        {
+            score = positionValue;
+        }
+        total += score;
+
+        starting = Quaternion.Angle(_goalRotation, _startRotation);
+        ending = Quaternion.Angle(_goalRotation, Quaternion.Inverse(rootTransform.rotation) * _lastJoint.rotation);
+        score = (starting - ending) / starting * rotationValue;
+        if (float.IsNaN(score))
+        {
+            score = rotationValue;
+        }
+        total += score;
+
+        float time = 0;
+        for (int i = 0; i < _startAngles.Count; i++)
+        {
+            _startAngles[i] = Mathf.Abs(_startAngles[i] - _targets[i]);
+            if (_startAngles[i] / maxSpeeds[i] > time)
+            {
+                time = _startAngles[i] / maxSpeeds[i];
+            }
+        }
+        score = -time * timeValue;
+        if (float.IsNaN(score))
+        {
+            score = timeValue;
+        }
+        total += score;
+
+        SetReward(total);
     }
 
     private static List<float> DegreesToRadians(List<float> degrees)
