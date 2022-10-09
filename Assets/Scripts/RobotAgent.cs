@@ -280,7 +280,7 @@ public class RobotAgent : Agent
     {
         sensor.AddObservation(_goalPosition / _chainLength);
         sensor.AddObservation(_goalRotation);
-        sensor.AddObservation(GetJoints());
+        sensor.AddObservation(ScaleJoints());
     }
 
     public override void OnEpisodeBegin()
@@ -291,32 +291,32 @@ public class RobotAgent : Agent
         }
         
         Randomize();
-        Evaluate(GetJoints());
         RequestDecision();
     }
 
     public override void OnActionReceived(ActionBuffers actions)
     {
-        List<float> angles = actions.ContinuousActions.ToList();
-        for (int i = 0; i < angles.Count; i++)
+        List<float> joints = actions.ContinuousActions.ToList();
+        for (int i = 0; i < joints.Count; i++)
         {
-            angles[i] = Mathf.Clamp(angles[i], _lowerLimits[i], _upperLimits[i]);
+            joints[i] = Mathf.Clamp(joints[i] * (_upperLimits[i] - _lowerLimits[i]) + _lowerLimits[i], _lowerLimits[i], _upperLimits[i]);
         }
 
         _canSolve = true;
         
         if (_move)
         {
-            MoveRadians(angles);
+            MoveRadians(joints);
+            return;
         }
-        else
+
+        if (!Academy.Instance.IsCommunicatorOn)
         {
-            SnapRadians(angles);
-            if (Academy.Instance.IsCommunicatorOn)
-            {
-                Evaluate(angles);
-            }
+            SnapRadians(joints);
+            return;
         }
+
+        Evaluate(joints);
     }
 
     private void FixedUpdate()
@@ -431,15 +431,18 @@ public class RobotAgent : Agent
         return ++dofIndex;
     }
 
-    private void Evaluate(List<float> angles)
+    private void Evaluate(List<float> joints)
     {
-        SnapRadians(angles);
-
-        float total = 0;
+        Physics.autoSimulation = false;
+        SnapRadians(joints);
+        Physics.Simulate(Time.fixedDeltaTime);
+        Physics.autoSimulation = false;
         
         const float positionValue = 100;
         const float rotationValue = 100;
         const float timeValue = 1;
+
+        float total = 0;
 
         float startingDistance = Vector3.Distance(_goalPosition, _startPosition);
         float score;
@@ -451,7 +454,7 @@ public class RobotAgent : Agent
             {
                 score = positionValue;
             }
-
+            
             SetReward(score);
             return;
         }
@@ -490,13 +493,24 @@ public class RobotAgent : Agent
             score = 0;
         }
         total += score;
-
+        
         SetReward(total);
     }
     
     private Vector3 RelativePosition(Vector3 position) => _root.transform.InverseTransformPoint(position);
     
     private Quaternion RelativeRotation(Quaternion rotation) => Quaternion.Inverse(_root.transform.rotation) * rotation;
+
+    private List<float> ScaleJoints()
+    {
+        List<float> joints = GetJoints();
+        for (int i = 0; i < joints.Count; i++)
+        {
+            joints[i] = (joints[i] - _lowerLimits[i]) / (_upperLimits[i] - _lowerLimits[i]);
+        }
+
+        return joints;
+    }
 
     private static List<float> DegreesToRadians(List<float> degrees)
     {
