@@ -44,12 +44,14 @@ public class RobotAgent : Agent
 
     private Quaternion _startRotation;
 
+    private float _chainLength;
+
     public override void Initialize()
     {
         _root = GetComponent<ArticulationBody>();
         
         ArticulationBody[] children = GetComponentsInChildren<ArticulationBody>();
-        
+
         if (_root == null)
         {
             if (children.Length == 0)
@@ -60,6 +62,10 @@ public class RobotAgent : Agent
             {
                 _root = children[0];
             }
+        }
+        else if (children.Length > 0)
+        {
+            _chainLength = Vector3.Distance(_root.transform.position, children[0].transform.position);
         }
 
         _home = GetJoints();
@@ -80,6 +86,13 @@ public class RobotAgent : Agent
             dofIndex = GetLimits(children[i].xDrive, dofIndex);
             dofIndex = GetLimits(children[i].yDrive, dofIndex);
             dofIndex = GetLimits(children[i].zDrive, dofIndex);
+
+            if (i == 0)
+            {
+                continue;
+            }
+            
+            _chainLength += Vector3.Distance(children[i].transform.position, children[i - 1].transform.position);
         }
 
         if (dofIndex != _lowerLimits.Length)
@@ -265,7 +278,7 @@ public class RobotAgent : Agent
 
     public override void CollectObservations(VectorSensor sensor)
     {
-        sensor.AddObservation(_goalPosition);
+        sensor.AddObservation(_goalPosition / _chainLength);
         sensor.AddObservation(_goalRotation);
         sensor.AddObservation(GetJoints());
     }
@@ -366,9 +379,8 @@ public class RobotAgent : Agent
 
     private void SetGoals(Vector3 position, Quaternion rotation)
     {
-        Transform rootTransform = _root.transform;
-        _goalPosition = rootTransform.InverseTransformPoint(position);
-        _goalRotation = Quaternion.Inverse(rootTransform.rotation) * rotation;
+        _goalPosition = RelativePosition(position);
+        _goalRotation = RelativeRotation(rotation);
     }
 
     private void Randomize()
@@ -383,9 +395,8 @@ public class RobotAgent : Agent
     {
         SnapRadians(RandomOrientation().ToList());
         Physics.Simulate(Time.fixedDeltaTime);
-        Transform rootTransform = _root.transform;
-        _startPosition = rootTransform.InverseTransformPoint(_lastJoint.position);
-        _startRotation = Quaternion.Inverse(rootTransform.rotation) * _lastJoint.rotation;
+        _startPosition = RelativePosition(_lastJoint.position);
+        _startRotation = RelativeRotation(_lastJoint.rotation);
         _startAngles = GetJoints();
     }
 
@@ -426,29 +437,43 @@ public class RobotAgent : Agent
 
         float total = 0;
         
-        Transform rootTransform = _root.transform;
-        
         const float positionValue = 100;
-        const float rotationValue = 10;
+        const float rotationValue = 100;
         const float timeValue = 1;
-        
-        float starting = Vector3.Distance(_goalPosition, _startPosition);
-        float ending = Vector3.Distance(_goalPosition, rootTransform.InverseTransformPoint(_lastJoint.position));
-        float score = (starting - ending) / starting * positionValue;
-        if (float.IsNaN(score))
-        {
-            score = positionValue;
-        }
-        total += score;
 
-        starting = Quaternion.Angle(_goalRotation, _startRotation);
-        ending = Quaternion.Angle(_goalRotation, Quaternion.Inverse(rootTransform.rotation) * _lastJoint.rotation);
-        score = (starting - ending) / starting * rotationValue;
-        if (float.IsNaN(score))
+        float startingDistance = Vector3.Distance(_goalPosition, _startPosition);
+        float score;
+        float ending = Vector3.Distance(_goalPosition, RelativePosition(_lastJoint.position));
+        if (ending != 0)
         {
-            score = rotationValue;
+            score = (startingDistance - ending) / startingDistance * positionValue;
+            if (float.IsNaN(score))
+            {
+                score = positionValue;
+            }
+
+            SetReward(score);
+            return;
         }
-        total += score;
+        
+        total += positionValue * 2;
+        
+        ending = Quaternion.Angle(_goalRotation, RelativeRotation(_lastJoint.rotation));
+        if (ending != 0)
+        {
+            float starting = Quaternion.Angle(_goalRotation, _startRotation);
+            score = (starting - ending) / starting * rotationValue;
+            if (float.IsNaN(score))
+            {
+                score = rotationValue;
+            }
+            total += score;
+            
+            SetReward(total);
+            return;
+        }
+
+        total += rotationValue * 2;
 
         float time = 0;
         for (int i = 0; i < _startAngles.Count; i++)
@@ -459,15 +484,19 @@ public class RobotAgent : Agent
                 time = _startAngles[i] / maxSpeeds[i];
             }
         }
-        score = -time * timeValue;
+        score = -(time / startingDistance) * timeValue;
         if (float.IsNaN(score))
         {
-            score = timeValue;
+            score = 0;
         }
         total += score;
 
         SetReward(total);
     }
+    
+    private Vector3 RelativePosition(Vector3 position) => _root.transform.InverseTransformPoint(position);
+    
+    private Quaternion RelativeRotation(Quaternion rotation) => Quaternion.Inverse(_root.transform.rotation) * rotation;
 
     private static List<float> DegreesToRadians(List<float> degrees)
     {

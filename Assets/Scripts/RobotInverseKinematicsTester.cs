@@ -1,7 +1,6 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class RobotSolveTester : MonoBehaviour
+public class RobotInverseKinematicsTester : MonoBehaviour
 {
     [SerializeField]
     private RobotAgent robot;

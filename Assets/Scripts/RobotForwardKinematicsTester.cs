@@ -2,7 +2,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(RobotAgent))]
-public class RobotMoveTester : RobotHomeTester
+public class RobotForwardKinematicsTester : RobotHomeTester
 {
     [SerializeField]
     private float[] angles;
