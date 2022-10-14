@@ -1,19 +1,42 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
-[RequireComponent(typeof(RobotAgent))]
 public class RobotHomeTester : MonoBehaviour
 {
+    [SerializeField]
+    protected RobotAgent robot;
+    
     [SerializeField]
     protected bool move;
 
     [SerializeField]
     protected bool snap;
 
-    protected RobotAgent Robot;
-
     private void Awake()
     {
-        Robot = GetComponent<RobotAgent>();
+        if (robot != null)
+        {
+            return;
+        }
+        
+        robot = GetComponent<RobotAgent>();
+        if (robot != null)
+        {
+            return;
+        }
+        
+        robot = GetComponentInChildren<RobotAgent>();
+        if (robot != null)
+        {
+            return;
+        }
+
+        robot = FindObjectOfType<RobotAgent>();
+    }
+
+    private void OnValidate()
+    {
+        Awake();
     }
 
     protected virtual void Update()
@@ -21,13 +44,13 @@ public class RobotHomeTester : MonoBehaviour
         if (move)
         {
             move = false;
-            Robot.MoveHome();
+            robot.MoveHome();
         }
 
         if (snap)
         {
             snap = false;
-            Robot.SnapHome();
+            robot.SnapHome();
         }
     }
 }

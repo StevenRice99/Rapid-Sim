@@ -1,17 +1,6 @@
-﻿using UnityEngine;
-
-public class RobotInverseKinematicsTester : MonoBehaviour
+﻿public class RobotInverseKinematicsTester : RobotHomeTester
 {
-    [SerializeField]
-    private RobotAgent robot;
-
-    [SerializeField]
-    private bool move;
-
-    [SerializeField]
-    private bool snap;
-
-    private void Update()
+    protected override void Update()
     {
         if (move)
         {

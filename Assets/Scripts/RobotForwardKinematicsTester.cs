@@ -1,7 +1,6 @@
 ﻿using System.Linq;
 using UnityEngine;
 
-[RequireComponent(typeof(RobotAgent))]
 public class RobotForwardKinematicsTester : RobotHomeTester
 {
     [SerializeField]
@@ -12,13 +11,13 @@ public class RobotForwardKinematicsTester : RobotHomeTester
         if (move)
         {
             move = false;
-            Robot.Move(angles.ToList());
+            robot.Move(angles.ToList());
         }
 
         if (snap)
         {
             snap = false;
-            Robot.Snap(angles.ToList());
+            robot.Snap(angles.ToList());
         }
     }
 }
