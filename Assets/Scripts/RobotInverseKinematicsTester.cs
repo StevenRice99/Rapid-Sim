@@ -1,17 +1,12 @@
 ﻿public class RobotInverseKinematicsTester : RobotHomeTester
 {
-    protected override void Update()
+    protected override void Move()
     {
-        if (move)
-        {
-            move = false;
-            robot.Move(transform);
-        }
+        robot.Move(transform);
+    }
 
-        if (snap)
-        {
-            snap = false;
-            robot.Snap(transform);
-        }
+    protected override void Snap()
+    {
+        robot.Snap(transform);
     }
 }

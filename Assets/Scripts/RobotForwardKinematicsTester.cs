@@ -6,18 +6,13 @@ public class RobotForwardKinematicsTester : RobotHomeTester
     [SerializeField]
     private float[] angles;
 
-    protected override void Update()
+    protected override void Move()
     {
-        if (move)
-        {
-            move = false;
-            robot.Move(angles.ToList());
-        }
+        robot.Move(angles.ToList());
+    }
 
-        if (snap)
-        {
-            snap = false;
-            robot.Snap(angles.ToList());
-        }
+    protected override void Snap()
+    {
+        robot.Snap(angles.ToList());
     }
 }

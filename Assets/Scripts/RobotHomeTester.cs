@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class RobotHomeTester : MonoBehaviour
 {
@@ -39,18 +38,30 @@ public class RobotHomeTester : MonoBehaviour
         Awake();
     }
 
-    protected virtual void Update()
+    private void Update()
     {
         if (move)
         {
             move = false;
-            robot.MoveHome();
+            Move();
         }
 
-        if (snap)
+        if (!snap)
         {
-            snap = false;
-            robot.SnapHome();
+            return;
         }
+
+        snap = false;
+        Snap();
+    }
+
+    protected virtual void Move()
+    {
+        robot.MoveHome();
+    }
+
+    protected virtual void Snap()
+    {
+        robot.SnapHome();
     }
 }
