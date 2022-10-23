@@ -6,11 +6,12 @@ public struct Layer
 
     public readonly float[] Outputs;
     public readonly float[,] Weights;
-    public readonly float[] Gamma;
+    public readonly float[] OutputGradient;
     
     private readonly int _numberOfInputs;
     private readonly int _numberOfOutputs;
-    private readonly float[,] _weightsDelta;
+    private readonly float[] _bias;
+    private readonly float[,] _weightsGradient;
 
     private float[] _inputs;
 
@@ -23,9 +24,11 @@ public struct Layer
         Outputs = new float[numberOfOutputs];
 
         Weights = new float[_numberOfOutputs, _numberOfInputs];
-        _weightsDelta = new float[_numberOfOutputs, _numberOfInputs];
+        _weightsGradient = new float[_numberOfOutputs, _numberOfInputs];
+
+        _bias = new float[_numberOfOutputs];
         
-        Gamma = new float[numberOfOutputs];
+        OutputGradient = new float[numberOfOutputs];
 
         uint seed = (uint) System.DateTime.UtcNow.Ticks;
         if (seed == 0)
@@ -41,6 +44,8 @@ public struct Layer
             {
                 Weights[i, j] = random.NextFloat(-0.5f, 0.5f);
             }
+            
+            _bias[i] = random.NextFloat(-0.5f, 0.5f);
         }
     }
 
@@ -50,7 +55,7 @@ public struct Layer
 
         for (int i = 0; i < _numberOfOutputs; i++)
         {
-            Outputs[i] = 0;
+            Outputs[i] = _bias[i];
             for (int j = 0; j < _numberOfInputs; j++)
             {
                 Outputs[i] += _inputs[j] * Weights[i, j];
@@ -67,11 +72,11 @@ public struct Layer
         for (int i = 0; i < _numberOfOutputs; i++)
         {
             // ERROR
-            Gamma[i] = (Outputs[i] - expected[i]) * ActivationDerivative(Outputs[i]);
+            OutputGradient[i] = (Outputs[i] - expected[i]) * ActivationDerivative(Outputs[i]);
             
             for (int j = 0; j < _numberOfInputs; j++)
             {
-                _weightsDelta[i, j] = Gamma[i] * _inputs[j];
+                _weightsGradient[i, j] = OutputGradient[i] * _inputs[j];
             }
         }
     }
@@ -80,18 +85,18 @@ public struct Layer
     {
         for (int i = 0; i < _numberOfOutputs; i++)
         {
-            Gamma[i] = 0;
+            OutputGradient[i] = 0;
 
             for (int j = 0; j < gammaForward.Length; j++)
             {
-                Gamma[i] += gammaForward[j] * weightsForward[j, i];
+                OutputGradient[i] += gammaForward[j] * weightsForward[j, i];
             }
 
-            Gamma[i] *= ActivationDerivative(Outputs[i]);
+            OutputGradient[i] *= ActivationDerivative(Outputs[i]);
             
             for (int j = 0; j < _numberOfInputs; j++)
             {
-                _weightsDelta[i, j] = Gamma[i] * _inputs[j];
+                _weightsGradient[i, j] = OutputGradient[i] * _inputs[j];
             }
         }
     }
@@ -102,8 +107,10 @@ public struct Layer
         {
             for (int j = 0; j < _numberOfInputs; j++)
             {
-                Weights[i, j] -= _weightsDelta[i, j] * LearningRate;
+                Weights[i, j] -= _weightsGradient[i, j] * LearningRate;
             }
+
+            _bias[i] -= OutputGradient[i] * LearningRate;
         }
     }
 

@@ -28,7 +28,7 @@
         _layers[^1].BackPropOutput(expected);
         for (int i = _layers.Length - 2; i >= 0; i--)
         {
-            _layers[i].BackPropHidden(_layers[i + 1].Gamma, _layers[i + 1].Weights);
+            _layers[i].BackPropHidden(_layers[i + 1].OutputGradient, _layers[i + 1].Weights);
         }
 
         for (int i = 0; i < _layers.Length; i++)
