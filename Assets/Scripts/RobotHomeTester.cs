@@ -3,7 +3,7 @@
 public class RobotHomeTester : MonoBehaviour
 {
     [SerializeField]
-    protected RobotAgent robot;
+    protected RobotController robot;
     
     [SerializeField]
     protected bool move;
@@ -18,19 +18,19 @@ public class RobotHomeTester : MonoBehaviour
             return;
         }
         
-        robot = GetComponent<RobotAgent>();
+        robot = GetComponent<RobotController>();
         if (robot != null)
         {
             return;
         }
         
-        robot = GetComponentInChildren<RobotAgent>();
+        robot = GetComponentInChildren<RobotController>();
         if (robot != null)
         {
             return;
         }
 
-        robot = FindObjectOfType<RobotAgent>();
+        robot = FindObjectOfType<RobotController>();
     }
 
     private void OnValidate()

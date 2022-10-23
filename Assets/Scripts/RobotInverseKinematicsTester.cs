@@ -1,11 +1,44 @@
-﻿public class RobotInverseKinematicsTester : RobotHomeTester
+﻿using UnityEngine;
+
+public class RobotInverseKinematicsTester : MonoBehaviour
 {
-    protected override void Move()
+    [SerializeField]
+    protected RobotSolver robot;
+    
+    [SerializeField]
+    protected bool move;
+
+    [SerializeField]
+    protected bool snap;
+    
+    private void Awake()
+    {
+        if (robot != null)
+        {
+            return;
+        }
+        
+        robot = GetComponent<RobotSolver>();
+        if (robot != null)
+        {
+            return;
+        }
+        
+        robot = GetComponentInChildren<RobotSolver>();
+        if (robot != null)
+        {
+            return;
+        }
+
+        robot = FindObjectOfType<RobotSolver>();
+    }
+    
+    protected void Move()
     {
         robot.Move(transform);
     }
 
-    protected override void Snap()
+    protected void Snap()
     {
         robot.Snap(transform);
     }

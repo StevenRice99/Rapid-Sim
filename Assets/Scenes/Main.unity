@@ -1491,7 +1491,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a3584b1498a42fabba0287c0f2862bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  robot: {fileID: 1634662496}
+  robot: {fileID: 0}
   move: 0
   snap: 0
 --- !u!114 &1291932673
@@ -1732,8 +1732,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1634662495}
-  - component: {fileID: 1634662497}
   - component: {fileID: 1634662496}
+  - component: {fileID: 1634662498}
+  - component: {fileID: 1634662497}
   m_Layer: 0
   m_Name: ABB IRB 7600
   m_TagString: Untagged
@@ -1769,10 +1770,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e1e259900096a44a8aa8703705a7d42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  agentParameters:
-    maxStep: 0
-  hasUpgradedFromAgentParameters: 1
-  MaxStep: 1
   maxSpeeds:
   - 75
   - 50
@@ -1789,27 +1786,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 1634662494}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5d1c4e0b1822b495aa52bc52839ecb30, type: 3}
+  m_Script: {fileID: 11500000, guid: 3299c86de3094663bd357d65bc78fbf5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_BrainParameters:
-    VectorObservationSize: 13
-    NumStackedVectorObservations: 1
-    m_ActionSpec:
-      m_NumContinuousActions: 6
-      BranchSizes: 
-    VectorActionSize: 06000000
-    VectorActionDescriptions: []
-    VectorActionSpaceType: 1
-    hasUpgradedBrainParametersWithActionSpec: 1
-  m_Model: {fileID: 5022602860645237092, guid: 7fdb78644e0d76c448b97876d4608081, type: 3}
-  m_InferenceDevice: 0
-  m_BehaviorType: 0
-  m_BehaviorName: RobotIK
-  TeamId: 0
-  m_UseChildSensors: 1
-  m_UseChildActuators: 1
-  m_ObservableAttributeHandling: 0
+--- !u!114 &1634662498
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1634662494}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a593d8d2ec2147c18b824ed593fcceec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &1898101831
 GameObject:
   m_ObjectHideFlags: 0
