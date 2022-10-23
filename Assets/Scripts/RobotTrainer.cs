@@ -6,14 +6,14 @@ using Random = UnityEngine.Random;
 [RequireComponent(typeof(RobotSolver))]
 public class RobotTrainer : MonoBehaviour
 {
-    public RobotController _robotController { get; private set; }
+    public RobotController RobotController { get; private set; }
 
-    public RobotSolver _robotSolver { get; private set; }
+    public RobotSolver RobotSolver { get; private set; }
     
     private void Start()
     {
-        _robotController = GetComponent<RobotController>();
-        _robotSolver = GetComponent<RobotSolver>();
+        RobotController = GetComponent<RobotController>();
+        RobotSolver = GetComponent<RobotSolver>();
     }
 
     private void OnEnable()
@@ -28,10 +28,10 @@ public class RobotTrainer : MonoBehaviour
 
     public IEnumerable<float> RandomOrientation()
     {
-        float[] randomAngles = new float[_robotController.LowerLimits.Length];
-        for (int i = 0; i < _robotController.LowerLimits.Length; i++)
+        float[] randomAngles = new float[RobotController.LowerLimits.Length];
+        for (int i = 0; i < RobotController.LowerLimits.Length; i++)
         {
-            randomAngles[i] = Random.Range(_robotController.LowerLimits[i], _robotController.UpperLimits[i]);
+            randomAngles[i] = Random.Range(RobotController.LowerLimits[i], RobotController.UpperLimits[i]);
         }
 
         return randomAngles;

@@ -39,7 +39,7 @@ public class RobotSolver : MonoBehaviour
 
     public void Move(Vector3 position, Quaternion rotation)
     {
-        _robotController.Move(Solve(position, rotation));
+        _robotController.MoveRadians(Solve(position, rotation));
     }
     
     public void Snap(GameObject target)
@@ -69,19 +69,21 @@ public class RobotSolver : MonoBehaviour
     
     public void Snap(Vector3 position, Quaternion rotation)
     {
-        _robotController.Snap(Solve(position, rotation));
+        _robotController.SnapRadians(Solve(position, rotation));
     }
 
     private List<float> Solve(Vector3 position, Quaternion rotation)
     {
-        return Solve(PrepareInputs(_robotController.GetJoints(), position, rotation));
+        List<float> joints = JointOutputs(Solve(PrepareInputs(_robotController.GetJoints(), position, rotation)));
+        
+        // TODO: Finalize movement with Hybrid IK.
+
+        return joints;
     }
 
     public List<float> Solve(List<float> inputs)
     {
         // TODO: Solve with neural network.
-        // TODO: Convert network outputs back to radians.
-        // TODO: Smooth with Hybrid IK.
         return new();
     }
 

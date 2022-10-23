@@ -1,17 +1,11 @@
 ﻿using UnityEngine;
 
-public class RobotInverseKinematicsTester : MonoBehaviour
+public class RobotInverseKinematicsTester : RobotTester
 {
     [SerializeField]
     protected RobotSolver robot;
     
-    [SerializeField]
-    protected bool move;
-
-    [SerializeField]
-    protected bool snap;
-    
-    private void Awake()
+    protected override void Awake()
     {
         if (robot != null)
         {
@@ -33,12 +27,12 @@ public class RobotInverseKinematicsTester : MonoBehaviour
         robot = FindObjectOfType<RobotSolver>();
     }
     
-    protected void Move()
+    protected override void Move()
     {
         robot.Move(transform);
     }
 
-    protected void Snap()
+    protected override void Snap()
     {
         robot.Snap(transform);
     }

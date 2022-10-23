@@ -1491,7 +1491,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a3584b1498a42fabba0287c0f2862bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  robot: {fileID: 0}
+  robot: {fileID: 1634662498}
   move: 0
   snap: 0
 --- !u!114 &1291932673

@@ -51,6 +51,11 @@ public class RobotTrainerManager : MonoBehaviour
     {
         if (_singleton != null)
         {
+            if (_singleton != this)
+            {
+                Destroy(gameObject);
+            }
+            
             return;
         }
 
@@ -62,7 +67,7 @@ public class RobotTrainerManager : MonoBehaviour
     {
         for (int i = 0; i < _trainers.Count; i++)
         {
-            _trainers[i]._robotController.SnapRadians(_trainers[i].RandomOrientation().ToList());
+            _trainers[i].RobotController.SnapRadians(_trainers[i].RandomOrientation().ToList());
         }
 
         Physics.Simulate(Time.fixedDeltaTime);
@@ -71,20 +76,22 @@ public class RobotTrainerManager : MonoBehaviour
         
         for (int i = 0; i < _trainers.Count; i++)
         {
-            startAngles[i] = _trainers[i]._robotController.GetJoints();
-            _trainers[i]._robotController.SnapRadians(_trainers[i].RandomOrientation().ToList());
+            startAngles[i] = _trainers[i].RobotController.GetJoints();
+            _trainers[i].RobotController.SnapRadians(_trainers[i].RandomOrientation().ToList());
         }
 
         Physics.Simulate(Time.fixedDeltaTime);
 
         for (int i = 0; i < _trainers.Count; i++)
         {
-            Vector3 goalPosition = _trainers[i]._robotController.LastJoint.position;
-            Quaternion goalRotation = _trainers[i]._robotController.LastJoint.rotation;
+            Vector3 goalPosition = _trainers[i].RobotController.LastJoint.position;
+            Quaternion goalRotation = _trainers[i].RobotController.LastJoint.rotation;
         
             // TODO: Bio IK solve, get goal joint values.
+            // TODO: Convert results to radians.
+            // TODO: Convert radians between 0 and 1 relative to min and max joint values.
         
-            List<float> outputs = _trainers[i]._robotSolver.Solve(_trainers[i]._robotSolver.PrepareInputs(startAngles[i], goalPosition, goalRotation));
+            List<float> outputs = _trainers[i].RobotSolver.Solve(_trainers[i].RobotSolver.PrepareInputs(startAngles[i], goalPosition, goalRotation));
         
             // TODO: Back Propagate results with those from Bio IK.
         }
