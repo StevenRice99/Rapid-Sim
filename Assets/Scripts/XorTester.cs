@@ -37,14 +37,14 @@ public class XorTester : MonoBehaviour
             net.BackProp(new float[] { 1 });
         }
         
-        Debug.Log($"Predicted: {net.FeedForward(new float[] { 0, 0, 0 })[0]} | Expected: 0");
-        Debug.Log($"Predicted: {net.FeedForward(new float[] { 0, 0, 1 })[0]} | Expected: 1");
-        Debug.Log($"Predicted: {net.FeedForward(new float[] { 0, 1, 0 })[0]} | Expected: 1");
-        Debug.Log($"Predicted: {net.FeedForward(new float[] { 0, 1, 1 })[0]} | Expected: 0");
-        Debug.Log($"Predicted: {net.FeedForward(new float[] { 1, 0, 0 })[0]} | Expected: 1");
-        Debug.Log($"Predicted: {net.FeedForward(new float[] { 1, 0, 1 })[0]} | Expected: 0");
-        Debug.Log($"Predicted: {net.FeedForward(new float[] { 1, 1, 0 })[0]} | Expected: 0");
-        Debug.Log($"Predicted: {net.FeedForward(new float[] { 1, 1, 1 })[0]} | Expected: 1");
+        Debug.Log($"Expected: 0 | Predicted: {net.FeedForward(new float[] { 0, 0, 0 })[0]}");
+        Debug.Log($"Expected: 1 | Predicted: {net.FeedForward(new float[] { 0, 0, 1 })[0]}");
+        Debug.Log($"Expected: 1 | Predicted: {net.FeedForward(new float[] { 0, 1, 0 })[0]}");
+        Debug.Log($"Expected: 0 | Predicted: {net.FeedForward(new float[] { 0, 1, 1 })[0]}");
+        Debug.Log($"Expected: 1 | Predicted: {net.FeedForward(new float[] { 1, 0, 0 })[0]}");
+        Debug.Log($"Expected: 0 | Predicted: {net.FeedForward(new float[] { 1, 0, 1 })[0]}");
+        Debug.Log($"Expected: 0 | Predicted: {net.FeedForward(new float[] { 1, 1, 0 })[0]}");
+        Debug.Log($"Expected: 1 | Predicted: {net.FeedForward(new float[] { 1, 1, 1 })[0]}");
         
         Destroy(gameObject);
     }

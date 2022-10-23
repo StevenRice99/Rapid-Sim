@@ -1,4 +1,4 @@
-﻿public class NeuralNetwork
+﻿public struct NeuralNetwork
 {
     private readonly Layer[] _layers;
     

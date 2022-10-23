@@ -11,8 +11,7 @@ public struct Layer
     private readonly int _numberOfInputs;
     private readonly int _numberOfOutputs;
     private readonly float[,] _weightsDelta;
-    private readonly float[] _error;
-    
+
     private float[] _inputs;
 
     public Layer(int numberOfInputs, int numberOfOutputs)
@@ -27,9 +26,14 @@ public struct Layer
         _weightsDelta = new float[_numberOfOutputs, _numberOfInputs];
         
         Gamma = new float[numberOfOutputs];
-        _error = new float[numberOfOutputs];
 
-        Random random = new(math.max((uint) System.DateTime.UtcNow.Ticks, 1));
+        uint seed = (uint) System.DateTime.UtcNow.Ticks;
+        if (seed == 0)
+        {
+            seed = 1;
+        }
+
+        Random random = new(seed);
 
         for (int i = 0; i < _numberOfOutputs; i++)
         {
@@ -62,16 +66,9 @@ public struct Layer
     {
         for (int i = 0; i < _numberOfOutputs; i++)
         {
-            _error[i] = Outputs[i] - expected[i];
-        }
-
-        for (int i = 0; i < _numberOfOutputs; i++)
-        {
-            Gamma[i] = _error[i] * ActivationDerivative(Outputs[i]);
-        }
-
-        for (int i = 0; i < _numberOfOutputs; i++)
-        {
+            // ERROR
+            Gamma[i] = (Outputs[i] - expected[i]) * ActivationDerivative(Outputs[i]);
+            
             for (int j = 0; j < _numberOfInputs; j++)
             {
                 _weightsDelta[i, j] = Gamma[i] * _inputs[j];
@@ -91,10 +88,7 @@ public struct Layer
             }
 
             Gamma[i] *= ActivationDerivative(Outputs[i]);
-        }
-        
-        for (int i = 0; i < _numberOfOutputs; i++)
-        {
+            
             for (int j = 0; j < _numberOfInputs; j++)
             {
                 _weightsDelta[i, j] = Gamma[i] * _inputs[j];
