@@ -8,6 +8,7 @@ public struct NeuralNetwork
     public float beta2;
     public float epsilon;
     public float eta;
+    public int step;
     
     public NeuralNetwork(int[] layer, float eta = 0.01f, float beta1 = 0.9f, float beta2 = 0.999f, float epsilon = 0.00000001f)
     {
@@ -22,30 +23,89 @@ public struct NeuralNetwork
         this.beta2 = beta2;
         this.epsilon = epsilon;
         this.eta = eta;
+        step = 0;
     }
 
-    public float[] FeedForward(float[] inputs)
+    public float[] Forward(float[] inputs)
     {
-        layers[0].FeedForward(inputs);
+        layers[0].Forward(inputs);
         for (int i = 1; i < layers.Length; i++)
         {
-            layers[i].FeedForward(layers[i - 1].outputs);
+            layers[i].Forward(layers[i - 1].outputs);
         }
 
         return layers[^1].outputs;
     }
 
-    public void BackProp(float[] expected, int t)
+    public void Train(float[] inputs, float[] expected)
     {
-        layers[^1].BackPropOutput(expected);
-        for (int i = layers.Length - 2; i >= 0; i--)
+        Forward(inputs);
+        Backward(expected);
+    }
+
+    public float Test(float[] inputs, float[] expected)
+    {
+        float[] results = Forward(inputs);
+        float accuracy = 0;
+        for (int i = 0; i < expected.Length; i++)
         {
-            layers[i].BackPropHidden(layers[i + 1].deltaBias, layers[i + 1].weights);
+            accuracy += 1 - (expected[i] - results[i]);
         }
 
+        return accuracy / expected.Length;
+    }
+
+    public float Test(float[][] inputs, float[][] expected)
+    {
+        float accuracy = 0;
+        for (int i = 0; i < inputs.Length; i++)
+        {
+            accuracy += Test(inputs[i], expected[i]);
+        }
+
+        return accuracy / expected.Length;
+    }
+
+    private void Backward(float[] expected)
+    {
+        layers[^1].BackwardOutput(expected);
+        for (int i = layers.Length - 2; i >= 0; i--)
+        {
+            layers[i].BackwardHidden(layers[i + 1].deltaBias, layers[i + 1].weights);
+        }
+
+        step++;
         for (int i = 0; i < layers.Length; i++)
         {
-            layers[i].Optimize(t, eta, beta1, beta2, epsilon);
+            layers[i].Optimize(step, eta, beta1, beta2, epsilon);
         }
+    }
+
+    public void Reset(float newEta = 0.01f, float newBeta1 = 0.9f, float newBeta2 = 0.999f, float newEpsilon = 0.00000001f)
+    {
+        for (int i = 0; i < layers.Length; i++)
+        {
+            layers[i].Reset();
+        }
+        
+        beta1 = newBeta1;
+        beta2 = newBeta2;
+        epsilon = newEpsilon;
+        eta = newEta;
+        step = 0;
+    }
+
+    public void SetOptimization(float newEta = 0.01f, float newBeta1 = 0.9f, float newBeta2 = 0.999f, float newEpsilon = 0.00000001f)
+    {
+        for (int i = 0; i < layers.Length; i++)
+        {
+            layers[i].ResetOptimization();
+        }
+        
+        beta1 = newBeta1;
+        beta2 = newBeta2;
+        epsilon = newEpsilon;
+        eta = newEta;
+        step = 0;
     }
 }

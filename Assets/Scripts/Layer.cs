@@ -44,30 +44,10 @@ public struct Layer
         momentumDeltaBias = new float[this.numberOfOutputs];
         velocityDeltaBias = new float[this.numberOfOutputs];
 
-        uint seed = (uint) DateTime.UtcNow.Ticks;
-        if (seed == 0)
-        {
-            seed = 1;
-        }
-
-        Random random = new(seed);
-
-        for (int i = 0; i < this.numberOfOutputs; i++)
-        {
-            for (int j = 0; j < this.numberOfInputs; j++)
-            {
-                weights[i].data[j] = random.NextFloat(-0.5f, 0.5f);
-                momentumDeltaWeights[i].data[j] = 0;
-                velocityDeltaWeights[i].data[j] = 0;
-            }
-            
-            bias[i] = random.NextFloat(-0.5f, 0.5f);
-            momentumDeltaBias[i] = 0;
-            velocityDeltaBias[i] = 0;
-        }
+        Reset();
     }
 
-    public float[] FeedForward(float[] input)
+    public float[] Forward(float[] input)
     {
         for (int i = 0; i < inputs.Length; i++)
         {
@@ -88,7 +68,7 @@ public struct Layer
         return outputs;
     }
 
-    public void BackPropOutput(float[] expected)
+    public void BackwardOutput(float[] expected)
     {
         for (int i = 0; i < numberOfOutputs; i++)
         {
@@ -101,7 +81,7 @@ public struct Layer
         }
     }
 
-    public void BackPropHidden(float[] gammaForward, WrappedArray[] weightsForward)
+    public void BackwardHidden(float[] gammaForward, WrappedArray[] weightsForward)
     {
         for (int i = 0; i < numberOfOutputs; i++)
         {
@@ -121,7 +101,7 @@ public struct Layer
         }
     }
 
-    public void Optimize(int t, float eta, float beta1, float beta2, float epsilon)
+    public void Optimize(int step, float eta, float beta1, float beta2, float epsilon)
     {
         for (int i = 0; i < numberOfOutputs; i++)
         {
@@ -130,8 +110,8 @@ public struct Layer
                 momentumDeltaWeights[i].data[j] = beta1 * momentumDeltaWeights[i].data[j] + (1 - beta1) * deltaWeights[i].data[j];
                 velocityDeltaWeights[i].data[j] = beta2 * velocityDeltaWeights[i].data[j] + (1 - beta2) * math.pow(deltaWeights[i].data[j], 2);
             
-                float momentumDeltaWeightCorrection = momentumDeltaWeights[i].data[j] / (1 - math.pow(beta1, t));
-                float velocityDeltaWeightCorrection = velocityDeltaWeights[i].data[j] / (1 - math.pow(beta2, t));
+                float momentumDeltaWeightCorrection = momentumDeltaWeights[i].data[j] / (1 - math.pow(beta1, step));
+                float velocityDeltaWeightCorrection = velocityDeltaWeights[i].data[j] / (1 - math.pow(beta2, step));
                 
                 weights[i].data[j] -= eta * (momentumDeltaWeightCorrection / (math.sqrt(velocityDeltaWeightCorrection) + epsilon));
             }
@@ -139,10 +119,50 @@ public struct Layer
             momentumDeltaBias[i] = beta1 * momentumDeltaBias[i] + (1 - beta1) * deltaBias[i];
             velocityDeltaBias[i] = beta2 * velocityDeltaBias[i] + (1 - beta2) * deltaBias[i];
             
-            float momentumDeltaBiaCorrection = momentumDeltaBias[i] / (1 - math.pow(beta1, t));
-            float velocityDeltaBiaCorrection = velocityDeltaBias[i] / (1 - math.pow(beta2, t));
+            float momentumDeltaBiaCorrection = momentumDeltaBias[i] / (1 - math.pow(beta1, step));
+            float velocityDeltaBiaCorrection = velocityDeltaBias[i] / (1 - math.pow(beta2, step));
 
             deltaBias[i] -= eta * (momentumDeltaBiaCorrection / (math.sqrt(velocityDeltaBiaCorrection) + epsilon));
+        }
+    }
+
+    public void Reset()
+    {
+        uint seed = (uint) DateTime.UtcNow.Ticks;
+        if (seed == 0)
+        {
+            seed = 1;
+        }
+
+        Random random = new(seed);
+
+        for (int i = 0; i < numberOfOutputs; i++)
+        {
+            for (int j = 0; j < numberOfInputs; j++)
+            {
+                weights[i].data[j] = random.NextFloat(-0.5f, 0.5f);
+                momentumDeltaWeights[i].data[j] = 0;
+                velocityDeltaWeights[i].data[j] = 0;
+            }
+            
+            bias[i] = random.NextFloat(-0.5f, 0.5f);
+            momentumDeltaBias[i] = 0;
+            velocityDeltaBias[i] = 0;
+        }
+    }
+
+    public void ResetOptimization()
+    {
+        for (int i = 0; i < numberOfOutputs; i++)
+        {
+            for (int j = 0; j < numberOfInputs; j++)
+            {
+                momentumDeltaWeights[i].data[j] = 0;
+                velocityDeltaWeights[i].data[j] = 0;
+            }
+            
+            momentumDeltaBias[i] = 0;
+            velocityDeltaBias[i] = 0;
         }
     }
 

@@ -7,8 +7,6 @@ public class XorTester : MonoBehaviour
     
     private void Start()
     {
-        int trainingStep = 1;
-
         NeuralNetwork net;
 
         if (data != null && !string.IsNullOrWhiteSpace(data.json))
@@ -20,29 +18,14 @@ public class XorTester : MonoBehaviour
             net = new(new[] { 3, 25, 25, 1 });
             for (int i = 0; i < 100; i++)
             {
-                net.FeedForward(new float[] { 0, 0, 0 });
-                net.BackProp(new float[] { 0 }, trainingStep++);
-            
-                net.FeedForward(new float[] { 0, 0, 1 });
-                net.BackProp(new float[] { 1 }, trainingStep++);
-            
-                net.FeedForward(new float[] { 0, 1, 0 });
-                net.BackProp(new float[] { 1 }, trainingStep++);
-            
-                net.FeedForward(new float[] { 0, 1, 1 });
-                net.BackProp(new float[] { 0 }, trainingStep++);
-            
-                net.FeedForward(new float[] { 1, 0, 0 });
-                net.BackProp(new float[] { 1 }, trainingStep++);
-            
-                net.FeedForward(new float[] { 1, 0, 1 });
-                net.BackProp(new float[] { 0 }, trainingStep++);
-            
-                net.FeedForward(new float[] { 1, 1, 0 });
-                net.BackProp(new float[] { 0 }, trainingStep++);
-            
-                net.FeedForward(new float[] { 1, 1, 1 });
-                net.BackProp(new float[] { 1 }, trainingStep++);
+                net.Train(new float[] { 0, 0, 0 }, new float[] { 0 });
+                net.Train(new float[] { 0, 0, 1 }, new float[] { 1 });
+                net.Train(new float[] { 0, 1, 0 }, new float[] { 1 });
+                net.Train(new float[] { 0, 1, 1 }, new float[] { 0 });
+                net.Train(new float[] { 1, 0, 0 }, new float[] { 1 });
+                net.Train(new float[] { 1, 0, 1 }, new float[] { 0 });
+                net.Train(new float[] { 1, 1, 0 }, new float[] { 0 });
+                net.Train(new float[] { 1, 1, 1 }, new float[] { 1 });
             }
             
             if (data != null)
@@ -52,14 +35,89 @@ public class XorTester : MonoBehaviour
             }
         }
 
-        Debug.Log($"Expected: 0 | Predicted: {net.FeedForward(new float[] { 0, 0, 0 })[0]}");
-        Debug.Log($"Expected: 1 | Predicted: {net.FeedForward(new float[] { 0, 0, 1 })[0]}");
-        Debug.Log($"Expected: 1 | Predicted: {net.FeedForward(new float[] { 0, 1, 0 })[0]}");
-        Debug.Log($"Expected: 0 | Predicted: {net.FeedForward(new float[] { 0, 1, 1 })[0]}");
-        Debug.Log($"Expected: 1 | Predicted: {net.FeedForward(new float[] { 1, 0, 0 })[0]}");
-        Debug.Log($"Expected: 0 | Predicted: {net.FeedForward(new float[] { 1, 0, 1 })[0]}");
-        Debug.Log($"Expected: 0 | Predicted: {net.FeedForward(new float[] { 1, 1, 0 })[0]}");
-        Debug.Log($"Expected: 1 | Predicted: {net.FeedForward(new float[] { 1, 1, 1 })[0]}");
+        Debug.Log($"Expected: 0 | Predicted: {net.Forward(new float[] { 0, 0, 0 })[0]}");
+        Debug.Log($"Expected: 1 | Predicted: {net.Forward(new float[] { 0, 0, 1 })[0]}");
+        Debug.Log($"Expected: 1 | Predicted: {net.Forward(new float[] { 0, 1, 0 })[0]}");
+        Debug.Log($"Expected: 0 | Predicted: {net.Forward(new float[] { 0, 1, 1 })[0]}");
+        Debug.Log($"Expected: 1 | Predicted: {net.Forward(new float[] { 1, 0, 0 })[0]}");
+        Debug.Log($"Expected: 0 | Predicted: {net.Forward(new float[] { 1, 0, 1 })[0]}");
+        Debug.Log($"Expected: 0 | Predicted: {net.Forward(new float[] { 1, 1, 0 })[0]}");
+        Debug.Log($"Expected: 1 | Predicted: {net.Forward(new float[] { 1, 1, 1 })[0]}");
+
+        float[][] inputs =
+        {
+            new float[]
+            {
+                0, 0, 0
+            },
+            new float[]
+            {
+                0, 0, 1
+            },
+            new float[]
+            {
+                0, 1, 0
+            },
+            new float[]
+            {
+                0, 1, 1
+            },
+            new float[]
+            {
+                1, 0, 0
+            },
+            new float[]
+            {
+                1, 0, 1
+            },
+            new float[]
+            {
+                1, 1, 0
+            },
+            new float[]
+            {
+                1, 1, 1
+            },
+        };
+
+        float[][] outputs =
+        {
+            new float[]
+            {
+                0
+            },
+            new float[]
+            {
+                1
+            },
+            new float[]
+            {
+                1
+            },
+            new float[]
+            {
+                0
+            },
+            new float[]
+            {
+                1
+            },
+            new float[]
+            {
+                0
+            },
+            new float[]
+            {
+                0
+            },
+            new float[]
+            {
+                1
+            },
+        };
+
+        float accuracy = net.Test(inputs, outputs);
+        Debug.Log($"Accuracy: {accuracy}");
 
         Destroy(gameObject);
     }
