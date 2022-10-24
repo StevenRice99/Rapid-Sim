@@ -1,40 +1,50 @@
-﻿using Unity.Mathematics;
+﻿using System;
+using Unity.Mathematics;
+using Random = Unity.Mathematics.Random;
 
-public readonly struct Layer
+[Serializable]
+public struct Layer
 {
-    public readonly float[] Outputs;
-    public readonly float[,] Weights;
-    public readonly float[] DeltaBias;
+    public float[] outputs;
+    public WrappedArray[] weights;
+    public float[] deltaBias;
 
-    private readonly float[] _inputs;
-    private readonly int _numberOfInputs;
-    private readonly int _numberOfOutputs;
-    private readonly float[] _bias;
-    private readonly float[,] _deltaWeights;
-    private readonly float[,] _momentumDeltaWeights;
-    private readonly float[,] _velocityDeltaWeights;
-    private readonly float[] _momentumDeltaBias;
-    private readonly float[] _velocityDeltaBias;
+    public float[] inputs;
+    public int numberOfInputs;
+    public int numberOfOutputs;
+    public float[] bias;
+    public WrappedArray[] deltaWeights;
+    public WrappedArray[] momentumDeltaWeights;
+    public WrappedArray[] velocityDeltaWeights;
+    public float[] momentumDeltaBias;
+    public float[] velocityDeltaBias;
 
     public Layer(int numberOfInputs, int numberOfOutputs)
     {
-        _numberOfInputs = numberOfInputs;
-        _numberOfOutputs = numberOfOutputs;
+        this.numberOfInputs = numberOfInputs;
+        this.numberOfOutputs = numberOfOutputs;
 
-        _inputs = new float[_numberOfInputs];
-        Outputs = new float[_numberOfOutputs];
+        inputs = new float[this.numberOfInputs];
+        outputs = new float[this.numberOfOutputs];
 
-        Weights = new float[_numberOfOutputs, _numberOfInputs];
-        _deltaWeights = new float[_numberOfOutputs, _numberOfInputs];
-        _momentumDeltaWeights = new float[_numberOfOutputs, _numberOfInputs];
-        _velocityDeltaWeights = new float[_numberOfOutputs, _numberOfInputs];
+        weights = new WrappedArray[this.numberOfOutputs];
+        deltaWeights = new WrappedArray[this.numberOfOutputs];
+        momentumDeltaWeights = new WrappedArray[this.numberOfOutputs];
+        velocityDeltaWeights = new WrappedArray[this.numberOfOutputs];
+        for (int i = 0; i < this.numberOfOutputs; i++)
+        {
+            weights[i].data = new float[this.numberOfInputs];
+            deltaWeights[i].data = new float[this.numberOfInputs];
+            momentumDeltaWeights[i].data = new float[this.numberOfInputs];
+            velocityDeltaWeights[i].data = new float[this.numberOfInputs];
+        }
 
-        _bias = new float[_numberOfOutputs];
-        DeltaBias = new float[_numberOfOutputs];
-        _momentumDeltaBias = new float[_numberOfOutputs];
-        _velocityDeltaBias = new float[_numberOfOutputs];
+        bias = new float[this.numberOfOutputs];
+        deltaBias = new float[this.numberOfOutputs];
+        momentumDeltaBias = new float[this.numberOfOutputs];
+        velocityDeltaBias = new float[this.numberOfOutputs];
 
-        uint seed = (uint) System.DateTime.UtcNow.Ticks;
+        uint seed = (uint) DateTime.UtcNow.Ticks;
         if (seed == 0)
         {
             seed = 1;
@@ -42,97 +52,97 @@ public readonly struct Layer
 
         Random random = new(seed);
 
-        for (int i = 0; i < _numberOfOutputs; i++)
+        for (int i = 0; i < this.numberOfOutputs; i++)
         {
-            for (int j = 0; j < _numberOfInputs; j++)
+            for (int j = 0; j < this.numberOfInputs; j++)
             {
-                Weights[i, j] = random.NextFloat(-0.5f, 0.5f);
-                _momentumDeltaWeights[i, j] = 0;
-                _velocityDeltaWeights[i, j] = 0;
+                weights[i].data[j] = random.NextFloat(-0.5f, 0.5f);
+                momentumDeltaWeights[i].data[j] = 0;
+                velocityDeltaWeights[i].data[j] = 0;
             }
             
-            _bias[i] = random.NextFloat(-0.5f, 0.5f);
-            _momentumDeltaBias[i] = 0;
-            _velocityDeltaBias[i] = 0;
+            bias[i] = random.NextFloat(-0.5f, 0.5f);
+            momentumDeltaBias[i] = 0;
+            velocityDeltaBias[i] = 0;
         }
     }
 
     public float[] FeedForward(float[] input)
     {
-        for (int i = 0; i < _inputs.Length; i++)
+        for (int i = 0; i < inputs.Length; i++)
         {
-            _inputs[i] = input[i];
+            inputs[i] = input[i];
         }
 
-        for (int i = 0; i < _numberOfOutputs; i++)
+        for (int i = 0; i < numberOfOutputs; i++)
         {
-            Outputs[i] = _bias[i];
-            for (int j = 0; j < _numberOfInputs; j++)
+            outputs[i] = bias[i];
+            for (int j = 0; j < numberOfInputs; j++)
             {
-                Outputs[i] += _inputs[j] * Weights[i, j];
+                outputs[i] += inputs[j] * weights[i].data[j];
             }
 
-            Outputs[i] = Activation(Outputs[i]);
+            outputs[i] = Activation(outputs[i]);
         }
 
-        return Outputs;
+        return outputs;
     }
 
     public void BackPropOutput(float[] expected)
     {
-        for (int i = 0; i < _numberOfOutputs; i++)
+        for (int i = 0; i < numberOfOutputs; i++)
         {
-            DeltaBias[i] = (Outputs[i] - expected[i]) * ActivationDerivative(Outputs[i]);
+            deltaBias[i] = (outputs[i] - expected[i]) * ActivationDerivative(outputs[i]);
             
-            for (int j = 0; j < _numberOfInputs; j++)
+            for (int j = 0; j < numberOfInputs; j++)
             {
-                _deltaWeights[i, j] = DeltaBias[i] * _inputs[j];
+                deltaWeights[i].data[j] = deltaBias[i] * inputs[j];
             }
         }
     }
 
-    public void BackPropHidden(float[] gammaForward, float[,] weightsForward)
+    public void BackPropHidden(float[] gammaForward, WrappedArray[] weightsForward)
     {
-        for (int i = 0; i < _numberOfOutputs; i++)
+        for (int i = 0; i < numberOfOutputs; i++)
         {
-            DeltaBias[i] = 0;
+            deltaBias[i] = 0;
 
             for (int j = 0; j < gammaForward.Length; j++)
             {
-                DeltaBias[i] += gammaForward[j] * weightsForward[j, i];
+                deltaBias[i] += gammaForward[j] * weightsForward[j].data[i];
             }
 
-            DeltaBias[i] *= ActivationDerivative(Outputs[i]);
+            deltaBias[i] *= ActivationDerivative(outputs[i]);
             
-            for (int j = 0; j < _numberOfInputs; j++)
+            for (int j = 0; j < numberOfInputs; j++)
             {
-                _deltaWeights[i, j] = DeltaBias[i] * _inputs[j];
+                deltaWeights[i].data[j] = deltaBias[i] * inputs[j];
             }
         }
     }
 
     public void Optimize(int t, float eta, float beta1, float beta2, float epsilon)
     {
-        for (int i = 0; i < _numberOfOutputs; i++)
+        for (int i = 0; i < numberOfOutputs; i++)
         {
-            for (int j = 0; j < _numberOfInputs; j++)
+            for (int j = 0; j < numberOfInputs; j++)
             {
-                _momentumDeltaWeights[i, j] = beta1 * _momentumDeltaWeights[i, j] + (1 - beta1) * _deltaWeights[i, j];
-                _velocityDeltaWeights[i, j] = beta2 * _velocityDeltaWeights[i, j] + (1 - beta2) * math.pow(_deltaWeights[i, j], 2);
+                momentumDeltaWeights[i].data[j] = beta1 * momentumDeltaWeights[i].data[j] + (1 - beta1) * deltaWeights[i].data[j];
+                velocityDeltaWeights[i].data[j] = beta2 * velocityDeltaWeights[i].data[j] + (1 - beta2) * math.pow(deltaWeights[i].data[j], 2);
             
-                float momentumDeltaWeightCorrection = _momentumDeltaWeights[i, j] / (1 - math.pow(beta1, t));
-                float velocityDeltaWeightCorrection = _velocityDeltaWeights[i, j] / (1 - math.pow(beta2, t));
+                float momentumDeltaWeightCorrection = momentumDeltaWeights[i].data[j] / (1 - math.pow(beta1, t));
+                float velocityDeltaWeightCorrection = velocityDeltaWeights[i].data[j] / (1 - math.pow(beta2, t));
                 
-                Weights[i, j] -= eta * (momentumDeltaWeightCorrection / (math.sqrt(velocityDeltaWeightCorrection) + epsilon));
+                weights[i].data[j] -= eta * (momentumDeltaWeightCorrection / (math.sqrt(velocityDeltaWeightCorrection) + epsilon));
             }
             
-            _momentumDeltaBias[i] = beta1 * _momentumDeltaBias[i] + (1 - beta1) * DeltaBias[i];
-            _velocityDeltaBias[i] = beta2 * _velocityDeltaBias[i] + (1 - beta2) * DeltaBias[i];
+            momentumDeltaBias[i] = beta1 * momentumDeltaBias[i] + (1 - beta1) * deltaBias[i];
+            velocityDeltaBias[i] = beta2 * velocityDeltaBias[i] + (1 - beta2) * deltaBias[i];
             
-            float momentumDeltaBiaCorrection = _momentumDeltaBias[i] / (1 - math.pow(beta1, t));
-            float velocityDeltaBiaCorrection = _velocityDeltaBias[i] / (1 - math.pow(beta2, t));
+            float momentumDeltaBiaCorrection = momentumDeltaBias[i] / (1 - math.pow(beta1, t));
+            float velocityDeltaBiaCorrection = velocityDeltaBias[i] / (1 - math.pow(beta2, t));
 
-            DeltaBias[i] -= eta * (momentumDeltaBiaCorrection / (math.sqrt(velocityDeltaBiaCorrection) + epsilon));
+            deltaBias[i] -= eta * (momentumDeltaBiaCorrection / (math.sqrt(velocityDeltaBiaCorrection) + epsilon));
         }
     }
 
