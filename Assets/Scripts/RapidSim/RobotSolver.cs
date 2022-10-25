@@ -16,6 +16,8 @@ namespace RapidSim
 
         private NeuralNetwork _net;
 
+        public int NetworkSteps => _net.step;
+
         private void Start()
         {
             _robotController = GetComponent<RobotController>();
@@ -38,7 +40,6 @@ namespace RapidSim
             }
 
             _net = new(layers);
-            Debug.Log(_net);
         }
     
         public void Move(GameObject target)

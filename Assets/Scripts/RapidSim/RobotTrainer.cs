@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -8,6 +9,10 @@ namespace RapidSim
     [RequireComponent(typeof(RobotSolver))]
     public class RobotTrainer : MonoBehaviour
     {
+        [Min(1)]
+        [SerializeField]
+        private int maxSteps = 1;
+        
         public RobotController RobotController { get; private set; }
 
         public RobotSolver RobotSolver { get; private set; }
@@ -42,6 +47,14 @@ namespace RapidSim
             }
 
             return randomAngles;
+        }
+
+        public void LateUpdate()
+        {
+            if (RobotSolver.NetworkSteps >= maxSteps)
+            {
+                Destroy(this);
+            }
         }
     }
 }

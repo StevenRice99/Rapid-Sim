@@ -91,7 +91,7 @@ namespace RapidSim
         
                 // TODO: Bio IK solve, get goal joint values.
                 // TODO: Convert results to radians.
-                float[] expected = new float[1];
+                float[] expected = new float[startAngles[i].Count];
                 
                 _trainers[i].Train(goalPosition, goalRotation, startAngles[i], expected);
             }
