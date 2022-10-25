@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace RapidSim.NeuralNetwork.Testers
+namespace RapidSim.Networks.Testers
 {
     public class XorTester : MonoBehaviour
     {
@@ -11,9 +11,9 @@ namespace RapidSim.NeuralNetwork.Testers
         {
             NeuralNetwork net;
 
-            if (data != null && !string.IsNullOrWhiteSpace(data.json))
+            if (data != null && data.HasModel)
             {
-                net = JsonUtility.FromJson<NeuralNetwork>(data.json);
+                net = data.Load();
             }
             else
             {
@@ -32,8 +32,7 @@ namespace RapidSim.NeuralNetwork.Testers
             
                 if (data != null)
                 {
-                    string json = JsonUtility.ToJson(net, true);
-                    data.json = json;
+                    data.Save(net);
                 }
             }
 

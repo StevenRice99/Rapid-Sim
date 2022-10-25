@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using RapidSim.Networks;
 using UnityEngine;
 
 namespace RapidSim
@@ -7,11 +9,36 @@ namespace RapidSim
     [RequireComponent(typeof(RobotController))]
     public class RobotSolver : MonoBehaviour
     {
+        [SerializeField]
+        private NeuralNetworkData data;
+        
         private RobotController _robotController;
+
+        private NeuralNetwork _net;
 
         private void Start()
         {
             _robotController = GetComponent<RobotController>();
+
+            if (data != null && data.HasModel)
+            {
+                _net = data.Load();
+                return;
+            }
+
+            int s = _robotController.GetJoints().Count;
+            int[] layers = new int[s + 2];
+            layers[^1] = s;
+            s += 7;
+            layers[0] = s;
+            s *= 2;
+            for (int i = 1; i < layers.Length - 1; i++)
+            {
+                layers[i] = s;
+            }
+
+            _net = new(layers);
+            Debug.Log(_net);
         }
     
         public void Move(GameObject target)
@@ -74,38 +101,45 @@ namespace RapidSim
             _robotController.SnapRadians(Solve(position, rotation));
         }
 
+        public void Train(Vector3 position, Quaternion rotation, List<float> joints, float[] expected)
+        {
+            _net.Train(PrepareInputs(NetScaled(joints), position, rotation), NetScaled(expected.ToList()).ToArray());
+        }
+
         private List<float> Solve(Vector3 position, Quaternion rotation)
         {
-            List<float> joints = JointOutputs(Solve(PrepareInputs(_robotController.GetJoints(), position, rotation)));
+            float[] joints = RadianScaled(_net.Forward(PrepareInputs(NetScaled(_robotController.GetJoints()), position, rotation)));
         
             // TODO: Finalize movement with Hybrid IK.
 
-            return joints;
+            return joints.ToList();
         }
 
-        public List<float> Solve(List<float> inputs)
+        private List<float> Solve(List<float> inputs)
         {
-            // TODO: Solve with neural network.
-            return new();
+            return _net.Forward(inputs.ToArray()).ToList();
         }
 
-        public List<float> PrepareInputs(List<float> joints, Vector3 position, Quaternion rotation)
+        public float[] PrepareInputs(List<float> joints, Vector3 position, Quaternion rotation)
         {
-            List<float> inputs = new();
+            float[] inputs = new float[7 + joints.Count];
             position = RelativePosition(position);
-            inputs.Add(position.x);
-            inputs.Add(position.y);
-            inputs.Add(position.z);
+            inputs[0] = position.x;
+            inputs[1] = position.y;
+            inputs[2] = position.z;
             rotation = RelativeRotation(rotation);
-            inputs.Add(rotation.x);
-            inputs.Add(rotation.y);
-            inputs.Add(rotation.z);
-            inputs.Add(rotation.w);
-            inputs.AddRange(JointInputs(joints));
+            inputs[3] = rotation.x;
+            inputs[4] = rotation.y;
+            inputs[5] = rotation.z;
+            inputs[6] = rotation.w;
+            for (int i = 0; i < joints.Count; i++)
+            {
+                inputs[i + 7] = joints[i];
+            }
             return inputs;
         }
     
-        private List<float> JointInputs(List<float> joints)
+        private List<float> NetScaled(List<float> joints)
         {
             for (int i = 0; i < joints.Count; i++)
             {
@@ -115,9 +149,9 @@ namespace RapidSim
             return joints;
         }
     
-        private List<float> JointOutputs(List<float> joints)
+        private float[] RadianScaled(float[] joints)
         {
-            for (int i = 0; i < joints.Count; i++)
+            for (int i = 0; i < joints.Length; i++)
             {
                 joints[i] = Mathf.Clamp(joints[i] * (_robotController.UpperLimits[i] - _robotController.LowerLimits[i]) + _robotController.LowerLimits[i], _robotController.LowerLimits[i], _robotController.UpperLimits[i]);
             }

@@ -91,11 +91,9 @@ namespace RapidSim
         
                 // TODO: Bio IK solve, get goal joint values.
                 // TODO: Convert results to radians.
-                // TODO: Convert radians between 0 and 1 relative to min and max joint values.
-        
-                List<float> outputs = _trainers[i].RobotSolver.Solve(_trainers[i].RobotSolver.PrepareInputs(startAngles[i], goalPosition, goalRotation));
-        
-                // TODO: Back Propagate results with those from Bio IK.
+                float[] expected = new float[1];
+                
+                _trainers[i].Train(goalPosition, goalRotation, startAngles[i], expected);
             }
         }
     }

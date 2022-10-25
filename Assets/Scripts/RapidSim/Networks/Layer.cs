@@ -2,7 +2,7 @@
 using Unity.Mathematics;
 using Random = Unity.Mathematics.Random;
 
-namespace RapidSim.NeuralNetwork
+namespace RapidSim.Networks
 {
     [Serializable]
     public struct Layer

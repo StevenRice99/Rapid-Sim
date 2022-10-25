@@ -28,6 +28,11 @@ namespace RapidSim
             RobotTrainerManager.Unregister(this);
         }
 
+        public void Train(Vector3 position, Quaternion rotation, List<float> joints, float[] expected)
+        {
+            RobotSolver.Train(position, rotation, joints, expected);
+        }
+
         public IEnumerable<float> RandomOrientation()
         {
             float[] randomAngles = new float[RobotController.LowerLimits.Length];

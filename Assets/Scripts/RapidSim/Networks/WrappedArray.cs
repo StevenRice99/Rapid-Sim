@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace RapidSim.NeuralNetwork
+namespace RapidSim.Networks
 {
     [Serializable]
     public struct WrappedArray
