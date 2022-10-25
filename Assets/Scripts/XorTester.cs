@@ -77,7 +77,7 @@ public class XorTester : MonoBehaviour
             new float[]
             {
                 1, 1, 1
-            },
+            }
         };
 
         float[][] outputs =
@@ -113,11 +113,11 @@ public class XorTester : MonoBehaviour
             new float[]
             {
                 1
-            },
+            }
         };
 
-        float accuracy = net.Test(inputs, outputs);
-        Debug.Log($"Accuracy: {accuracy}");
+        Debug.Log($"Accuracy: {net.Test(inputs, outputs)}");
+        Debug.Log(net);
 
         Destroy(gameObject);
     }

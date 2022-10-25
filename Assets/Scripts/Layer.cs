@@ -19,6 +19,8 @@ public struct Layer
     public float[] momentumDeltaBias;
     public float[] velocityDeltaBias;
 
+    public int NumberOfParameters => numberOfInputs * numberOfOutputs + numberOfOutputs;
+
     public Layer(int numberOfInputs, int numberOfOutputs)
     {
         this.numberOfInputs = numberOfInputs;
@@ -174,5 +176,10 @@ public struct Layer
     private static float ActivationDerivative(float value)
     {
         return 1 - value * value;
+    }
+
+    public override string ToString()
+    {
+        return $"Inputs: {inputs.Length} | Outputs: {outputs.Length} | Parameters: {NumberOfParameters}";
     }
 }

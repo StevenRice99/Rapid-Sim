@@ -108,4 +108,24 @@ public struct NeuralNetwork
         eta = newEta;
         step = 0;
     }
+
+    public override string ToString()
+    {
+        int neurons = 0;
+        int parameters = 0;
+
+        for (int i = 0; i < layers.Length; i++)
+        {
+            neurons += layers[i].outputs.Length;
+            parameters += layers[i].NumberOfParameters;
+        }
+
+        string s = $"Neural Network - Layers: {layers.Length} | Inputs: {layers[0].inputs.Length} | Outputs: {layers[^1].outputs.Length} | Neurons: {neurons} | Parameters: {parameters}";
+        for (int i = 0; i < layers.Length; i++)
+        {
+            s += $"\nLayer {i + 1} - {layers[i]}";
+        }
+        
+        return s;
+    }
 }
