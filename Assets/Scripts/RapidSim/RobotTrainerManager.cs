@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace RapidSim
@@ -67,19 +66,12 @@ namespace RapidSim
 
         private void Update()
         {
-            for (int i = 0; i < _trainers.Count; i++)
-            {
-                _trainers[i].RandomOrientation();
-            }
-
-            Physics.Simulate(Time.fixedDeltaTime);
-
-            List<float>[] startAngles = new List<float>[_trainers.Count];
+            List<float>[] joints = new List<float>[_trainers.Count];
         
             for (int i = 0; i < _trainers.Count; i++)
             {
-                startAngles[i] = _trainers[i].Joints;
-                _trainers[i].RandomOrientation();
+                joints[i] = _trainers[i].RandomOrientation();
+                _trainers[i].SetRandomOrientation();
             }
 
             Physics.Simulate(Time.fixedDeltaTime);
@@ -91,9 +83,9 @@ namespace RapidSim
         
                 // TODO: Bio IK solve, get goal joint values.
                 // TODO: Convert results to radians.
-                float[] expected = new float[startAngles[i].Count];
+                float[] expected = new float[joints[i].Count];
                 
-                _trainers[i].Train(goalPosition, goalRotation, startAngles[i], expected);
+                _trainers[i].Train(goalPosition, goalRotation, joints[i], expected);
             }
         }
     }

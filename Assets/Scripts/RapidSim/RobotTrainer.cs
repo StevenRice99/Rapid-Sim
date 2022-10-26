@@ -46,15 +46,20 @@ namespace RapidSim
             RobotSolver.Net.Train(RobotSolver.PrepareInputs(RobotSolver.NetScaled(joints), position, rotation), RobotSolver.NetScaled(expected.ToList()).ToArray());
         }
 
-        public void RandomOrientation()
+        public List<float> RandomOrientation()
         {
-            List<float> randomAngles = new();
+            List<float> joints = new();
             for (int i = 0; i < RobotController.LowerLimits.Length; i++)
             {
-                randomAngles.Add(Random.Range(RobotController.LowerLimits[i], RobotController.UpperLimits[i]));
+                joints.Add(Random.Range(RobotController.LowerLimits[i], RobotController.UpperLimits[i]));
             }
 
-            RobotController.SnapRadians(randomAngles);
+            return joints;
+        }
+
+        public void SetRandomOrientation()
+        {
+            RobotController.SnapRadians(RandomOrientation());
         }
 
         private void LateUpdate()
