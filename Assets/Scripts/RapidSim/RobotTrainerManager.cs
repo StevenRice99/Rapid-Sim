@@ -69,7 +69,7 @@ namespace RapidSim
         {
             for (int i = 0; i < _trainers.Count; i++)
             {
-                _trainers[i].RobotController.SnapRadians(_trainers[i].RandomOrientation().ToList());
+                _trainers[i].RandomOrientation();
             }
 
             Physics.Simulate(Time.fixedDeltaTime);
@@ -78,16 +78,16 @@ namespace RapidSim
         
             for (int i = 0; i < _trainers.Count; i++)
             {
-                startAngles[i] = _trainers[i].RobotController.GetJoints();
-                _trainers[i].RobotController.SnapRadians(_trainers[i].RandomOrientation().ToList());
+                startAngles[i] = _trainers[i].Joints;
+                _trainers[i].RandomOrientation();
             }
 
             Physics.Simulate(Time.fixedDeltaTime);
 
             for (int i = 0; i < _trainers.Count; i++)
             {
-                Vector3 goalPosition = _trainers[i].RobotController.LastJoint.position;
-                Quaternion goalRotation = _trainers[i].RobotController.LastJoint.rotation;
+                Vector3 goalPosition = _trainers[i].Objective.position;
+                Quaternion goalRotation = _trainers[i].Objective.rotation;
         
                 // TODO: Bio IK solve, get goal joint values.
                 // TODO: Convert results to radians.

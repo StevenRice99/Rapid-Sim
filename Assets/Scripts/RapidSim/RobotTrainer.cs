@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -16,6 +16,12 @@ namespace RapidSim
         public RobotController RobotController { get; private set; }
 
         public RobotSolver RobotSolver { get; private set; }
+
+        private BioIK.BioIK _bioIK;
+
+        public List<float> Joints => RobotController.GetJoints();
+
+        public Transform Objective => RobotController.LastJoint.transform;
     
         private void Start()
         {
@@ -26,35 +32,52 @@ namespace RapidSim
         private void OnEnable()
         {
             RobotTrainerManager.Register(this);
+            SetupBioIk();
         }
 
         private void OnDisable()
         {
             RobotTrainerManager.Unregister(this);
+            Destroy(_bioIK.gameObject);
         }
 
         public void Train(Vector3 position, Quaternion rotation, List<float> joints, float[] expected)
         {
-            RobotSolver.Train(position, rotation, joints, expected);
+            RobotSolver.Net.Train(RobotSolver.PrepareInputs(RobotSolver.NetScaled(joints), position, rotation), RobotSolver.NetScaled(expected.ToList()).ToArray());
         }
 
-        public IEnumerable<float> RandomOrientation()
+        public void RandomOrientation()
         {
-            float[] randomAngles = new float[RobotController.LowerLimits.Length];
+            List<float> randomAngles = new();
             for (int i = 0; i < RobotController.LowerLimits.Length; i++)
             {
-                randomAngles[i] = Random.Range(RobotController.LowerLimits[i], RobotController.UpperLimits[i]);
+                randomAngles.Add(Random.Range(RobotController.LowerLimits[i], RobotController.UpperLimits[i]));
             }
 
-            return randomAngles;
+            RobotController.SnapRadians(randomAngles);
         }
 
-        public void LateUpdate()
+        private void LateUpdate()
         {
             if (RobotSolver.NetworkSteps >= maxSteps)
             {
                 Destroy(this);
             }
+        }
+
+        private void SetupBioIk()
+        {
+            Transform rootTransform = RobotController.Root.transform;
+            GameObject bioIkHolder = new("Bio IK")
+            {
+                transform =
+                {
+                    parent = transform,
+                    position = rootTransform.position,
+                    rotation = rootTransform.rotation
+                }
+            };
+            _bioIK = bioIkHolder.AddComponent<BioIK.BioIK>();
         }
     }
 }

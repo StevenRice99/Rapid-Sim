@@ -11,12 +11,12 @@ namespace RapidSim
     {
         [SerializeField]
         private NeuralNetworkData data;
+
+        public NeuralNetwork Net { get; private set; }
         
         private RobotController _robotController;
 
-        private NeuralNetwork _net;
-
-        public int NetworkSteps => _net.step;
+        public int NetworkSteps => Net.step;
 
         private void Start()
         {
@@ -24,7 +24,7 @@ namespace RapidSim
 
             if (data != null && data.HasModel)
             {
-                _net = data.Load();
+                Net = data.Load();
                 return;
             }
 
@@ -39,7 +39,7 @@ namespace RapidSim
                 layers[i] = s;
             }
 
-            _net = new(layers);
+            Net = new(layers);
         }
     
         public void Move(GameObject target)
@@ -102,23 +102,13 @@ namespace RapidSim
             _robotController.SnapRadians(Solve(position, rotation));
         }
 
-        public void Train(Vector3 position, Quaternion rotation, List<float> joints, float[] expected)
-        {
-            _net.Train(PrepareInputs(NetScaled(joints), position, rotation), NetScaled(expected.ToList()).ToArray());
-        }
-
         private List<float> Solve(Vector3 position, Quaternion rotation)
         {
-            float[] joints = RadianScaled(_net.Forward(PrepareInputs(NetScaled(_robotController.GetJoints()), position, rotation)));
+            float[] joints = RadianScaled(Net.Forward(PrepareInputs(NetScaled(_robotController.GetJoints()), position, rotation)));
         
             // TODO: Finalize movement with Hybrid IK.
 
             return joints.ToList();
-        }
-
-        private List<float> Solve(List<float> inputs)
-        {
-            return _net.Forward(inputs.ToArray()).ToList();
         }
 
         public float[] PrepareInputs(List<float> joints, Vector3 position, Quaternion rotation)
@@ -140,7 +130,7 @@ namespace RapidSim
             return inputs;
         }
     
-        private List<float> NetScaled(List<float> joints)
+        public List<float> NetScaled(List<float> joints)
         {
             for (int i = 0; i < joints.Count; i++)
             {
