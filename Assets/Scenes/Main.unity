@@ -1491,9 +1491,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a3584b1498a42fabba0287c0f2862bf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  robot: {fileID: 1634662498}
   move: 0
   snap: 0
+  robot: {fileID: 1634662498}
 --- !u!114 &1291932673
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1506,9 +1506,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1be0994bbddc4c038d285f318e42f7c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  robot: {fileID: 1634662496}
   move: 0
   snap: 0
+  robot: {fileID: 1634662496}
   angles:
   - 60
   - 60
@@ -1528,9 +1528,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1be0994bbddc4c038d285f318e42f7c0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  robot: {fileID: 1634662496}
   move: 0
   snap: 0
+  robot: {fileID: 1634662496}
   angles:
   - 180
   - 85
@@ -1550,9 +1550,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 256b525eae724e4fb008e6364bb7a7e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  robot: {fileID: 1634662496}
   move: 0
   snap: 0
+  robot: {fileID: 1634662496}
 --- !u!1 &1380857903
 GameObject:
   m_ObjectHideFlags: 0
@@ -1789,6 +1789,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3299c86de3094663bd357d65bc78fbf5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxSteps: 1
 --- !u!114 &1634662498
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1801,6 +1802,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a593d8d2ec2147c18b824ed593fcceec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  data: {fileID: 0}
 --- !u!1 &1898101831
 GameObject:
   m_ObjectHideFlags: 0

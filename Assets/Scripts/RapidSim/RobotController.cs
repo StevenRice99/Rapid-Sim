@@ -10,9 +10,9 @@ namespace RapidSim
         [SerializeField]
         private float[] maxSpeeds;
 
-        public ArticulationBody Root { get; private set; }
+        public ArticulationBody Root => Joints[0].Joint;
 
-        public Transform LastJoint { get; private set; }
+        public Transform LastJoint => Joints[^1].Joint.transform;
 
         private List<float> _home;
 
@@ -30,13 +30,17 @@ namespace RapidSim
 
         public float ChainLength { get; private set; }
 
+        public JointData[] Joints { get; private set; }
+
         public void Start()
         {
-            Root = GetComponent<ArticulationBody>();
+            ArticulationBody root = GetComponent<ArticulationBody>();
         
             ArticulationBody[] children = GetComponentsInChildren<ArticulationBody>();
 
-            if (Root == null)
+            int offset;
+
+            if (root == null)
             {
                 if (children.Length == 0)
                 {
@@ -45,48 +49,50 @@ namespace RapidSim
                     return;
                 }
 
-                Root = children[0];
+                Joints = new JointData[children.Length];
+                offset = 0;
             }
             else if (children.Length > 0)
             {
+                Joints = new JointData[children.Length + 1];
+                Joints[0] = new(root);
                 ChainLength = Vector3.Distance(Root.transform.position, children[0].transform.position);
+                offset = 1;
+            }
+            else
+            {
+                Joints = new JointData[1];
+                Joints[0] = new(root);
+                offset = 1;
             }
 
-            _home = GetJoints();
-            LowerLimits = new float[_home.Count];
-            UpperLimits = new float[_home.Count];
-
-            ArticulationBody last = Root;
-
-            int dofIndex = 0;
-        
             for (int i = 0; i < children.Length; i++)
             {
-                if (children[i].index > last.index)
-                {
-                    last = children[i];
-                }
-
-                dofIndex = GetLimits(children[i].xDrive, dofIndex);
-                dofIndex = GetLimits(children[i].yDrive, dofIndex);
-                dofIndex = GetLimits(children[i].zDrive, dofIndex);
-
-                if (i == 0)
-                {
-                    continue;
-                }
-            
-                ChainLength += Vector3.Distance(children[i].transform.position, children[i - 1].transform.position);
+                Joints[i + offset] = new(children[i]);
             }
 
-            if (dofIndex != LowerLimits.Length)
+            for (int i = 0; i < Joints.Length; i++)
+            {
+                for (int j = i + 1; j < Joints.Length; j++)
+                {
+                    if (Joints[j].Joint.index != Joints[i].Joint.index + 1)
+                    {
+                        continue;
+                    }
+
+                    Joints[i].Child = Joints[j];
+                    break;
+                }
+            }
+
+            LowerLimits = Joints[0].LowerLimits().ToArray();
+            UpperLimits = Joints[0].UpperLimits().ToArray();
+
+            _home = GetJoints();
+
+            if (_home.Count != LowerLimits.Length)
             {
                 Debug.LogError($"Ensure all joints on {name} have limits defined.");
-            }
-
-            if (last != null)
-            {
-                LastJoint = last.transform;
             }
         
             _zeros = new();

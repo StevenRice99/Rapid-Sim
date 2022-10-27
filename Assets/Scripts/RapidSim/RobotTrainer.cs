@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -27,17 +28,21 @@ namespace RapidSim
         {
             RobotController = GetComponent<RobotController>();
             RobotSolver = GetComponent<RobotSolver>();
+            SetupBioIk();
         }
 
         private void OnEnable()
         {
             RobotTrainerManager.Register(this);
-            SetupBioIk();
         }
 
         private void OnDisable()
         {
             RobotTrainerManager.Unregister(this);
+        }
+
+        private void OnDestroy()
+        {
             Destroy(_bioIK.gameObject);
         }
 
@@ -83,6 +88,8 @@ namespace RapidSim
                 }
             };
             _bioIK = bioIkHolder.AddComponent<BioIK.BioIK>();
+            _bioIK.SetThreading(false);
+            _bioIK.Smoothing = 0;
         }
     }
 }

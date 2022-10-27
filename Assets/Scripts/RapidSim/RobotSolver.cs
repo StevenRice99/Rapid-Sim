@@ -114,7 +114,7 @@ namespace RapidSim
         public float[] PrepareInputs(List<float> joints, Vector3 position, Quaternion rotation)
         {
             float[] inputs = new float[7 + joints.Count];
-            position = RelativePosition(position);
+            position = RelativePosition(position) / _robotController.ChainLength;
             inputs[0] = position.x;
             inputs[1] = position.y;
             inputs[2] = position.z;
