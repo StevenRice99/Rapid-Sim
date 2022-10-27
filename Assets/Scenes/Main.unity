@@ -133,6 +133,7 @@ GameObject:
   m_Component:
   - component: {fileID: 44216939}
   - component: {fileID: 44216940}
+  - component: {fileID: 44216941}
   m_Layer: 0
   m_Name: Axis 3
   m_TagString: Untagged
@@ -183,22 +184,22 @@ ArticulationBody:
     upperLimit: 60
     stiffness: 100000
     damping: 100
-    forceLimit: 3.402823e+38
+    forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_ZDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
@@ -208,6 +209,21 @@ ArticulationBody:
   m_Immovable: 0
   m_UseGravity: 0
   m_CollisionDetectionMode: 0
+--- !u!114 &44216941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 44216938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speedX: 55
+  speedY: 0
+  speedZ: 0
 --- !u!1 &180788173
 GameObject:
   m_ObjectHideFlags: 0
@@ -388,6 +404,7 @@ GameObject:
   - component: {fileID: 295977425}
   - component: {fileID: 295977424}
   - component: {fileID: 295977426}
+  - component: {fileID: 295977427}
   m_Layer: 0
   m_Name: Base
   m_TagString: Untagged
@@ -487,24 +504,24 @@ ArticulationBody:
   m_XDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_ZDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
@@ -514,6 +531,21 @@ ArticulationBody:
   m_Immovable: 1
   m_UseGravity: 0
   m_CollisionDetectionMode: 0
+--- !u!114 &295977427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 295977422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speedX: 0
+  speedY: 0
+  speedZ: 0
 --- !u!1 &297292206
 GameObject:
   m_ObjectHideFlags: 0
@@ -694,6 +726,7 @@ GameObject:
   m_Component:
   - component: {fileID: 433310467}
   - component: {fileID: 433310468}
+  - component: {fileID: 433310469}
   m_Layer: 0
   m_Name: Axis 2
   m_TagString: Untagged
@@ -744,22 +777,22 @@ ArticulationBody:
     upperLimit: 85
     stiffness: 100000
     damping: 100
-    forceLimit: 3.402823e+38
+    forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_ZDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
@@ -769,6 +802,21 @@ ArticulationBody:
   m_Immovable: 0
   m_UseGravity: 0
   m_CollisionDetectionMode: 0
+--- !u!114 &433310469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 433310466}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speedX: 50
+  speedY: 0
+  speedZ: 0
 --- !u!1 &618374064
 GameObject:
   m_ObjectHideFlags: 0
@@ -949,6 +997,7 @@ GameObject:
   m_Component:
   - component: {fileID: 703460613}
   - component: {fileID: 703460614}
+  - component: {fileID: 703460615}
   m_Layer: 0
   m_Name: Axis 6
   m_TagString: Untagged
@@ -999,22 +1048,22 @@ ArticulationBody:
     upperLimit: 360
     stiffness: 100000
     damping: 100
-    forceLimit: 3.402823e+38
+    forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_ZDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
@@ -1024,6 +1073,21 @@ ArticulationBody:
   m_Immovable: 0
   m_UseGravity: 0
   m_CollisionDetectionMode: 0
+--- !u!114 &703460615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 703460612}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speedX: 160
+  speedY: 0
+  speedZ: 0
 --- !u!1 &766827063
 GameObject:
   m_ObjectHideFlags: 0
@@ -1317,6 +1381,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1266366584}
   - component: {fileID: 1266366585}
+  - component: {fileID: 1266366586}
   m_Layer: 0
   m_Name: Axis 1
   m_TagString: Untagged
@@ -1373,16 +1438,16 @@ ArticulationBody:
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_ZDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
@@ -1392,6 +1457,21 @@ ArticulationBody:
   m_Immovable: 0
   m_UseGravity: 0
   m_CollisionDetectionMode: 0
+--- !u!114 &1266366586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1266366583}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speedX: 75
+  speedY: 0
+  speedZ: 0
 --- !u!1 &1291932666
 GameObject:
   m_ObjectHideFlags: 0
@@ -1563,6 +1643,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1380857904}
   - component: {fileID: 1380857905}
+  - component: {fileID: 1380857906}
   m_Layer: 0
   m_Name: Axis 5
   m_TagString: Untagged
@@ -1613,22 +1694,22 @@ ArticulationBody:
     upperLimit: 100
     stiffness: 100000
     damping: 100
-    forceLimit: 3.402823e+38
+    forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_ZDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
@@ -1638,6 +1719,21 @@ ArticulationBody:
   m_Immovable: 0
   m_UseGravity: 0
   m_CollisionDetectionMode: 0
+--- !u!114 &1380857906
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1380857903}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speedX: 100
+  speedY: 0
+  speedZ: 0
 --- !u!1 &1382872281
 GameObject:
   m_ObjectHideFlags: 0
@@ -1770,13 +1866,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e1e259900096a44a8aa8703705a7d42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxSpeeds:
-  - 75
-  - 50
-  - 55
-  - 100
-  - 100
-  - 160
 --- !u!114 &1634662497
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1813,6 +1902,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1898101832}
   - component: {fileID: 1898101833}
+  - component: {fileID: 1898101834}
   m_Layer: 0
   m_Name: Axis 4
   m_TagString: Untagged
@@ -1863,22 +1953,22 @@ ArticulationBody:
     upperLimit: 300
     stiffness: 100000
     damping: 100
-    forceLimit: 3.402823e+38
+    forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_YDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
   m_ZDrive:
     lowerLimit: 0
     upperLimit: 0
-    stiffness: 0
-    damping: 0
+    stiffness: 100000
+    damping: 100
     forceLimit: 3.4028235e+38
     target: 0
     targetVelocity: 0
@@ -1888,3 +1978,18 @@ ArticulationBody:
   m_Immovable: 0
   m_UseGravity: 0
   m_CollisionDetectionMode: 0
+--- !u!114 &1898101834
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1898101831}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speedX: 100
+  speedY: 0
+  speedZ: 0

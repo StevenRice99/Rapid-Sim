@@ -104,7 +104,7 @@ namespace RapidSim
 
         private List<float> Solve(Vector3 position, Quaternion rotation)
         {
-            float[] joints = RadianScaled(Net.Forward(PrepareInputs(NetScaled(_robotController.GetJoints()), position, rotation)));
+            float[] joints = JointsScaled(Net.Forward(PrepareInputs(NetScaled(_robotController.GetJoints()), position, rotation)));
         
             // TODO: Finalize movement with Hybrid IK.
 
@@ -134,17 +134,17 @@ namespace RapidSim
         {
             for (int i = 0; i < joints.Count; i++)
             {
-                joints[i] = (joints[i] - _robotController.LowerLimits[i]) / (_robotController.UpperLimits[i] - _robotController.LowerLimits[i]);
+                joints[i] = (joints[i] - _robotController.Limits[i].Lower) / (_robotController.Limits[i].Upper - _robotController.Limits[i].Lower);
             }
 
             return joints;
         }
     
-        private float[] RadianScaled(float[] joints)
+        private float[] JointsScaled(float[] joints)
         {
             for (int i = 0; i < joints.Length; i++)
             {
-                joints[i] = Mathf.Clamp(joints[i] * (_robotController.UpperLimits[i] - _robotController.LowerLimits[i]) + _robotController.LowerLimits[i], _robotController.LowerLimits[i], _robotController.UpperLimits[i]);
+                joints[i] = Mathf.Clamp(joints[i] * (_robotController.Limits[i].Upper - _robotController.Limits[i].Lower) + _robotController.Limits[i].Lower, _robotController.Limits[i].Lower, _robotController.Limits[i].Upper);
             }
 
             return joints;

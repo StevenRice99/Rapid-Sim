@@ -7,12 +7,9 @@ namespace RapidSim
     [DisallowMultipleComponent]
     public class RobotController : MonoBehaviour
     {
-        [SerializeField]
-        private float[] maxSpeeds;
-
         public ArticulationBody Root => Joints[0].Joint;
 
-        public Transform LastJoint => Joints[^1].Joint.transform;
+        public Transform LastJoint => Joints[^1].transform;
 
         private List<float> _home;
 
@@ -21,24 +18,22 @@ namespace RapidSim
         private List<float> _targets;
 
         private bool _move;
+        
+        private float[] _maxSpeeds;
 
         private float[] _currentSpeeds;
 
-        public float[] LowerLimits { get; private set; }
-
-        public float[] UpperLimits { get; private set; }
+        public JointLimit[] Limits { get; private set; }
 
         public float ChainLength { get; private set; }
 
-        public JointData[] Joints { get; private set; }
+        public RobotJoint[] Joints { get; private set; }
 
         public void Start()
         {
-            ArticulationBody root = GetComponent<ArticulationBody>();
+            RobotJoint root = GetComponent<RobotJoint>();
         
-            ArticulationBody[] children = GetComponentsInChildren<ArticulationBody>();
-
-            int offset;
+            RobotJoint[] children = GetComponentsInChildren<RobotJoint>();
 
             if (root == null)
             {
@@ -49,48 +44,37 @@ namespace RapidSim
                     return;
                 }
 
-                Joints = new JointData[children.Length];
-                offset = 0;
+                Joints = children;
             }
             else if (children.Length > 0)
             {
-                Joints = new JointData[children.Length + 1];
-                Joints[0] = new(root);
+                Joints = new RobotJoint[children.Length + 1];
                 ChainLength = Vector3.Distance(Root.transform.position, children[0].transform.position);
-                offset = 1;
+                Joints[0] = root;
+                for (int i = 1; i < Joints.Length - 1; i++)
+                {
+                    Joints[i] = children[i - 1];
+                }
             }
             else
             {
-                Joints = new JointData[1];
-                Joints[0] = new(root);
-                offset = 1;
+                Joints = new RobotJoint[1];
+                Joints[0] = root;
             }
 
-            for (int i = 0; i < children.Length; i++)
-            {
-                Joints[i + offset] = new(children[i]);
-            }
+            Joints = Joints.OrderBy(j => j.Joint.index).ToArray();
 
+            List<JointLimit> limits = new();
             for (int i = 0; i < Joints.Length; i++)
             {
-                for (int j = i + 1; j < Joints.Length; j++)
-                {
-                    if (Joints[j].Joint.index != Joints[i].Joint.index + 1)
-                    {
-                        continue;
-                    }
-
-                    Joints[i].Child = Joints[j];
-                    break;
-                }
+                limits.AddRange(Joints[i].Limits());
             }
 
-            LowerLimits = Joints[0].LowerLimits().ToArray();
-            UpperLimits = Joints[0].UpperLimits().ToArray();
-
+            Limits = limits.ToArray();
             _home = GetJoints();
+            GetMaxSpeeds();
 
-            if (_home.Count != LowerLimits.Length)
+            if (_home.Count != Limits.Length)
             {
                 Debug.LogError($"Ensure all joints on {name} have limits defined.");
             }
@@ -100,17 +84,16 @@ namespace RapidSim
             {
                 _zeros.Add(0);
             }
-
-            SetMaxSpeeds(maxSpeeds);
-            _currentSpeeds = new float[maxSpeeds.Length];
+            
+            _currentSpeeds = new float[_maxSpeeds.Length];
             for (int i = 0; i < _currentSpeeds.Length; i++)
             {
-                _currentSpeeds[i] = maxSpeeds[i];
+                _currentSpeeds[i] = _maxSpeeds[i];
             }
 
-            if (_home.Count != maxSpeeds.Length)
+            if (_home.Count != _maxSpeeds.Length)
             {
-                Debug.LogError($"{name} has {_home.Count} degrees of freedom but {maxSpeeds.Length} speeds defined.");
+                Debug.LogError($"{name} has {_home.Count} degrees of freedom but {_maxSpeeds.Length} speeds defined.");
             }
         }
 
@@ -128,9 +111,9 @@ namespace RapidSim
             for (int i = 0; i < angles.Count; i++)
             {
                 angles[i] = Mathf.Abs(angles[i] - _targets[i]);
-                if (angles[i] / maxSpeeds[i] > time)
+                if (angles[i] / _maxSpeeds[i] > time)
                 {
-                    time = angles[i] / maxSpeeds[i];
+                    time = angles[i] / _maxSpeeds[i];
                 }
             }
 
@@ -166,21 +149,41 @@ namespace RapidSim
             SnapRadians(_home);
         }
 
-        public void SetMaxSpeeds(IEnumerable<float> degrees)
-        {
-            SetMaxSpeedsRadians(DegreesToRadians(degrees.ToList()).ToArray());
-        }
-
-        public void SetMaxSpeedsRadians(float[] radians)
-        {
-            maxSpeeds = radians;
-        }
-
         public List<float> GetJoints()
         {
             List<float> angles = new();
             Root.GetJointPositions(angles);
             return angles;
+        }
+
+        public void GetMaxSpeeds()
+        {
+            List<float> speeds = new();
+            
+            for (int i = 0; i < Joints.Length; i++)
+            {
+                if (!Joints[i].HasMotion)
+                {
+                    continue;
+                }
+
+                if (Joints[i].XMotion)
+                {
+                    speeds.Add(Joints[i].SpeedX);
+                }
+
+                if (Joints[i].YMotion)
+                {
+                    speeds.Add(Joints[i].SpeedY);
+                }
+
+                if (Joints[i].ZMotion)
+                {
+                    speeds.Add(Joints[i].SpeedZ);
+                }
+            }
+
+            _maxSpeeds = speeds.ToArray();
         }
 
         private void FixedUpdate()
@@ -239,18 +242,6 @@ namespace RapidSim
             Root.SetJointAccelerations(_zeros);
             Root.SetJointForces(_zeros);
             Root.SetJointPositions(list);
-        }
-
-        private int GetLimits(ArticulationDrive drive, int dofIndex)
-        {
-            if (drive.lowerLimit == 0 && drive.upperLimit == 0)
-            {
-                return dofIndex;
-            }
-
-            LowerLimits[dofIndex] = drive.lowerLimit * Mathf.Deg2Rad;
-            UpperLimits[dofIndex] = drive.upperLimit * Mathf.Deg2Rad;
-            return ++dofIndex;
         }
 
         private static List<float> DegreesToRadians(List<float> degrees)
