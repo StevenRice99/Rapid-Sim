@@ -283,7 +283,7 @@ namespace BioIK {
 			}
 		}
 
-		private void ProcessMotion(BioSegment segment) {
+		public void ProcessMotion(BioSegment segment) {
 			if(segment.Joint != null) {
 				if(segment.Joint.enabled) {
 					segment.Joint.ProcessMotion();

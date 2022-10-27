@@ -20,7 +20,11 @@ namespace RapidSim
 
         private BioIK.BioIK _bioIK;
 
-        public List<float> Joints => RobotController.GetJoints();
+        private BioJoint[] _bioJoints;
+
+        private Position _position;
+
+        private Orientation _orientation;
 
         public Transform Objective => RobotController.LastJoint.transform;
     
@@ -49,6 +53,63 @@ namespace RapidSim
             }
             
             Destroy(_bioIK.gameObject);
+        }
+
+        public float[] BioIkSolve(Vector3 position, Quaternion rotation)
+        {
+            _position.SetTargetPosition(position);
+            _orientation.SetTargetRotation(rotation);
+            
+            _bioIK.UpdateData(_bioIK.Root);
+            
+            for(int i = 0; i < _bioIK.Solution.Length; i++) {
+                _bioIK.Solution[i] = _bioIK.Evolution.GetModel().MotionPtrs[i].Motion.GetTargetValue(true);
+            }
+            
+            _bioIK.Solution = _bioIK.Evolution.Optimise(_bioIK.GetGenerations(), _bioIK.Solution);
+
+            for(int i = 0; i< _bioIK.Solution.Length; i++) {
+                BioJoint.Motion motion = _bioIK.Evolution.GetModel().MotionPtrs[i].Motion;
+                motion.SetTargetValue(_bioIK.Solution[i], true);
+            }
+
+            _bioIK.ProcessMotion(_bioIK.Root);
+
+            List<float> expected = new();
+            for (int i = 0; i < _bioJoints.Length; i++)
+            {
+                if (_bioJoints[i].X.Enabled)
+                {
+                    float value = (float) _bioJoints[i].X.CurrentValue;
+                    if (_bioJoints[i].JointType == JointType.Rotational)
+                    {
+                        value *= Mathf.Deg2Rad;
+                    }
+                    expected.Add(value);
+                }
+                
+                if (_bioJoints[i].Y.Enabled)
+                {
+                    float value = (float) _bioJoints[i].Y.CurrentValue;
+                    if (_bioJoints[i].JointType == JointType.Rotational)
+                    {
+                        value *= Mathf.Deg2Rad;
+                    }
+                    expected.Add(value);
+                }
+                
+                if (_bioJoints[i].Z.Enabled)
+                {
+                    float value = (float) _bioJoints[i].Y.CurrentValue;
+                    if (_bioJoints[i].JointType == JointType.Rotational)
+                    {
+                        value *= Mathf.Deg2Rad;
+                    }
+                    expected.Add(value);
+                }
+            }
+
+            return RobotSolver.NetScaled(expected).ToArray();
         }
 
         public void Train(Vector3 position, Quaternion rotation, List<float> joints, float[] expected)
@@ -96,6 +157,8 @@ namespace RapidSim
             _bioIK.SetThreading(false);
             _bioIK.Smoothing = 0;
 
+            List<BioJoint> bioJoints = new();
+
             Transform parent = _bioIK.transform;
             for (int i = 0; i < RobotController.Joints.Length; i++)
             {
@@ -113,6 +176,21 @@ namespace RapidSim
                 BioSegment segment = go.GetComponent<BioSegment>();
                 parent = go.transform;
 
+                if (i == RobotController.Joints.Length - 1)
+                {
+                    _position = segment.AddObjective(ObjectiveType.Position) as Position;
+                    if (_position != null)
+                    {
+                        _position.SetMaximumError(0);
+                    }
+
+                    _orientation = segment.AddObjective(ObjectiveType.Orientation) as Orientation;
+                    if (_orientation != null)
+                    {
+                        _orientation.SetMaximumError(0);
+                    }
+                }
+
                 if (!RobotController.Joints[i].HasMotion)
                 {
                     continue;
@@ -122,6 +200,7 @@ namespace RapidSim
                 bioJoint.JointType = RobotController.Joints[i].Type == ArticulationJointType.PrismaticJoint ? JointType.Translational : JointType.Rotational;
                 bioJoint.SetOrientation(Vector3.zero);
                 bioJoint.SetAnchor(Vector3.zero);
+                bioJoints.Add(bioJoint);
 
                 bioJoint.X = new(bioJoint, Vector3.zero)
                 {
@@ -192,6 +271,8 @@ namespace RapidSim
                     bioJoint.Z.Enabled = false;
                 }
             }
+
+            _bioJoints = bioJoints.ToArray();
         }
     }
 }

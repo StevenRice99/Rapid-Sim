@@ -81,10 +81,15 @@ namespace RapidSim
                 Vector3 goalPosition = _trainers[i].Objective.position;
                 Quaternion goalRotation = _trainers[i].Objective.rotation;
         
-                // TODO: Bio IK solve, get goal joint values.
-                // TODO: Convert results to radians.
-                float[] expected = new float[joints[i].Count];
-                
+                float[] expected = _trainers[i].BioIkSolve(goalPosition, goalRotation);
+
+                /*
+                for (int j = 0; j < expected.Length; j++)
+                {
+                    Debug.Log($"Expected {j}: {expected[j]}");
+                }
+                */
+
                 _trainers[i].Train(goalPosition, goalRotation, joints[i], expected);
             }
         }
