@@ -35,13 +35,13 @@ namespace RapidSim.Testers
         protected override void Move()
         {
             Transform t = transform;
-            robot.Move(robotTrainer.RobotSolver.JointsScaled(robotTrainer.BioIkSolve(t.position, t.rotation)).ToList());
+            robot.MoveRadians(robotTrainer.BioIkSolve(t.position, t.rotation).ToList());
         }
 
         protected override void Snap()
         {
             Transform t = transform;
-            robot.Snap(robotTrainer.RobotSolver.JointsScaled(robotTrainer.BioIkSolve(t.position, t.rotation)).ToList());
+            robot.SnapRadians(robotTrainer.BioIkSolve(t.position, t.rotation).ToList());
         }
     }
 }

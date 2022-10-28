@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace RapidSim
@@ -81,9 +82,10 @@ namespace RapidSim
                 Vector3 goalPosition = _trainers[i].Objective.position;
                 Quaternion goalRotation = _trainers[i].Objective.rotation;
         
-                float[] expected = _trainers[i].BioIkSolve(goalPosition, goalRotation);
+                float[] expected = _trainers[i].RobotSolver.NetScaled(_trainers[i].BioIkSolve(goalPosition, goalRotation).ToList()).ToArray();
 
                 /*
+                Debug.Log("Expected Values:");
                 for (int j = 0; j < expected.Length; j++)
                 {
                     Debug.Log($"Expected {j}: {expected[j]}");

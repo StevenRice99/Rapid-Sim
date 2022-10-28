@@ -38,10 +38,6 @@ namespace BioIK {
 			Refresh();
 		}
 
-		void Start() {
-			
-		}
-
 		void OnDestroy() {
 			Destroyed = true;
 			DeInitialise();
@@ -69,38 +65,38 @@ namespace BioIK {
 			}
 		}
 
-		void Update() {
-			PrecaptureAnimation(Root);
-		}
-		
-		void LateUpdate() {
-			PostcaptureAnimation(Root);
-		
-			UpdateData(Root);
-		
-			for(int i=0; i<Solution.Length; i++) {
-				Solution[i] = Evolution.GetModel().MotionPtrs[i].Motion.GetTargetValue(true);
-			}
-			Solution = Evolution.Optimise(Generations, Solution);
-			
-			for(int i=0; i<Solution.Length; i++) {
-				BioJoint.Motion motion = Evolution.GetModel().MotionPtrs[i].Motion;
-				motion.SetTargetValue(Solution[i], true);
-				/*
-				if(motion.Joint.GetJointType() == JointType.Revolute) {
-					motion.SetTargetValue((float)Solution[i]);
-				} else if(motion.Joint.GetJointType() == JointType.Continuous) {
-					motion.SetTargetValue(motion.GetTargetValue() + Mathf.Deg2Rad*Mathf.DeltaAngle(Mathf.Rad2Deg*motion.GetTargetValue(), Mathf.Rad2Deg*(float)Solution[i]));
-				} else if(motion.Joint.GetJointType() == JointType.Prismatic) {
-					motion.SetTargetValue((float)Solution[i]);
-				} else if(motion.Joint.GetJointType() == JointType.Floating) {
-					motion.SetTargetValue((float)Solution[i]);
-				}
-				*/
-			}
-		
-			ProcessMotion(Root);
-		}
+		// void Update() {
+		// 	PrecaptureAnimation(Root);
+		// }
+		//
+		// void LateUpdate() {
+		// 	PostcaptureAnimation(Root);
+		//
+		// 	UpdateData(Root);
+		//
+		// 	for(int i=0; i<Solution.Length; i++) {
+		// 		Solution[i] = Evolution.GetModel().MotionPtrs[i].Motion.GetTargetValue(true);
+		// 	}
+		// 	Solution = Evolution.Optimise(Generations, Solution);
+		// 	
+		// 	for(int i=0; i<Solution.Length; i++) {
+		// 		BioJoint.Motion motion = Evolution.GetModel().MotionPtrs[i].Motion;
+		// 		motion.SetTargetValue(Solution[i], true);
+		// 		/*
+		// 		if(motion.Joint.GetJointType() == JointType.Revolute) {
+		// 			motion.SetTargetValue((float)Solution[i]);
+		// 		} else if(motion.Joint.GetJointType() == JointType.Continuous) {
+		// 			motion.SetTargetValue(motion.GetTargetValue() + Mathf.Deg2Rad*Mathf.DeltaAngle(Mathf.Rad2Deg*motion.GetTargetValue(), Mathf.Rad2Deg*(float)Solution[i]));
+		// 		} else if(motion.Joint.GetJointType() == JointType.Prismatic) {
+		// 			motion.SetTargetValue((float)Solution[i]);
+		// 		} else if(motion.Joint.GetJointType() == JointType.Floating) {
+		// 			motion.SetTargetValue((float)Solution[i]);
+		// 		}
+		// 		*/
+		// 	}
+		//
+		// 	ProcessMotion(Root);
+		// }
 
 		public void SetThreading(bool enabled) {
 			if(UseThreading != enabled) {

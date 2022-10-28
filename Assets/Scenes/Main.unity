@@ -1483,11 +1483,11 @@ GameObject:
   - component: {fileID: 1291932671}
   - component: {fileID: 1291932670}
   - component: {fileID: 1291932669}
+  - component: {fileID: 1291932676}
+  - component: {fileID: 1291932672}
   - component: {fileID: 1291932675}
   - component: {fileID: 1291932674}
   - component: {fileID: 1291932673}
-  - component: {fileID: 1291932672}
-  - component: {fileID: 1291932676}
   m_Layer: 0
   m_Name: Tester
   m_TagString: Untagged
