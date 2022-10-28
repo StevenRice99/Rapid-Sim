@@ -31,7 +31,7 @@ namespace BioIK {
 		private int DoF;
 
 		void Awake() {
-			EditorApplication.playmodeStateChanged += PlaymodeStateChanged;
+			EditorApplication.playModeStateChanged += PlaymodeStateChanged;
 			Target = (BioIK)target;
 			TargetTransform = Target.transform;
 			Target.Refresh(false);
@@ -94,7 +94,7 @@ namespace BioIK {
 			}
 		}
 
-		private void PlaymodeStateChanged() {
+		private void PlaymodeStateChanged(PlayModeStateChange state) {
 			IsPlaying = Application.isPlaying;
 		}
 

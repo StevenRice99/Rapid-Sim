@@ -1487,6 +1487,7 @@ GameObject:
   - component: {fileID: 1291932674}
   - component: {fileID: 1291932673}
   - component: {fileID: 1291932672}
+  - component: {fileID: 1291932676}
   m_Layer: 0
   m_Name: Tester
   m_TagString: Untagged
@@ -1633,6 +1634,22 @@ MonoBehaviour:
   move: 0
   snap: 0
   robot: {fileID: 1634662496}
+--- !u!114 &1291932676
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1291932666}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c626fbef7f9540a5b3a09e5a1e57cb7b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  move: 0
+  snap: 0
+  robot: {fileID: 1634662496}
+  robotTrainer: {fileID: 1634662497}
 --- !u!1 &1380857903
 GameObject:
   m_ObjectHideFlags: 0
@@ -1879,6 +1896,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxSteps: 1
+  train: 0
 --- !u!114 &1634662498
 MonoBehaviour:
   m_ObjectHideFlags: 0

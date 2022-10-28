@@ -140,7 +140,7 @@ namespace RapidSim
             return joints;
         }
     
-        private float[] JointsScaled(float[] joints)
+        public float[] JointsScaled(float[] joints)
         {
             for (int i = 0; i < joints.Length; i++)
             {

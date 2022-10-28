@@ -72,12 +72,12 @@ namespace BioIK {
 		void Update() {
 			PrecaptureAnimation(Root);
 		}
-
+		
 		void LateUpdate() {
 			PostcaptureAnimation(Root);
-
+		
 			UpdateData(Root);
-
+		
 			for(int i=0; i<Solution.Length; i++) {
 				Solution[i] = Evolution.GetModel().MotionPtrs[i].Motion.GetTargetValue(true);
 			}
@@ -98,7 +98,7 @@ namespace BioIK {
 				}
 				*/
 			}
-
+		
 			ProcessMotion(Root);
 		}
 
@@ -261,7 +261,7 @@ namespace BioIK {
 			}
 		}
 
-		private void PrecaptureAnimation(BioSegment segment) {
+		public void PrecaptureAnimation(BioSegment segment) {
 			if(segment.Joint != null) {
 				if(segment.Joint.enabled) {
 					segment.Joint.PrecaptureAnimation();
@@ -272,7 +272,7 @@ namespace BioIK {
 			}
 		}
 
-		private void PostcaptureAnimation(BioSegment segment) {
+		public void PostcaptureAnimation(BioSegment segment) {
 			if(segment.Joint != null) {
 				if(segment.Joint.enabled) {
 					segment.Joint.PostcaptureAnimation();

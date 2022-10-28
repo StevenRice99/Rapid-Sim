@@ -14,6 +14,9 @@ namespace RapidSim
         [SerializeField]
         private int maxSteps = 1;
         
+        [SerializeField]
+        private bool train;
+        
         public RobotController RobotController { get; private set; }
 
         public RobotSolver RobotSolver { get; private set; }
@@ -26,6 +29,10 @@ namespace RapidSim
 
         private Orientation _orientation;
 
+        private Transform _bioIkTarget;
+
+        private bool _train;
+
         public Transform Objective => RobotController.LastJoint.transform;
     
         private void Start()
@@ -33,16 +40,6 @@ namespace RapidSim
             RobotController = GetComponent<RobotController>();
             RobotSolver = GetComponent<RobotSolver>();
             SetupBioIk();
-        }
-
-        private void OnEnable()
-        {
-            RobotTrainerManager.Register(this);
-        }
-
-        private void OnDisable()
-        {
-            RobotTrainerManager.Unregister(this);
         }
 
         private void OnDestroy()
@@ -55,10 +52,18 @@ namespace RapidSim
             Destroy(_bioIK.gameObject);
         }
 
-        public float[] BioIkSolve(Vector3 position, Quaternion rotation)
+        private void OnEnable()
         {
-            _position.SetTargetPosition(position);
-            _orientation.SetTargetRotation(rotation);
+            _train = train;
+            UpdateTraining();
+        }
+
+        public float[] BioIkSolve(Vector3 position, Quaternion orientation)
+        {
+            _bioIkTarget.position = position;
+            _bioIkTarget.rotation = orientation;
+            
+            _bioIK.Refresh();
             
             _bioIK.UpdateData(_bioIK.Root);
             
@@ -133,11 +138,31 @@ namespace RapidSim
             RobotController.SnapRadians(RandomOrientation());
         }
 
-        private void LateUpdate()
+        private void Update()
         {
             if (RobotSolver.NetworkSteps >= maxSteps)
             {
                 Destroy(this);
+            }
+
+            if (train == _train)
+            {
+                return;
+            }
+
+            _train = train;
+            UpdateTraining();
+        }
+
+        private void UpdateTraining()
+        {
+            if (train)
+            {
+                RobotTrainerManager.Register(this);
+            }
+            else
+            {
+                RobotTrainerManager.Unregister(this);
             }
         }
 
@@ -156,13 +181,32 @@ namespace RapidSim
             _bioIK = bioIkHolder.AddComponent<BioIK.BioIK>();
             _bioIK.SetThreading(false);
             _bioIK.Smoothing = 0;
+            
+            List<BioSegment> segments = new();
+
+            _bioIK.Refresh(false);
+            BioSegment rootSegment = bioIkHolder.GetComponent<BioSegment>();
+            rootSegment = rootSegment.Create(_bioIK);
+            rootSegment.RenewRelations();
+            segments.Add(rootSegment);
+            
+            _bioIkTarget = new GameObject("Bio IK Target").transform;
+            _bioIkTarget.parent = transform;
 
             List<BioJoint> bioJoints = new();
 
             Transform parent = _bioIK.transform;
+
+            int jointNumber = 1;
+
             for (int i = 0; i < RobotController.Joints.Length; i++)
             {
-                GameObject go = new($"Joint {i}")
+                if (!RobotController.Joints[i].HasMotion)
+                {
+                    continue;
+                }
+                
+                GameObject go = new($"Joint {jointNumber++}")
                 {
                     transform =
                     {
@@ -174,103 +218,126 @@ namespace RapidSim
 
                 _bioIK.Refresh(false);
                 BioSegment segment = go.GetComponent<BioSegment>();
+                segment = segment.Create(_bioIK);
+                segment.RenewRelations();
+                segments.Add(segment);
                 parent = go.transform;
 
                 if (i == RobotController.Joints.Length - 1)
                 {
+                    Transform segmentTransform = segment.transform;
+                    _bioIkTarget.position = segmentTransform.position;
+                    _bioIkTarget.rotation = segmentTransform.rotation;
+                    
                     _position = segment.AddObjective(ObjectiveType.Position) as Position;
                     if (_position != null)
                     {
+                        _position.Create(segment);
                         _position.SetMaximumError(0);
+                        _position.SetTargetTransform(_bioIkTarget);
+                        _position.UpdateData();
                     }
 
                     _orientation = segment.AddObjective(ObjectiveType.Orientation) as Orientation;
                     if (_orientation != null)
                     {
+                        _orientation.Create(segment);
                         _orientation.SetMaximumError(0);
+                        _orientation.SetTargetTransform(_bioIkTarget);
+                        _orientation.UpdateData();
                     }
                 }
 
-                if (!RobotController.Joints[i].HasMotion)
-                {
-                    continue;
-                }
-
                 BioJoint bioJoint = segment.AddJoint();
+                bioJoint.Create(segment);
                 bioJoint.JointType = RobotController.Joints[i].Type == ArticulationJointType.PrismaticJoint ? JointType.Translational : JointType.Rotational;
                 bioJoint.SetOrientation(Vector3.zero);
                 bioJoint.SetAnchor(Vector3.zero);
                 bioJoints.Add(bioJoint);
 
-                bioJoint.X = new(bioJoint, Vector3.zero)
-                {
-                    Constrained = true
-                };
+                bioJoint.X.Constrained = true;
                 if (RobotController.Joints[i].XMotion)
                 {
-                    bioJoint.X.Enabled = true;
+                    bioJoint.X.SetEnabled(true);
                     if (bioJoint.JointType == JointType.Translational)
                     {
-                        bioJoint.X.LowerLimit = RobotController.Joints[i].LimitX.Lower;
-                        bioJoint.X.UpperLimit = RobotController.Joints[i].LimitX.Upper;
+                        bioJoint.X.SetLowerLimit(RobotController.Joints[i].LimitX.Lower);
+                        bioJoint.X.SetUpperLimit(RobotController.Joints[i].LimitX.Upper);
                     }
                     else
                     {
-                        bioJoint.X.LowerLimit = RobotController.Joints[i].LimitX.Lower * Mathf.Rad2Deg;
-                        bioJoint.X.UpperLimit = RobotController.Joints[i].LimitX.Upper * Mathf.Rad2Deg;
+                        bioJoint.X.SetLowerLimit(RobotController.Joints[i].LimitX.Lower * Mathf.Rad2Deg);
+                        bioJoint.X.SetUpperLimit(RobotController.Joints[i].LimitX.Upper * Mathf.Rad2Deg);
                     }
+
+                    bioJoint.X.ProcessMotion(MotionType.Instantaneous);
                 }
                 else
                 {
-                    bioJoint.X.Enabled = false;
+                    bioJoint.X.SetEnabled(false);
                 }
 
-                bioJoint.Y = new(bioJoint, Vector3.zero)
-                {
-                    Constrained = true
-                };
+                bioJoint.Y.Constrained = true;
                 if (RobotController.Joints[i].YMotion)
                 {
-                    bioJoint.Y.Enabled = true;
+                    bioJoint.Y.SetEnabled(true);
                     if (bioJoint.JointType == JointType.Translational)
                     {
-                        bioJoint.Y.LowerLimit = RobotController.Joints[i].LimitY.Lower;
-                        bioJoint.Y.UpperLimit = RobotController.Joints[i].LimitY.Upper;
+                        bioJoint.Y.SetLowerLimit(RobotController.Joints[i].LimitY.Lower);
+                        bioJoint.Y.SetUpperLimit(RobotController.Joints[i].LimitY.Upper);
                     }
                     else
                     {
-                        bioJoint.Y.LowerLimit = RobotController.Joints[i].LimitY.Lower * Mathf.Rad2Deg;
-                        bioJoint.Y.UpperLimit = RobotController.Joints[i].LimitY.Upper * Mathf.Rad2Deg;
+                        bioJoint.Y.SetLowerLimit(RobotController.Joints[i].LimitY.Lower * Mathf.Rad2Deg);
+                        bioJoint.Y.SetUpperLimit(RobotController.Joints[i].LimitY.Upper * Mathf.Rad2Deg);
                     }
+                    
+                    bioJoint.Y.ProcessMotion(MotionType.Instantaneous);
                 }
                 else
                 {
-                    bioJoint.Y.Enabled = false;
+                    bioJoint.Y.SetEnabled(false);
                 }
                 
-                bioJoint.Z = new(bioJoint, Vector3.zero)
-                {
-                    Constrained = true
-                };
+                bioJoint.Z.Constrained = true;
                 if (RobotController.Joints[i].ZMotion)
                 {
-                    bioJoint.Z.Enabled = true;
+                    bioJoint.Z.SetEnabled(true);
                     if (bioJoint.JointType == JointType.Translational)
                     {
-                        bioJoint.Z.LowerLimit = RobotController.Joints[i].LimitZ.Lower;
-                        bioJoint.Z.UpperLimit = RobotController.Joints[i].LimitZ.Upper;
+                        bioJoint.Z.SetLowerLimit(RobotController.Joints[i].LimitZ.Lower);
+                        bioJoint.Z.SetUpperLimit(RobotController.Joints[i].LimitZ.Upper);
                     }
                     else
                     {
-                        bioJoint.Z.LowerLimit = RobotController.Joints[i].LimitZ.Lower * Mathf.Rad2Deg;
-                        bioJoint.Z.UpperLimit = RobotController.Joints[i].LimitZ.Upper * Mathf.Rad2Deg;
+                        bioJoint.Z.SetLowerLimit(RobotController.Joints[i].LimitZ.Lower * Mathf.Rad2Deg);
+                        bioJoint.Z.SetUpperLimit(RobotController.Joints[i].LimitZ.Upper * Mathf.Rad2Deg);
                     }
+                    
+                    bioJoint.Z.ProcessMotion(MotionType.Instantaneous);
                 }
                 else
                 {
-                    bioJoint.Z.Enabled = false;
+                    bioJoint.Z.SetEnabled(false);
                 }
+                
+                bioJoint.PrecaptureAnimation();
+                bioJoint.PostcaptureAnimation();
+                bioJoint.UpdateData();
+                bioJoint.ProcessMotion();
             }
+            
+            _bioIK.Refresh(false);
+
+            _bioIK.PrecaptureAnimation(_bioIK.Root);
+            _bioIK.PostcaptureAnimation(_bioIK.Root);
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                _bioIK.SelectedSegment = segments[i];
+            }
+
+            _bioIK.Refresh();
 
             _bioJoints = bioJoints.ToArray();
         }
