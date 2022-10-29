@@ -35,8 +35,6 @@ namespace RapidSim
 
         private BioJoint.Motion[] _motions;
 
-        private JointValue[] _jointValues;
-
         public Transform Objective => RobotController.LastJoint.transform;
     
         private void Start()
@@ -78,8 +76,6 @@ namespace RapidSim
                 for (int i = 0; i < starting.Length; i++)
                 {
                     _motions[i].SetTargetValue(starting[i]);
-                    _jointValues[i].SetTargetValue(starting[i]);
-                    _jointValues[i].SetWeight(0.01);
                 }
             
                 _bioIK.UpdateData(_bioIK.Root);
@@ -222,7 +218,6 @@ namespace RapidSim
             rootSegment.RenewRelations();
 
             List<BioJoint.Motion> motions = new();
-            List<JointValue> jointValues = new();
 
             Transform parent = _bioIK.transform;
 
@@ -295,18 +290,6 @@ namespace RapidSim
                         bioJoint.Y.SetLowerLimit(RobotController.Joints[i].LimitX.Lower * Mathf.Rad2Deg);
                         bioJoint.Y.SetUpperLimit(RobotController.Joints[i].LimitX.Upper * Mathf.Rad2Deg);
                     }
-
-                    JointValue jointValue = segment.AddObjective(ObjectiveType.JointValue) as JointValue;
-                    if (jointValue != null)
-                    {
-                        jointValue.Create(segment);
-                        jointValue.SetWeight(0);
-                        jointValue.X = false;
-                        jointValue.Y = true;
-                        jointValue.Z = false;
-                        jointValue.TargetValue = 0;
-                        jointValues.Add(jointValue);
-                    }
                 }
                 else
                 {
@@ -327,18 +310,6 @@ namespace RapidSim
                     {
                         bioJoint.Z.SetLowerLimit(RobotController.Joints[i].LimitY.Lower * Mathf.Rad2Deg);
                         bioJoint.Z.SetUpperLimit(RobotController.Joints[i].LimitY.Upper * Mathf.Rad2Deg);
-                    }
-                    
-                    JointValue jointValue = segment.AddObjective(ObjectiveType.JointValue) as JointValue;
-                    if (jointValue != null)
-                    {
-                        jointValue.Create(segment);
-                        jointValue.SetWeight(0);
-                        jointValue.X = false;
-                        jointValue.Y = false;
-                        jointValue.Z = true;
-                        jointValue.TargetValue = 0;
-                        jointValues.Add(jointValue);
                     }
                 }
                 else
@@ -361,18 +332,6 @@ namespace RapidSim
                         bioJoint.X.SetLowerLimit(RobotController.Joints[i].LimitZ.Lower * Mathf.Rad2Deg);
                         bioJoint.X.SetUpperLimit(RobotController.Joints[i].LimitZ.Upper * Mathf.Rad2Deg);
                     }
-                    
-                    JointValue jointValue = segment.AddObjective(ObjectiveType.JointValue) as JointValue;
-                    if (jointValue != null)
-                    {
-                        jointValue.Create(segment);
-                        jointValue.SetWeight(0);
-                        jointValue.X = true;
-                        jointValue.Y = false;
-                        jointValue.Z = false;
-                        jointValue.TargetValue = 0;
-                        jointValues.Add(jointValue);
-                    }
                 }
                 else
                 {
@@ -383,7 +342,6 @@ namespace RapidSim
             _bioIK.Refresh();
 
             _motions = motions.ToArray();
-            _jointValues = jointValues.ToArray();
         }
     }
 }
