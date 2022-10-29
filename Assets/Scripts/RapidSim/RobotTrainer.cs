@@ -144,17 +144,17 @@ namespace RapidSim
             return longestTime;
         }
 
-        public void Train(Vector3 position, Quaternion rotation, List<float> joints, float[] expected)
+        public void Train(Vector3 position, Quaternion rotation, float[] joints, float[] expected)
         {
-            RobotSolver.Net.Train(RobotSolver.PrepareInputs(RobotSolver.NetScaled(joints), position, rotation), RobotSolver.NetScaled(expected.ToList()).ToArray());
+            RobotSolver.Net.Train(RobotSolver.PrepareInputs(RobotSolver.NetScaled(joints), position, rotation), RobotSolver.NetScaled(expected));
         }
 
-        public List<float> RandomOrientation()
+        public float[] RandomOrientation()
         {
-            List<float> joints = new();
-            for (int i = 0; i < RobotController.Limits.Length; i++)
+            float[] joints = new float[RobotController.Limits.Length];
+            for (int i = 0; i < joints.Length; i++)
             {
-                joints.Add(Random.Range(RobotController.Limits[i].Lower, RobotController.Limits[i].Upper));
+                joints[i] = Random.Range(RobotController.Limits[i].Lower, RobotController.Limits[i].Upper);
             }
 
             return joints;
@@ -162,7 +162,7 @@ namespace RapidSim
 
         public void SetRandomOrientation()
         {
-            RobotController.SnapRadians(RandomOrientation());
+            RobotController.SnapRadians(RandomOrientation().ToList());
         }
 
         private void Update()

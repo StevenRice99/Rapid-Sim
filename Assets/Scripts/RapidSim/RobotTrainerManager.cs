@@ -67,7 +67,7 @@ namespace RapidSim
 
         private void Update()
         {
-            List<float>[] joints = new List<float>[_trainers.Count];
+            float[][] joints = new float[_trainers.Count][];
         
             for (int i = 0; i < _trainers.Count; i++)
             {
@@ -82,7 +82,7 @@ namespace RapidSim
                 Vector3 goalPosition = _trainers[i].Objective.position;
                 Quaternion goalRotation = _trainers[i].Objective.rotation;
         
-                float[] expected = _trainers[i].RobotSolver.NetScaled(_trainers[i].BioIkSolve(goalPosition, goalRotation).ToList()).ToArray();
+                float[] expected = _trainers[i].RobotSolver.NetScaled(_trainers[i].BioIkSolve(goalPosition, goalRotation));
 
                 /*
                 Debug.Log("Expected Values:");
