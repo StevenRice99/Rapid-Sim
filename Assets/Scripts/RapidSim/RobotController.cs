@@ -19,7 +19,7 @@ namespace RapidSim
 
         private bool _move;
         
-        private float[] _maxSpeeds;
+        public float[] MaxSpeeds { get; private set; }
 
         private float[] _currentSpeeds;
 
@@ -85,15 +85,15 @@ namespace RapidSim
                 _zeros.Add(0);
             }
             
-            _currentSpeeds = new float[_maxSpeeds.Length];
+            _currentSpeeds = new float[MaxSpeeds.Length];
             for (int i = 0; i < _currentSpeeds.Length; i++)
             {
-                _currentSpeeds[i] = _maxSpeeds[i];
+                _currentSpeeds[i] = MaxSpeeds[i];
             }
 
-            if (_home.Count != _maxSpeeds.Length)
+            if (_home.Count != MaxSpeeds.Length)
             {
-                Debug.LogError($"{name} has {_home.Count} degrees of freedom but {_maxSpeeds.Length} speeds defined.");
+                Debug.LogError($"{name} has {_home.Count} degrees of freedom but {MaxSpeeds.Length} speeds defined.");
             }
         }
 
@@ -111,9 +111,9 @@ namespace RapidSim
             for (int i = 0; i < angles.Count; i++)
             {
                 angles[i] = Mathf.Abs(angles[i] - _targets[i]);
-                if (angles[i] / _maxSpeeds[i] > time)
+                if (angles[i] / MaxSpeeds[i] > time)
                 {
-                    time = angles[i] / _maxSpeeds[i];
+                    time = angles[i] / MaxSpeeds[i];
                 }
             }
 
@@ -156,7 +156,7 @@ namespace RapidSim
             return angles;
         }
 
-        public void GetMaxSpeeds()
+        private void GetMaxSpeeds()
         {
             List<float> speeds = new();
             
@@ -183,7 +183,7 @@ namespace RapidSim
                 }
             }
 
-            _maxSpeeds = speeds.ToArray();
+            MaxSpeeds = speeds.ToArray();
         }
 
         private void FixedUpdate()
