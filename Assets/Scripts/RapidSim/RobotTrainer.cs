@@ -12,7 +12,7 @@ namespace RapidSim
     {
         [Min(1)]
         [SerializeField]
-        private int bioIkAttempts = 20;
+        private int bioIkAttempts = 100;
         
         [Min(1)]
         [SerializeField]
@@ -71,7 +71,7 @@ namespace RapidSim
 
             float[] best = null;
             float bestDistance = 0;
-            float bestSpeed = 0;
+            float bestTime = 0;
 
             for (int j = 0; j < bioIkAttempts; j++)
             {
@@ -79,7 +79,7 @@ namespace RapidSim
                 {
                     _motions[i].SetTargetValue(starting[i]);
                     _jointValues[i].SetTargetValue(starting[i]);
-                    _jointValues[i].SetWeight(0);
+                    _jointValues[i].SetWeight(0.01);
                 }
             
                 _bioIK.UpdateData(_bioIK.Root);
@@ -105,12 +105,12 @@ namespace RapidSim
                 }
 
                 float distance = Vector3.Distance(_motions[^1].Joint.transform.position, position);
-                float speed = CalculateSpeed(starting, ending, RobotController.MaxSpeeds);
+                float time = CalculateTime(starting, ending, RobotController.MaxSpeeds);
                 if (best == null)
                 {
                     best = ending;
                     bestDistance = distance;
-                    bestSpeed = speed;
+                    bestTime = time;
                     continue;
                 }
 
@@ -118,34 +118,34 @@ namespace RapidSim
                 {
                     best = ending;
                     bestDistance = distance;
-                    bestSpeed = speed;
+                    bestTime = time;
                     continue;
                 }
 
-                if (distance <= bestDistance && speed < bestSpeed)
+                if (distance <= bestDistance && time < bestTime)
                 {
                     best = ending;
                     bestDistance = distance;
-                    bestSpeed = speed;
+                    bestTime = time;
                 }
             }
 
             return best;
         }
 
-        private float CalculateSpeed(float[] starting, float[] ending, float[] maxSpeeds)
+        private static float CalculateTime(float[] starting, float[] ending, float[] maxSpeeds)
         {
-            float time = 0;
+            float longestTime = 0;
             for (int i = 0; i < starting.Length; i++)
             {
-                starting[i] = Mathf.Abs(starting[i] - ending[i]);
-                if (starting[i] / maxSpeeds[i] > time)
+                float time = Mathf.Abs(starting[i] - ending[i]) / maxSpeeds[i];
+                if (time> longestTime)
                 {
-                    time = starting[i] / maxSpeeds[i];
+                    longestTime = time;
                 }
             }
 
-            return time;
+            return longestTime;
         }
 
         public void Train(Vector3 position, Quaternion rotation, List<float> joints, float[] expected)

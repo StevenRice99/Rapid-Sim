@@ -1895,6 +1895,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3299c86de3094663bd357d65bc78fbf5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  bioIkAttempts: 100
   maxSteps: 1
   train: 0
 --- !u!114 &1634662498
