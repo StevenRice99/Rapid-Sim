@@ -52,13 +52,13 @@ namespace BioIK {
 			DeInitialise();
 		}
 
-		private void Initialise() {
+		public void Initialise() {
 			if(Evolution == null) {
 				Evolution = new Evolution(new Model(this), PopulationSize, Elites, UseThreading);
 			}
 		}
 
-		private void DeInitialise() {
+		public void DeInitialise() {
 			if(Evolution != null) {
 				Evolution.Kill();
 				Evolution = null;

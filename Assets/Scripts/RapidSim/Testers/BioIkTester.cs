@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace RapidSim.Testers
@@ -35,13 +36,27 @@ namespace RapidSim.Testers
         protected override void Move()
         {
             Transform t = transform;
-            robot.MoveRadians(robotTrainer.BioIkSolve(t.position, t.rotation).ToList());
+            List<double> doubles = robotTrainer.BioIkSolve(t.position, t.rotation).ToList();
+            List<float> joints = new();
+            for (int i = 0; i < doubles.Count; i++)
+            {
+                joints.Add((float) doubles[i]);
+            }
+            
+            robot.MoveRadians(joints);
         }
 
         protected override void Snap()
         {
             Transform t = transform;
-            robot.SnapRadians(robotTrainer.BioIkSolve(t.position, t.rotation).ToList());
+            List<double> doubles = robotTrainer.BioIkSolve(t.position, t.rotation).ToList();
+            List<float> joints = new();
+            for (int i = 0; i < doubles.Count; i++)
+            {
+                joints.Add((float) doubles[i]);
+            }
+            
+            robot.SnapRadians(joints);
         }
     }
 }

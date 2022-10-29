@@ -7,19 +7,19 @@ namespace RapidSim.Networks
     [Serializable]
     public struct Layer
     {
-        public float[] outputs;
+        public double[] outputs;
         public WrappedArray[] weights;
-        public float[] deltaBias;
+        public double[] deltaBias;
 
-        public float[] inputs;
+        public double[] inputs;
         public int numberOfInputs;
         public int numberOfOutputs;
-        public float[] bias;
+        public double[] bias;
         public WrappedArray[] deltaWeights;
         public WrappedArray[] momentumDeltaWeights;
         public WrappedArray[] velocityDeltaWeights;
-        public float[] momentumDeltaBias;
-        public float[] velocityDeltaBias;
+        public double[] momentumDeltaBias;
+        public double[] velocityDeltaBias;
 
         public int NumberOfParameters => numberOfInputs * numberOfOutputs + numberOfOutputs;
 
@@ -28,8 +28,8 @@ namespace RapidSim.Networks
             this.numberOfInputs = numberOfInputs;
             this.numberOfOutputs = numberOfOutputs;
 
-            inputs = new float[this.numberOfInputs];
-            outputs = new float[this.numberOfOutputs];
+            inputs = new double[this.numberOfInputs];
+            outputs = new double[this.numberOfOutputs];
 
             weights = new WrappedArray[this.numberOfOutputs];
             deltaWeights = new WrappedArray[this.numberOfOutputs];
@@ -37,21 +37,21 @@ namespace RapidSim.Networks
             velocityDeltaWeights = new WrappedArray[this.numberOfOutputs];
             for (int i = 0; i < this.numberOfOutputs; i++)
             {
-                weights[i].data = new float[this.numberOfInputs];
-                deltaWeights[i].data = new float[this.numberOfInputs];
-                momentumDeltaWeights[i].data = new float[this.numberOfInputs];
-                velocityDeltaWeights[i].data = new float[this.numberOfInputs];
+                weights[i].data = new double[this.numberOfInputs];
+                deltaWeights[i].data = new double[this.numberOfInputs];
+                momentumDeltaWeights[i].data = new double[this.numberOfInputs];
+                velocityDeltaWeights[i].data = new double[this.numberOfInputs];
             }
 
-            bias = new float[this.numberOfOutputs];
-            deltaBias = new float[this.numberOfOutputs];
-            momentumDeltaBias = new float[this.numberOfOutputs];
-            velocityDeltaBias = new float[this.numberOfOutputs];
+            bias = new double[this.numberOfOutputs];
+            deltaBias = new double[this.numberOfOutputs];
+            momentumDeltaBias = new double[this.numberOfOutputs];
+            velocityDeltaBias = new double[this.numberOfOutputs];
 
             Reset();
         }
 
-        public float[] Forward(float[] input)
+        public double[] Forward(double[] input)
         {
             for (int i = 0; i < inputs.Length; i++)
             {
@@ -72,7 +72,7 @@ namespace RapidSim.Networks
             return outputs;
         }
 
-        public void BackwardOutput(float[] expected)
+        public void BackwardOutput(double[] expected)
         {
             for (int i = 0; i < numberOfOutputs; i++)
             {
@@ -85,7 +85,7 @@ namespace RapidSim.Networks
             }
         }
 
-        public void BackwardHidden(float[] gammaForward, WrappedArray[] weightsForward)
+        public void BackwardHidden(double[] gammaForward, WrappedArray[] weightsForward)
         {
             for (int i = 0; i < numberOfOutputs; i++)
             {
@@ -105,7 +105,7 @@ namespace RapidSim.Networks
             }
         }
 
-        public void Optimize(int step, float eta, float beta1, float beta2, float epsilon)
+        public void Optimize(int step, double eta, double beta1, double beta2, double epsilon)
         {
             for (int i = 0; i < numberOfOutputs; i++)
             {
@@ -114,8 +114,8 @@ namespace RapidSim.Networks
                     momentumDeltaWeights[i].data[j] = beta1 * momentumDeltaWeights[i].data[j] + (1 - beta1) * deltaWeights[i].data[j];
                     velocityDeltaWeights[i].data[j] = beta2 * velocityDeltaWeights[i].data[j] + (1 - beta2) * math.pow(deltaWeights[i].data[j], 2);
             
-                    float momentumDeltaWeightCorrection = momentumDeltaWeights[i].data[j] / (1 - math.pow(beta1, step));
-                    float velocityDeltaWeightCorrection = velocityDeltaWeights[i].data[j] / (1 - math.pow(beta2, step));
+                    double momentumDeltaWeightCorrection = momentumDeltaWeights[i].data[j] / (1 - math.pow(beta1, step));
+                    double velocityDeltaWeightCorrection = velocityDeltaWeights[i].data[j] / (1 - math.pow(beta2, step));
                 
                     weights[i].data[j] -= eta * (momentumDeltaWeightCorrection / (math.sqrt(velocityDeltaWeightCorrection) + epsilon));
                 }
@@ -123,8 +123,8 @@ namespace RapidSim.Networks
                 momentumDeltaBias[i] = beta1 * momentumDeltaBias[i] + (1 - beta1) * deltaBias[i];
                 velocityDeltaBias[i] = beta2 * velocityDeltaBias[i] + (1 - beta2) * deltaBias[i];
             
-                float momentumDeltaBiaCorrection = momentumDeltaBias[i] / (1 - math.pow(beta1, step));
-                float velocityDeltaBiaCorrection = velocityDeltaBias[i] / (1 - math.pow(beta2, step));
+                double momentumDeltaBiaCorrection = momentumDeltaBias[i] / (1 - math.pow(beta1, step));
+                double velocityDeltaBiaCorrection = velocityDeltaBias[i] / (1 - math.pow(beta2, step));
 
                 deltaBias[i] -= eta * (momentumDeltaBiaCorrection / (math.sqrt(velocityDeltaBiaCorrection) + epsilon));
             }
@@ -170,12 +170,12 @@ namespace RapidSim.Networks
             }
         }
 
-        private static float Activation(float value)
+        private static double Activation(double value)
         {
             return math.tanh(value);
         }
 
-        private static float ActivationDerivative(float value)
+        private static double ActivationDerivative(double value)
         {
             return 1 - value * value;
         }

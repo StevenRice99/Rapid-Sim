@@ -6,13 +6,13 @@ namespace RapidSim.Networks
     public struct NeuralNetwork
     {
         public Layer[] layers;
-        public float beta1;
-        public float beta2;
-        public float epsilon;
-        public float eta;
+        public double beta1;
+        public double beta2;
+        public double epsilon;
+        public double eta;
         public int step;
     
-        public NeuralNetwork(int[] layer, float eta = 0.01f, float beta1 = 0.9f, float beta2 = 0.999f, float epsilon = 0.00000001f)
+        public NeuralNetwork(int[] layer, double eta = 0.01, double beta1 = 0.9, double beta2 = 0.999, double epsilon = 0.00000001)
         {
             layers = new Layer[layer.Length - 1];
 
@@ -28,7 +28,7 @@ namespace RapidSim.Networks
             step = 0;
         }
 
-        public float[] Forward(float[] inputs)
+        public double[] Forward(double[] inputs)
         {
             layers[0].Forward(inputs);
             for (int i = 1; i < layers.Length; i++)
@@ -39,16 +39,16 @@ namespace RapidSim.Networks
             return layers[^1].outputs;
         }
 
-        public void Train(float[] inputs, float[] expected)
+        public void Train(double[] inputs, double[] expected)
         {
             Forward(inputs);
             Backward(expected);
         }
 
-        public float Test(float[] inputs, float[] expected)
+        public double Test(double[] inputs, double[] expected)
         {
-            float[] results = Forward(inputs);
-            float accuracy = 0;
+            double[] results = Forward(inputs);
+            double accuracy = 0;
             for (int i = 0; i < expected.Length; i++)
             {
                 accuracy += 1 - (expected[i] - results[i]);
@@ -57,9 +57,9 @@ namespace RapidSim.Networks
             return accuracy / expected.Length;
         }
 
-        public float Test(float[][] inputs, float[][] expected)
+        public double Test(double[][] inputs, double[][] expected)
         {
-            float accuracy = 0;
+            double accuracy = 0;
             for (int i = 0; i < inputs.Length; i++)
             {
                 accuracy += Test(inputs[i], expected[i]);
@@ -68,7 +68,7 @@ namespace RapidSim.Networks
             return accuracy / expected.Length;
         }
 
-        private void Backward(float[] expected)
+        private void Backward(double[] expected)
         {
             layers[^1].BackwardOutput(expected);
             for (int i = layers.Length - 2; i >= 0; i--)
@@ -83,7 +83,7 @@ namespace RapidSim.Networks
             }
         }
 
-        public void Reset(float newEta = 0.01f, float newBeta1 = 0.9f, float newBeta2 = 0.999f, float newEpsilon = 0.00000001f)
+        public void Reset(double newEta = 0.01, double newBeta1 = 0.9, double newBeta2 = 0.999, double newEpsilon = 0.00000001)
         {
             for (int i = 0; i < layers.Length; i++)
             {
@@ -97,7 +97,7 @@ namespace RapidSim.Networks
             step = 0;
         }
 
-        public void SetOptimization(float newEta = 0.01f, float newBeta1 = 0.9f, float newBeta2 = 0.999f, float newEpsilon = 0.00000001f)
+        public void SetOptimization(double newEta = 0.01, double newBeta1 = 0.9, double newBeta2 = 0.999, double newEpsilon = 0.00000001)
         {
             for (int i = 0; i < layers.Length; i++)
             {

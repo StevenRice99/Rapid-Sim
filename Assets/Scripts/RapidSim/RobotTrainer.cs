@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using BioIK;
 using UnityEngine;
@@ -13,6 +14,18 @@ namespace RapidSim
         [Min(1)]
         [SerializeField]
         private int bioIkAttempts = 100;
+        
+        [Min(1)]
+        [SerializeField]
+        private int bioIkGenerations = 5;
+        
+        [Min(1)]
+        [SerializeField]
+        private int bioIkPopulationSize = 120;
+        
+        [Min(1)]
+        [SerializeField]
+        private int bioIkElites = 3;
         
         [Min(1)]
         [SerializeField]
@@ -60,16 +73,28 @@ namespace RapidSim
             UpdateTraining();
         }
 
-        public float[] BioIkSolve(Vector3 position, Quaternion orientation)
+        public double[] BioIkSolve(Vector3 position, Quaternion orientation)
         {
+            _bioIK.DeInitialise();
+            _bioIK.Initialise();
+            _bioIK.Solution = new double[_bioIK.Evolution.GetModel().GetDoF()];
+            
             _position.SetTargetPosition(position);
             _orientation.SetTargetRotation(orientation);
             
-            float[] starting = RobotController.GetJoints().ToArray();
+            List<float> joints = RobotController.GetJoints();
 
-            float[] best = null;
-            float bestDistance = 0;
-            float bestTime = 0;
+            double[] starting = new double[joints.Count];
+            double[] maxSpeeds = new double[starting.Length];
+            for (int i = 0; i < starting.Length; i++)
+            {
+                starting[i] = joints[i];
+                maxSpeeds[i] = RobotController.MaxSpeeds[i];
+            }
+
+            double[] best = null;
+            double bestDistance = 0;
+            double bestTime = 0;
 
             for (int j = 0; j < bioIkAttempts; j++)
             {
@@ -80,7 +105,8 @@ namespace RapidSim
             
                 _bioIK.UpdateData(_bioIK.Root);
             
-                for(int i = 0; i < _bioIK.Solution.Length; i++) {
+                for (int i = 0; i < _bioIK.Solution.Length; i++)
+                {
                     _bioIK.Solution[i] = _bioIK.Evolution.GetModel().MotionPtrs[i].Motion.GetTargetValue(true);
                 }
             
@@ -94,14 +120,14 @@ namespace RapidSim
 
                 _bioIK.ProcessMotion(_bioIK.Root);
 
-                float[] ending = new float[_motions.Length];
+                double[] ending = new double[_motions.Length];
                 for (int i = 0; i < _motions.Length; i++)
                 {
-                    ending[i] = (float) _motions[i].GetTargetValue(true);
+                    ending[i] = _motions[i].GetTargetValue(true);
                 }
 
-                float distance = Vector3.Distance(_motions[^1].Joint.transform.position, position);
-                float time = CalculateTime(starting, ending, RobotController.MaxSpeeds);
+                double distance = Vector3.Distance(_motions[^1].Joint.transform.position, position);
+                double time = CalculateTime(starting, ending, maxSpeeds);
                 if (best == null)
                 {
                     best = ending;
@@ -125,16 +151,18 @@ namespace RapidSim
                     bestTime = time;
                 }
             }
+            
+            Debug.Log($"Distance: {bestDistance} | Time: {bestTime}");
 
             return best;
         }
 
-        private static float CalculateTime(float[] starting, float[] ending, float[] maxSpeeds)
+        private static double CalculateTime(double[] starting, double[] ending, double[] maxSpeeds)
         {
-            float longestTime = 0;
+            double longestTime = 0;
             for (int i = 0; i < starting.Length; i++)
             {
-                float time = Mathf.Abs(starting[i] - ending[i]) / maxSpeeds[i];
+                double time = Math.Abs(starting[i] - ending[i]) / maxSpeeds[i];
                 if (time> longestTime)
                 {
                     longestTime = time;
@@ -144,7 +172,7 @@ namespace RapidSim
             return longestTime;
         }
 
-        public void Train(Vector3 position, Quaternion rotation, float[] joints, float[] expected)
+        public void Train(Vector3 position, Quaternion rotation, double[] joints, double[] expected)
         {
             RobotSolver.Net.Train(RobotSolver.PrepareInputs(RobotSolver.NetScaled(joints), position, rotation), RobotSolver.NetScaled(expected));
         }
@@ -208,9 +236,9 @@ namespace RapidSim
             _bioIK = bioIkHolder.AddComponent<BioIK.BioIK>();
             _bioIK.SetThreading(false);
             _bioIK.Smoothing = 0;
-            _bioIK.SetGenerations(5);
-            _bioIK.SetPopulationSize(120);
-            _bioIK.SetElites(3);
+            _bioIK.SetGenerations(bioIkGenerations);
+            _bioIK.SetPopulationSize(bioIkPopulationSize);
+            _bioIK.SetElites(bioIkElites);
 
             _bioIK.Refresh(false);
             BioSegment rootSegment = bioIkHolder.GetComponent<BioSegment>();

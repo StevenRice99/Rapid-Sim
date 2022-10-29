@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using RapidSim.Networks;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace RapidSim
@@ -104,21 +106,30 @@ namespace RapidSim
 
         private List<float> Solve(Vector3 position, Quaternion rotation)
         {
-            float[] joints = JointsScaled(Net.Forward(PrepareInputs(NetScaled(_robotController.GetJoints().ToArray()), position, rotation)));
-
-            for (int i = 0; i < joints.Length; i++)
+            List<float> original = _robotController.GetJoints();
+            double[] starting = new double[original.Count];
+            for (int i = 0; i < starting.Length; i++)
             {
-                joints[i] = Mathf.Clamp(joints[i], _robotController.Limits[i].Lower, _robotController.Limits[i].Upper);
+                starting[i] = original[i];
+            }
+            
+            double[] results = JointsScaled(Net.Forward(PrepareInputs(NetScaled(starting), position, rotation)));
+
+            List<float> joints = new();
+
+            for (int i = 0; i < results.Length; i++)
+            {
+                joints.Add((float) math.clamp(results[i], _robotController.Limits[i].Lower, _robotController.Limits[i].Upper));;
             }
         
             // TODO: Finalize movement with Hybrid IK.
 
-            return joints.ToList();
+            return joints;
         }
 
-        public float[] PrepareInputs(float[] joints, Vector3 position, Quaternion rotation)
+        public double[] PrepareInputs(double[] joints, Vector3 position, Quaternion rotation)
         {
-            float[] inputs = new float[7 + joints.Length];
+            double[] inputs = new double[7 + joints.Length];
             position = RelativePosition(position) / _robotController.ChainLength;
             inputs[0] = position.x;
             inputs[1] = position.y;
@@ -135,7 +146,7 @@ namespace RapidSim
             return inputs;
         }
     
-        public float[] NetScaled(float[] joints)
+        public double[] NetScaled(double[] joints)
         {
             for (int i = 0; i < joints.Length; i++)
             {
@@ -145,11 +156,11 @@ namespace RapidSim
             return joints;
         }
     
-        public float[] JointsScaled(float[] joints)
+        public double[] JointsScaled(double[] joints)
         {
             for (int i = 0; i < joints.Length; i++)
             {
-                joints[i] = Mathf.Clamp(joints[i] * (_robotController.Limits[i].Upper - _robotController.Limits[i].Lower) + _robotController.Limits[i].Lower, _robotController.Limits[i].Lower, _robotController.Limits[i].Upper);
+                joints[i] = math.clamp(joints[i] * (_robotController.Limits[i].Upper - _robotController.Limits[i].Lower) + _robotController.Limits[i].Lower, _robotController.Limits[i].Lower, _robotController.Limits[i].Upper);
             }
 
             return joints;

@@ -67,11 +67,18 @@ namespace RapidSim
 
         private void Update()
         {
-            float[][] joints = new float[_trainers.Count][];
+            double[][] starting = new double[_trainers.Count][];
         
             for (int i = 0; i < _trainers.Count; i++)
             {
-                joints[i] = _trainers[i].RandomOrientation();
+                float[] angles = _trainers[i].RandomOrientation();
+                double[] start = new double[angles.Length];
+                for (int j = 0; j < start.Length; j++)
+                {
+                    start[i] = angles[i];
+                }
+
+                starting[i] = start;
                 _trainers[i].SetRandomOrientation();
             }
 
@@ -82,7 +89,7 @@ namespace RapidSim
                 Vector3 goalPosition = _trainers[i].Objective.position;
                 Quaternion goalRotation = _trainers[i].Objective.rotation;
         
-                float[] expected = _trainers[i].RobotSolver.NetScaled(_trainers[i].BioIkSolve(goalPosition, goalRotation));
+                double[] expected = _trainers[i].RobotSolver.NetScaled(_trainers[i].BioIkSolve(goalPosition, goalRotation));
 
                 /*
                 Debug.Log("Expected Values:");
@@ -92,7 +99,7 @@ namespace RapidSim
                 }
                 */
 
-                _trainers[i].Train(goalPosition, goalRotation, joints[i], expected);
+                _trainers[i].Train(goalPosition, goalRotation, starting[i], expected);
             }
         }
     }
