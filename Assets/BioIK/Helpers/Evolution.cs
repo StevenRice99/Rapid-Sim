@@ -3045,44 +3045,40 @@ namespace BioIK.Helpers {
         int[] iorder, int iorderOffset, int iheap)
         {
 
-            int i = 0;
-            int j = 0;
-            int k = 0;
-            int indxin = 0;
-            int indxou = 0;
-            double ddum = 0.0d;
-            double out2 = 0.0d;
+            int i;
+            int j;
+            int indxin;
+            double ddum;
 
             if (iheap == 0)
             {
                 // 
                 // c        Rearrange the elements t(1) to t(n) to form a heap.
                 // 
+                int k;
+                for (k = 2; k <= n; k++)
                 {
-                    for (k = 2; k <= n; k++)
-                    {
-                        ddum = t[k - 1 + tOffset];
-                        indxin = iorder[k - 1 + iorderOffset];
-                        // 
-                        // c           Add ddum to the heap.
-                        i = k;
+                    ddum = t[k - 1 + tOffset];
+                    indxin = iorder[k - 1 + iorderOffset];
+                    // 
+                    // c           Add ddum to the heap.
+                    i = k;
 
                     L10:
-                        if (i > 1)
+                    if (i > 1)
+                    {
+                        j = i / 2;
+                        if (ddum < t[j - 1 + tOffset])
                         {
-                            j = i / 2;
-                            if (ddum < t[j - 1 + tOffset])
-                            {
-                                t[i - 1 + tOffset] = t[j - 1 + tOffset];
-                                iorder[i - 1 + iorderOffset] = iorder[j - 1 + iorderOffset];
-                                i = j;
-                                goto L10;
-                            }
+                            t[i - 1 + tOffset] = t[j - 1 + tOffset];
+                            iorder[i - 1 + iorderOffset] = iorder[j - 1 + iorderOffset];
+                            i = j;
+                            goto L10;
                         }
-
-                        t[i - 1 + tOffset] = ddum;
-                        iorder[i - 1 + iorderOffset] = indxin;
                     }
+
+                    t[i - 1 + tOffset] = ddum;
+                    iorder[i - 1 + iorderOffset] = indxin;
                 }
             }
             // 
@@ -3093,8 +3089,8 @@ namespace BioIK.Helpers {
             if (n > 1)
             {
                 i = 1;
-                out2 = t[1 - 1 + tOffset];
-                indxou = iorder[1 - 1 + iorderOffset];
+                double out2 = t[1 - 1 + tOffset];
+                int indxou = iorder[1 - 1 + iorderOffset];
                 ddum = t[n - 1 + tOffset];
                 indxin = iorder[n - 1 + iorderOffset];
 
@@ -3169,9 +3165,7 @@ namespace BioIK.Helpers {
             double[] dsave, int dsaveOffset)
         {
 
-            int i = 0;
-            double a1 = 0.0d;
-            double a2 = 0.0d;
+            int i;
 
             if (task == Task.FgLN)
             {
@@ -3193,35 +3187,34 @@ namespace BioIK.Helpers {
                 }
                 else
                 {
+                    for (i = 1; i <= n; i++)
                     {
-                        for (i = 1; i <= n; i++)
+                        double a1 = d[i - 1 + dOffset];
+                        if (nbd[i - 1 + nbdOffset] != 0)
                         {
-                            a1 = d[i - 1 + dOffset];
-                            if (nbd[i - 1 + nbdOffset] != 0)
+                            double a2;
+                            if (a1 < 0.0 && nbd[i - 1 + nbdOffset] <= 2)
                             {
-                                if (a1 < 0.0 && nbd[i - 1 + nbdOffset] <= 2)
+                                a2 = l[i - 1 + lOffset] - x[i - 1 + xOffset];
+                                if (a2 >= 0.0)
                                 {
-                                    a2 = l[i - 1 + lOffset] - x[i - 1 + xOffset];
-                                    if (a2 >= 0.0)
-                                    {
-                                        stpmx = 0.0;
-                                    }
-                                    else if (a1 * stpmx < a2)
-                                    {
-                                        stpmx = a2 / a1;
-                                    }
+                                    stpmx = 0.0;
                                 }
-                                else if (a1 > 0.0 && nbd[i - 1 + nbdOffset] >= 2)
+                                else if (a1 * stpmx < a2)
                                 {
-                                    a2 = u[i - 1 + uOffset] - x[i - 1 + xOffset];
-                                    if (a2 <= 0.0)
-                                    {
-                                        stpmx = 0.0;
-                                    }
-                                    else if (a1 * stpmx > a2)
-                                    {
-                                        stpmx = a2 / a1;
-                                    }
+                                    stpmx = a2 / a1;
+                                }
+                            }
+                            else if (a1 > 0.0 && nbd[i - 1 + nbdOffset] >= 2)
+                            {
+                                a2 = u[i - 1 + uOffset] - x[i - 1 + xOffset];
+                                if (a2 <= 0.0)
+                                {
+                                    stpmx = 0.0;
+                                }
+                                else if (a1 * stpmx > a2)
+                                {
+                                    stpmx = a2 / a1;
                                 }
                             }
                         }
@@ -3230,17 +3223,7 @@ namespace BioIK.Helpers {
             }
 
             // 
-            if (iter == 0 && !boxed)
-            {
-                if (double.IsNaN(dnorm))
-                    stp = stpmx;
-                else
-                    stp = System.Math.Min(1.0 / dnorm, stpmx);
-            }
-            else
-            {
-                stp = 1.0;
-            }
+            stp = iter == 0 && !boxed ? double.IsNaN(dnorm) ? stpmx : System.Math.Min(1.0 / dnorm, stpmx) : 1.0;
 
             // 
             Dcopy(n, x, xOffset, 1, t, tOffset, 1);
@@ -3528,64 +3511,55 @@ namespace BioIK.Helpers {
             double[] dsave, int dsaveOffset)
         {
 
-            bool prjctd = false;
-            bool cnstnd = false;
-            bool boxed = false;
-            bool updatd = false;
-            bool wrk = false;
-            int i = 0;
+            bool prjctd;
+            bool cnstnd;
+            bool boxed;
+            bool updatd;
+            int i;
             int k = 0;
-            int nintol = 0;
-            int itfile = 0;
-            int iback = 0;
-            int nskip = 0;
-            int head = 0;
-            int col = 0;
-            int iter = 0;
-            int itail = 0;
-            int iupdat = 0;
-            int nseg = 0;
-            int nfgv = 0;
-            int info = 0;
-            int ifun = 0;
-            int iword = 0;
-            int nfree = 0;
-            int nact = 0;
-            int ileave = 0;
-            int nenter = 0;
-            double theta = 0.0d;
-            double fold = 0.0d;
-            double dr = 0.0d;
-            double rr = 0.0d;
-            double tol = 0.0d;
+            int nintol;
+            int itfile;
+            int iback;
+            int nskip;
+            int head;
+            int col;
+            int iter;
+            int itail;
+            int iupdat;
+            int nseg;
+            int nfgv;
+            int info;
+            int ifun;
+            int iword;
+            int nfree;
+            int nact;
+            int ileave;
+            int nenter;
+            double theta;
+            double fold;
+            double dr;
+            double tol;
             double xstep = 0.0d;
-            double sbgnrm = 0.0d;
-            double ddum = 0.0d;
-            double dnorm = 0.0d;
-            double dtd = 0.0d;
-            double epsmch = 0.0d;
-            double cpu1 = 0.0d;
-            double cpu2 = 0.0d;
-            double cachyt = 0.0d;
-            double sbtime = 0.0d;
-            double lnscht = 0.0d;
+            double sbgnrm;
+            double dnorm;
+            double dtd;
+            double epsmch;
+            double cpu1;
+            const double cpu2 = 0.0d;
+            double cachyt;
+            double sbtime;
+            double lnscht;
             double time1 = 0.0d;
-            // double time2 = 0.0d;
-            double gd = 0.0d;
-            double gdold = 0.0d;
-            double stp = 0.0d;
-            double stpmx = 0.0d;
-            // double time = 0.0d;
-            // float epsilon = 0.0f;
+            double gd;
+            double gdold;
+            double stp;
+            double stpmx;
 
             if (task == Task.Start)
             {
                 // 
-                // epsmch = (double)(Epsilon.epsilon(1.0));
                 epsmch = 1.11022302462516E-16;
 
-                // 
-                //Timer.timer(time1);
                 // 
                 // c        Initialize counters and scalars when task='START'.
                 // 
@@ -3632,11 +3606,6 @@ namespace BioIK.Helpers {
                 info = 0;
                 // 
                 itfile = 8;
-                if (iprint >= 1)
-                {
-                    // c                                open a summary file 'iterate.dat'
-                    ; // WARNING: Unimplemented statement in Fortran source.
-                }
                 // 
                 // c        Check the input arguments for errors.
                 // 
@@ -3709,23 +3678,18 @@ namespace BioIK.Helpers {
                 stp = dsave[14 - 1 + dsaveOffset];
                 gdold = dsave[15 - 1 + dsaveOffset];
                 dtd = dsave[16 - 1 + dsaveOffset];
-                // 
-                // c        After returning from the driver go to the point where execution
-                // c        is to resume.
-                // 
-                if (task == Task.FgLN)
+                switch (task)
                 {
-                    goto L666;
-                }
-
-                if (task == Task.NewX)
-                {
-                    goto L777;
-                }
-
-                if (task == Task.FgSt)
-                {
-                    goto L111;
+                    // 
+                    // c        After returning from the driver go to the point where execution
+                    // c        is to resume.
+                    // 
+                    case Task.FgLN:
+                        goto L666;
+                    case Task.NewX:
+                        goto L777;
+                    case Task.FgSt:
+                        goto L111;
                 }
             }
 
@@ -3771,7 +3735,7 @@ namespace BioIK.Helpers {
             // Count the entering and leaving variables for iter > 0; 
             // find the index set of free and active variables at the GCP.
             Freev(n, ref nfree, index, indexOffset, out nenter, out ileave, indx2, indx2Offset,
-                iwhere, iwhereOffset, out wrk, updatd, cnstnd, iter);
+                iwhere, iwhereOffset, out bool wrk, updatd, cnstnd, iter);
             nact = n - nfree;
             // If there are no free variables or B=theta*I, 
             // then skip the subspace minimization.
@@ -3808,7 +3772,7 @@ namespace BioIK.Helpers {
                 d[i - 1 + dOffset] = z[i - 1 + zOffset] - x[i - 1 + xOffset];
             }
 
-        L666:
+            L666:
             Lnsrlb(n, l, lOffset, u, uOffset, nbd, nbdOffset, x, xOffset,
                 f, ref fold, ref gd, ref gdold, g, gOffset, d, dOffset, r, rOffset, t, tOffset,
                 z, zOffset, ref stp, ref dnorm, ref dtd, ref xstep, ref stpmx, iter, ref ifun,
@@ -3864,7 +3828,7 @@ namespace BioIK.Helpers {
                 goto L999;
             }
 
-            ddum = System.Math.Max(System.Math.Abs(fold), System.Math.Max(System.Math.Abs(f), 1.0));
+            double ddum = System.Math.Max(System.Math.Abs(fold), System.Math.Max(System.Math.Abs(f), 1.0));
 
             if (fold - f <= tol * ddum)
             {
@@ -3888,7 +3852,7 @@ namespace BioIK.Helpers {
                 r[i - 1 + rOffset] = g[i - 1 + gOffset] - r[i - 1 + rOffset];
             }
 
-            rr = Ddot(n, r, rOffset, 1, r, rOffset, 1);
+            double rr = Ddot(n, r, rOffset, 1, r, rOffset, 1);
 
             if (stp == 1.0)
             {
@@ -3907,13 +3871,6 @@ namespace BioIK.Helpers {
                 // skip the L-BFGS update.
                 nskip += 1;
                 updatd = false;
-
-
-                if (iprint >= 1)
-                {
-                    // DISPLAY: dr, ddum
-                    // DISPLAY: '  ys=',1p,e10.3,'  -gs=',1P,E10.3,' BFGS update SKIPPED'"
-                }
 
                 goto L888;
             }
@@ -4003,8 +3960,6 @@ namespace BioIK.Helpers {
             dsave[14 - 1 + dsaveOffset] = stp;
             dsave[15 - 1 + dsaveOffset] = gdold;
             dsave[16 - 1 + dsaveOffset] = dtd;
-
-            return;
         }
 
         // 
@@ -4118,8 +4073,6 @@ namespace BioIK.Helpers {
             }
 
             sy[col - 1 + (col - 1) * m + syOffset] = dr;
-
-            return;
         }
 
         // 
@@ -4952,8 +4905,6 @@ namespace BioIK.Helpers {
             {
                 // DISPLAY: "----------------exit SUBSM --------------------"
             }
-
-            return;
         }
 
         // c                                                                       
@@ -5053,7 +5004,7 @@ namespace BioIK.Helpers {
             info = 0;
 
         L40:
-            return;
+            ;
         }
 
         // *     .. Scalar Arguments ..
@@ -5143,8 +5094,6 @@ namespace BioIK.Helpers {
                     dx[i + 4 - 1 + dxOffset] = da * dx[i + 4 - 1 + dxOffset];
                 }
             }
-
-            return;
         }
 
         // *     .. Scalar Arguments ..
@@ -5440,7 +5389,6 @@ namespace BioIK.Helpers {
                     }
                 }
             }
-            return;
         }
     }
 
