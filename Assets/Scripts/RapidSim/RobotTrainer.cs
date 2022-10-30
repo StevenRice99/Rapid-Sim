@@ -11,6 +11,10 @@ namespace RapidSim
     [RequireComponent(typeof(RobotSolver))]
     public class RobotTrainer : MonoBehaviour
     {
+        [Min(0)]
+        [SerializeField]
+        private double repeatability = 8e-5;
+        
         [Min(1)]
         [SerializeField]
         private int bioIkAttempts = 100;
@@ -47,6 +51,8 @@ namespace RapidSim
         private bool _train;
 
         private BioJoint.Motion[] _motions;
+
+        private Transform _lastBioSegment;
 
         public Transform Objective => RobotController.LastJoint.transform;
     
@@ -92,8 +98,13 @@ namespace RapidSim
                 maxSpeeds[i] = RobotController.MaxSpeeds[i];
             }
 
-            double[] best = null;
-            double bestDistance = 0;
+            double[] best = new double[starting.Length];
+            for (int i = 0; i < best.Length; i++)
+            {
+                best[i] = starting[i];
+            }
+            
+            double bestAccuracy = Accuracy(RobotController.LastJoint.position, position, RobotController.Root.transform.rotation, RobotController.LastJoint.rotation, orientation);
             double bestTime = 0;
 
             for (int j = 0; j < bioIkAttempts; j++)
@@ -126,35 +137,31 @@ namespace RapidSim
                     ending[i] = _motions[i].GetTargetValue(true);
                 }
 
-                double distance = Vector3.Distance(_motions[^1].Joint.transform.position, position);
+                double accuracy = Accuracy(_lastBioSegment.position, position, RobotController.Root.transform.rotation, _lastBioSegment.rotation, orientation);
                 double time = CalculateTime(starting, ending, maxSpeeds);
-                if (best == null)
+
+                if (bestAccuracy > repeatability && accuracy < bestAccuracy)
                 {
                     best = ending;
-                    bestDistance = distance;
+                    bestAccuracy = accuracy;
                     bestTime = time;
                     continue;
                 }
 
-                if (distance < bestDistance)
+                if (accuracy <= repeatability && time < bestTime)
                 {
                     best = ending;
-                    bestDistance = distance;
-                    bestTime = time;
-                    continue;
-                }
-
-                if (distance <= bestDistance && time < bestTime)
-                {
-                    best = ending;
-                    bestDistance = distance;
+                    bestAccuracy = accuracy;
                     bestTime = time;
                 }
             }
-            
-            Debug.Log($"Distance: {bestDistance} | Time: {bestTime}");
 
             return best;
+        }
+
+        private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
+        {
+            return Vector3.Distance(currentPosition, goalPosition) + Quaternion.Angle(goalEndRotation, Quaternion.Inverse(rootRotation) * currentEndRotation);
         }
 
         private static double CalculateTime(double[] starting, double[] ending, double[] maxSpeeds)
@@ -244,6 +251,7 @@ namespace RapidSim
             BioSegment rootSegment = bioIkHolder.GetComponent<BioSegment>();
             rootSegment = rootSegment.Create(_bioIK);
             rootSegment.RenewRelations();
+            _lastBioSegment = rootSegment.transform;
 
             List<BioJoint.Motion> motions = new();
 
@@ -272,6 +280,7 @@ namespace RapidSim
                 BioSegment segment = go.GetComponent<BioSegment>();
                 segment = segment.Create(_bioIK);
                 segment.RenewRelations();
+                _lastBioSegment = segment.transform;
                 parent = go.transform;
 
                 if (i == RobotController.Joints.Length - 1)
