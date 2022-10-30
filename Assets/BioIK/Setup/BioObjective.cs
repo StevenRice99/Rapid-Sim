@@ -7,27 +7,27 @@ namespace BioIK {
 		public BioSegment Segment;
 		public double Weight = 1.0;
 
-		void Awake() {
+		private void Awake() {
 
 		}
 
-		void Start() {
+		private void Start() {
 
 		}
 
-		void OnEnable() {
+		private void OnEnable() {
 			if(Segment != null) {
 				Segment.Character.Refresh();
 			}
 		}
 
-		void OnDisable() {
+		private void OnDisable() {
 			if(Segment != null) {
 				Segment.Character.Refresh();
 			}
 		}
 
-		void OnDestroy() {
+		private void OnDestroy() {
 
 		}
 

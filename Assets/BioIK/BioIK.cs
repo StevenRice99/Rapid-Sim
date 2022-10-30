@@ -1,198 +1,112 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using Unity.Mathematics;
 
-namespace BioIK {
-
-	//[ExecuteInEditMode]
+namespace BioIK
+{
 	[DisallowMultipleComponent]
-	public class BioIK : MonoBehaviour {
+	public class BioIK : MonoBehaviour
+	{
+		public int generations = 2;
+		
+		public int PopulationSize { get; private set; } = 50;
+		
+		public int Elites { get; private set; } = 2;
 
-		//public bool SolveInEditMode = false;
+		public List<BioSegment> segments = new();
 
-		[SerializeField] private bool UseThreading = true;
+		public BioSegment root;
+		public Evolution Evolution;
+		public double[] solution;
 
-		[SerializeField] private int Generations = 2;
-		[SerializeField] private int PopulationSize = 50;
-		[SerializeField] private int Elites = 2;
-
-		public float Smoothing = 0.5f;
-		public float AnimationWeight = 0f;
-		public float AnimationBlend = 0f;
-		public MotionType MotionType = MotionType.Instantaneous;
-		public float MaximumVelocity = 3f;
-		public float MaximumAcceleration = 3f;
-
-		public List<BioSegment> Segments = new List<BioSegment>();
-
-		public BioSegment Root = null;
-		public Evolution Evolution = null;
-		public double[] Solution = null;
-
-		private bool Destroyed = false;
+		private bool _destroyed;
 
 		//Custom Inspector Helpers
-		public BioSegment SelectedSegment = null;
-		public Vector2 Scroll = Vector2.zero;
+		public BioSegment selectedSegment;
+		public Vector2 scroll = Vector2.zero;
 
-		void Awake() {
+		private void Awake()
+		{
 			Refresh();
 		}
 
-		void OnDestroy() {
-			Destroyed = true;
+		private void OnDestroy()
+		{
+			_destroyed = true;
 			DeInitialise();
 			Utility.Cleanup(transform);
 		}
 
-		void OnEnable() {
+		private void OnEnable()
+		{
 			Initialise();	
 		}
 
-		void OnDisable() {
+		private void OnDisable()
+		{
 			DeInitialise();
 		}
 
-		public void Initialise() {
-			if(Evolution == null) {
-				Evolution = new Evolution(new Model(this), PopulationSize, Elites, UseThreading);
+		public void Initialise()
+		{
+			Evolution ??= new(new(this), PopulationSize, Elites);
+		}
+
+		public void DeInitialise()
+		{
+			if (Evolution == null)
+			{
+				return;
+			}
+
+			Evolution.Kill();
+			Evolution = null;
+		}
+
+		public void SetPopulationSize(int size)
+		{
+			if (PopulationSize == size)
+			{
+				return;
+			}
+
+			PopulationSize = math.max(1, size);
+			Elites = math.min(size, Elites);
+			if (Application.isPlaying)
+			{
+				Refresh();
 			}
 		}
 
-		public void DeInitialise() {
-			if(Evolution != null) {
-				Evolution.Kill();
-				Evolution = null;
+		public void SetElites(int number)
+		{
+			if (Elites == number)
+			{
+				return;
+			}
+
+			Elites = math.max(1, number);
+			if (Application.isPlaying)
+			{
+				Refresh();
 			}
 		}
 
-		// void Update() {
-		// 	PrecaptureAnimation(Root);
-		// }
-		//
-		// void LateUpdate() {
-		// 	PostcaptureAnimation(Root);
-		//
-		// 	UpdateData(Root);
-		//
-		// 	for(int i=0; i<Solution.Length; i++) {
-		// 		Solution[i] = Evolution.GetModel().MotionPtrs[i].Motion.GetTargetValue(true);
-		// 	}
-		// 	Solution = Evolution.Optimise(Generations, Solution);
-		// 	
-		// 	for(int i=0; i<Solution.Length; i++) {
-		// 		BioJoint.Motion motion = Evolution.GetModel().MotionPtrs[i].Motion;
-		// 		motion.SetTargetValue(Solution[i], true);
-		// 		/*
-		// 		if(motion.Joint.GetJointType() == JointType.Revolute) {
-		// 			motion.SetTargetValue((float)Solution[i]);
-		// 		} else if(motion.Joint.GetJointType() == JointType.Continuous) {
-		// 			motion.SetTargetValue(motion.GetTargetValue() + Mathf.Deg2Rad*Mathf.DeltaAngle(Mathf.Rad2Deg*motion.GetTargetValue(), Mathf.Rad2Deg*(float)Solution[i]));
-		// 		} else if(motion.Joint.GetJointType() == JointType.Prismatic) {
-		// 			motion.SetTargetValue((float)Solution[i]);
-		// 		} else if(motion.Joint.GetJointType() == JointType.Floating) {
-		// 			motion.SetTargetValue((float)Solution[i]);
-		// 		}
-		// 		*/
-		// 	}
-		//
-		// 	ProcessMotion(Root);
-		// }
-
-		public void SetThreading(bool enabled) {
-			if(UseThreading != enabled) {
-				UseThreading = enabled;
-				if(Application.isPlaying) {
-					Refresh();
-				}
-			}
-		}
-
-		public bool GetThreading() {
-			return UseThreading;
-		}
-
-		public void SetGenerations(int generations) {
-			Generations = generations;
-		}
-
-		public int GetGenerations() {
-			return Generations;
-		}
-
-		public void SetPopulationSize(int populationSize) {
-			if(PopulationSize != populationSize) {
-				PopulationSize = System.Math.Max(1, populationSize);
-				Elites = System.Math.Min(populationSize, Elites);
-				if(Application.isPlaying) {
-					Refresh();
-				}
-			}
-		}
-
-		public int GetPopulationSize() {
-			return PopulationSize;
-		}
-
-		public void SetElites(int elites) {
-			if(Elites != elites) {
-				Elites = System.Math.Max(1, elites);
-				if(Application.isPlaying) {
-					Refresh();
-				}
-			}
-		}
-
-		public int GetElites() {
-			return Elites;
-		}
-
-		public void ResetPosture(BioSegment segment) {
-			if(segment.Joint != null) {
-				segment.Joint.X.SetTargetValue(0f);
-				segment.Joint.Y.SetTargetValue(0f);
-				segment.Joint.Z.SetTargetValue(0f);
-				if(!Application.isPlaying) {
-					segment.Joint.PrecaptureAnimation();
-					segment.Joint.PostcaptureAnimation();
-					segment.Joint.UpdateData();
-					segment.Joint.ProcessMotion();
-				}
-			}
-			for(int i=0; i<segment.Childs.Length; i++) {
-				ResetPosture(segment.Childs[i]);
-			}
-		}
-
-		public BioSegment FindSegment(Transform t) {
-			for(int i=0; i<Segments.Count; i++) {
-				if(Segments[i].Transform == t) {
-					return Segments[i];
+		public BioSegment FindSegment(Transform t)
+		{
+			for (int i = 0; i < segments.Count; i++)
+			{
+				if (segments[i].Transform == t)
+				{
+					return segments[i];
 				}
 			}
 			return null;
 		}
 
-		public BioSegment FindSegment(string name) {
-			for(int i=0; i<Segments.Count; i++) {
-				if(Segments[i].Transform.name == name) {
-					return Segments[i];
-				}
-			}
-			return null;
-		}
-
-		public List<BioSegment> GetChain(Transform start, Transform end) {
-			BioSegment a = FindSegment(start);
-			BioSegment b = FindSegment(end);
-			if(a == null || b == null) {
-				Debug.Log("Could not generate chain for given transforms");
-				return null;
-			}
-			return GetChain(a, b);
-		}
-
-		public List<BioSegment> GetChain(BioSegment start, BioSegment end) {
-			List<BioSegment> chain = new List<BioSegment>();
+		public List<BioSegment> GetChain(BioSegment end)
+		{
+			List<BioSegment> chain = new();
 			BioSegment segment = end;
 			while(true) {
 				chain.Add(segment);
@@ -206,90 +120,86 @@ namespace BioIK {
 			return chain;
 		}
 
-		public void UpdateData(BioSegment segment) {
-			if(segment.Joint != null) {
-				if(segment.Joint.enabled) {
-					segment.Joint.UpdateData();
-				}
+		public static void UpdateData(BioSegment segment)
+		{
+			if (segment.Joint != null && segment.Joint.enabled)
+			{
+				segment.Joint.UpdateData();
 			}
-			for(int i=0; i<segment.Objectives.Length; i++) {
-				if(segment.Objectives[i].enabled) {
+			for (int i = 0; i < segment.Objectives.Length; i++)
+			{
+				if (segment.Objectives[i].enabled)
+				{
 					segment.Objectives[i].UpdateData();
 				}
 			}
-			for(int i=0; i<segment.Childs.Length; i++) {
+			for (int i = 0; i<segment.Childs.Length; i++)
+			{
 				UpdateData(segment.Childs[i]);
 			}
 		}
 
-		public void Refresh(bool evolution = true) {
-			if(Destroyed) {
+		public void Refresh(bool evolution = true)
+		{
+			if (_destroyed)
+			{
 				return;
 			}
 			
-			for(int i=0; i<Segments.Count; i++) {
-				if(Segments[i] == null) {
-					Segments.RemoveAt(i);
-					i--;
+			for (int i = 0; i < segments.Count; i++)
+			{
+				if (segments[i] != null)
+				{
+					continue;
 				}
-			}
-			Refresh(transform);
-			Root = FindSegment(transform);
 
-			if(evolution && Application.isPlaying) {
-				DeInitialise();
-				Initialise();
-				Solution = new double[Evolution.GetModel().GetDoF()];
+				segments.RemoveAt(i);
+				i--;
 			}
+			
+			Refresh(transform);
+			root = FindSegment(transform);
+
+			if (!evolution || !Application.isPlaying)
+			{
+				return;
+			}
+
+			DeInitialise();
+			Initialise();
+			solution = new double[Evolution.GetModel().GetDoF()];
 		}
 
-		private void Refresh(Transform t) {
+		private void Refresh(Transform t)
+		{
 			BioSegment segment = FindSegment(t);
-			if(segment == null) {
+			if (segment == null)
+			{
 				segment = Utility.AddBioSegment(this, t);
-				Segments.Add(segment);
+				segments.Add(segment);
 			}
+			
 			segment.Character = this;
 			segment.RenewRelations();
 			
-			for(int i=0; i<t.childCount; i++) {
+			for (int i = 0; i < t.childCount; i++)
+			{
 				Refresh(t.GetChild(i));
 			}
 		}
 
-		public void PrecaptureAnimation(BioSegment segment) {
-			if(segment.Joint != null) {
-				if(segment.Joint.enabled) {
-					segment.Joint.PrecaptureAnimation();
-				}
+		public static void ProcessMotion(BioSegment segment)
+		{
+			if (segment.Joint != null && segment.Joint.enabled)
+			{
+				segment.Joint.ProcessMotion();
 			}
-			for(int i=0; i<segment.Childs.Length; i++) {
-				PrecaptureAnimation(segment.Childs[i]);
-			}
-		}
-
-		public void PostcaptureAnimation(BioSegment segment) {
-			if(segment.Joint != null) {
-				if(segment.Joint.enabled) {
-					segment.Joint.PostcaptureAnimation();
-				}
-			}
-			for(int i=0; i<segment.Childs.Length; i++) {
-				PostcaptureAnimation(segment.Childs[i]);
-			}
-		}
-
-		public void ProcessMotion(BioSegment segment) {
-			if(segment.Joint != null) {
-				if(segment.Joint.enabled) {
-					segment.Joint.ProcessMotion();
-				}
-			}
-			for(int i=0; i<segment.Childs.Length; i++) {
+			
+			for (int i = 0; i < segment.Childs.Length; i++)
+			{
 				ProcessMotion(segment.Childs[i]);
 			}
 		}
 
 	}
-
 }

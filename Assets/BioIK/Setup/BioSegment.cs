@@ -8,18 +8,18 @@ namespace BioIK {
 		public Transform Transform;
 		public BioSegment Parent;
 		public BioSegment[] Childs = new BioSegment[0];
-		public BioJoint Joint = null;
+		public BioJoint Joint;
 		public BioObjective[] Objectives = new BioObjective[0];
 
-		void Awake() {
+		private void Awake() {
 
 		}
 
-		void Start() {
+		private void Start() {
 
 		}
 
-		void OnDestroy() {
+		private void OnDestroy() {
 
 		}
 

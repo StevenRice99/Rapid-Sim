@@ -10,27 +10,27 @@ namespace BioIK {
 
 		private Color Color1 = Color.white;
 		//private Color Color2 = Color.black;
-		private Color Color3 = new Color(0.6f, 0.6f, 0.6f, 1f);
-		private Color Color4 = new Color(0.3f, 0.8f, 0.8f, 1f);
-		private Color Color5 = new Color(1f, 0.7f, 0.3f, 1f);
-		private Color Color6 = new Color(0.9f, 0.3f, 0.9f, 1f);
-		private Color Color7 = new Color(1.0f, 0.3f, 0.3f, 1f);
-		private Color Color8 = new Color(0.3f, 0.6f, 0.6f, 1f);
-		private Color Color9 = new Color(0.4f, 0.9f, 0.4f, 1f);	
+		private Color Color3 = new(0.6f, 0.6f, 0.6f, 1f);
+		private Color Color4 = new(0.3f, 0.8f, 0.8f, 1f);
+		private Color Color5 = new(1f, 0.7f, 0.3f, 1f);
+		private Color Color6 = new(0.9f, 0.3f, 0.9f, 1f);
+		private Color Color7 = new(1.0f, 0.3f, 0.3f, 1f);
+		private Color Color8 = new(0.3f, 0.6f, 0.6f, 1f);
+		private Color Color9 = new(0.4f, 0.9f, 0.4f, 1f);	
 		//private Color Color10 = new Color(1f, 0.5f, 1f, 1f);
-		private Color Color11 = new Color(0.3f, 0.3f, 0.3f, 1f);
+		private Color Color11 = new(0.3f, 0.3f, 0.3f, 1f);
 		//private Color Color12 = new Color(0.9f, 0.6f, 0.9f, 1f);
-		private Color Color13 = new Color(0.5f, 0.5f, 0.5f, 1f);
-		private Color Color14 = new Color(0.75f, 0.75f, 0.75f, 1f);
+		private Color Color13 = new(0.5f, 0.5f, 0.5f, 1f);
+		private Color Color14 = new(0.75f, 0.75f, 0.75f, 1f);
 
-		private bool ChosingObjectiveType = false;
+		private bool ChosingObjectiveType;
 
-		private bool IsPlaying = false;
-		private bool IsEnabled = false;
+		private bool IsPlaying;
+		private bool IsEnabled;
 
 		private int DoF;
 
-		void Awake() {
+		private void Awake() {
 			EditorApplication.playModeStateChanged += PlaymodeStateChanged;
 			Target = (BioIK)target;
 			TargetTransform = Target.transform;
@@ -40,11 +40,11 @@ namespace BioIK {
 			//MakeInvisible(TargetTransform);
 		}
 
-		void OnEnable() {
+		private void OnEnable() {
 			IsEnabled = true;
 		}
 
-		void OnDisable() {
+		private void OnDisable() {
 			IsEnabled = false;
 		}
 
@@ -78,7 +78,7 @@ namespace BioIK {
 			}
 		}
 
-		void OnDestroy() {
+		private void OnDestroy() {
 			if(
 				Target == null 
 				&& 
@@ -110,36 +110,13 @@ namespace BioIK {
 				GUILayout.FlexibleSpace();
 				GUILayout.EndHorizontal();
 
-				//SetGUIColor(Color1);
-				//Target.SolveInEditMode = EditorGUILayout.Toggle("Solve In Edit Mode", Target.SolveInEditMode);
 				SetGUIColor(Color1);
-				Target.SetThreading(EditorGUILayout.Toggle("Use Threading", Target.GetThreading()));
+				Target.generations = EditorGUILayout.IntField("Generations", Target.generations);
 				SetGUIColor(Color1);
-				Target.SetGenerations(EditorGUILayout.IntField("Generations", Target.GetGenerations()));
+				Target.SetPopulationSize(EditorGUILayout.IntField("Individuals", Target.PopulationSize));
 				SetGUIColor(Color1);
-				Target.SetPopulationSize(EditorGUILayout.IntField("Individuals", Target.GetPopulationSize()));
+				Target.SetElites(EditorGUILayout.IntField("Elites", Target.Elites));
 				SetGUIColor(Color1);
-				Target.SetElites(EditorGUILayout.IntField("Elites", Target.GetElites()));
-				SetGUIColor(Color1);
-				Target.Smoothing = EditorGUILayout.Slider("Smoothing", Target.Smoothing, 0f, 1f);
-				SetGUIColor(Color1);
-				Target.AnimationWeight = EditorGUILayout.Slider("Animation Weight", Target.AnimationWeight, 0f, 1f);
-				SetGUIColor(Color1);
-				Target.AnimationBlend = EditorGUILayout.Slider("Animation Blend", Target.AnimationBlend, 0f, 1f);
-				SetGUIColor(Color1);
-				Target.MotionType = (MotionType)EditorGUILayout.EnumPopup("Motion Type", Target.MotionType);
-				if(Target.MotionType == MotionType.Realistic) {
-					Target.MaximumVelocity = EditorGUILayout.FloatField("Maximum Velocity", Target.MaximumVelocity);
-					Target.MaximumAcceleration = EditorGUILayout.FloatField("Maximum Acceleration", Target.MaximumAcceleration);
-				}
-				SetGUIColor(Color1);
-				GUILayout.BeginHorizontal();
-				GUILayout.FlexibleSpace();
-				if(GUILayout.Button("          Reset Posture          ")) {
-					Target.ResetPosture(Target.Root);
-				}
-				GUILayout.FlexibleSpace();
-				GUILayout.EndHorizontal();
 			}
 
 			SetGUIColor(Color3);
@@ -157,7 +134,7 @@ namespace BioIK {
 				int maxIndent = 0;
 				ComputeMaxIndentLevel(Target.transform, 0, ref maxIndent);
 
-				Target.Scroll = EditorGUILayout.BeginScrollView(Target.Scroll, GUILayout.Height(500f));
+				Target.scroll = EditorGUILayout.BeginScrollView(Target.scroll, GUILayout.Height(500f));
 				InspectBody(Target.FindSegment(Target.transform), 0, maxIndent);
 				EditorGUILayout.EndScrollView();
 			}
@@ -173,7 +150,7 @@ namespace BioIK {
 			using(new EditorGUILayout.VerticalScope ("Box")) {
 				EditorGUILayout.BeginHorizontal();
 				
-				if(Target.SelectedSegment != segment) {
+				if(Target.selectedSegment != segment) {
 					if(indent > 0) {
 						SetGUIColor(Color13);
 						using(new EditorGUILayout.VerticalScope ("Box")) {
@@ -184,23 +161,23 @@ namespace BioIK {
 				}
 
 				GUI.skin.button.alignment = TextAnchor.MiddleLeft;
-				if(segment == Target.SelectedSegment) {
+				if(segment == Target.selectedSegment) {
 					SetGUIColor(Color5);
 				} else {
 					SetGUIColor(Color.Lerp(Color4, Color8, (float)indent / (float)maxIndent));
 				}
 				if(GUILayout.Button(segment.Transform.name, GUILayout.Height(25f), GUILayout.ExpandWidth(true))) {
-					if(Target.SelectedSegment == segment) {
-						Target.SelectedSegment = null;
+					if(Target.selectedSegment == segment) {
+						Target.selectedSegment = null;
 						ChosingObjectiveType = false;
 					} else {
-						Target.SelectedSegment = segment;
+						Target.selectedSegment = segment;
 					}
 				}
 
 				EditorGUILayout.EndHorizontal();
 
-				if(Target.SelectedSegment == segment) {
+				if(Target.selectedSegment == segment) {
 					InspectSegment(segment);
 				} else {
 					GUILayout.BeginHorizontal();
@@ -342,8 +319,6 @@ namespace BioIK {
 			}
 
 			if(joint != null) {
-				joint.PrecaptureAnimation();
-				joint.PostcaptureAnimation();
 				joint.UpdateData();
 				joint.ProcessMotion();
 				EditorUtility.SetDirty(joint);
@@ -558,8 +533,8 @@ namespace BioIK {
 			DoF = 0;
 			DrawSkeleton(Target.FindSegment(Target.transform));
 			DrawSetup(Target.FindSegment(Target.transform), false);
-			if(Target.SelectedSegment != null) {
-				DrawSegment(Target.SelectedSegment, true);
+			if(Target.selectedSegment != null) {
+				DrawSegment(Target.selectedSegment, true);
 			}
 		}
 
@@ -593,10 +568,10 @@ namespace BioIK {
 
 		private void DrawSegment(BioSegment segment, bool final) {
 			Vector3 P = segment.GetAnchoredPosition();
-			if(Target.SelectedSegment == segment && final) {
-				DrawSphere(P, 0.25f, new Color(0f, 0f, 0f, 0.4f));
+			if(Target.selectedSegment == segment && final) {
+				DrawSphere(P, 0.25f, new(0f, 0f, 0f, 0.4f));
 				DrawSphere(P, 0.02f, Color5);
-			} else if(Target.SelectedSegment != segment) {
+			} else if(Target.selectedSegment != segment) {
 				DrawSphere(P, 0.02f, Color.cyan);
 			}
 			if(segment.Joint != null) {
@@ -619,7 +594,7 @@ namespace BioIK {
 		}
 
 		private void DrawMotion(BioJoint.Motion motion, Color color, bool final) {
-			if(Target.SelectedSegment == motion.Joint.Segment && final) {
+			if(Target.selectedSegment == motion.Joint.Segment && final) {
 				DrawArrow(motion.Joint.GetAnchorInWorldSpace(), motion.Joint.Segment.Transform.rotation * Quaternion.LookRotation(motion.Axis), 0.125f, motion.IsEnabled() ? color : Color.grey);
 				
 				if(!motion.IsEnabled() || !motion.Constrained) {
@@ -634,7 +609,7 @@ namespace BioIK {
 							Quaternion.AngleAxis((float)motion.GetLowerLimit(), motion.Joint.Segment.Transform.rotation * motion.Axis) * motion.Joint.Segment.Transform.rotation * motion.Joint.Y.Axis, 
 							(float)motion.GetUpperLimit() - (float)motion.GetLowerLimit(), 
 							0.125f, 
-							new Color(1f, 0f, 0f, 0.25f)
+							new(1f, 0f, 0f, 0.25f)
 							);
 					}
 					if(motion == motion.Joint.Y) {
@@ -644,7 +619,7 @@ namespace BioIK {
 							Quaternion.AngleAxis((float)motion.GetLowerLimit(), motion.Joint.Segment.Transform.rotation * motion.Axis) * motion.Joint.Segment.Transform.rotation * motion.Joint.Z.Axis, 
 							(float)motion.GetUpperLimit() - (float)motion.GetLowerLimit(), 
 							0.125f, 
-							new Color(0f, 1f, 0f, 0.25f)
+							new(0f, 1f, 0f, 0.25f)
 							);
 					}
 					if(motion == motion.Joint.Z) {
@@ -654,7 +629,7 @@ namespace BioIK {
 							Quaternion.AngleAxis((float)motion.GetLowerLimit(), motion.Joint.Segment.Transform.rotation * motion.Axis) * motion.Joint.Segment.Transform.rotation * motion.Joint.X.Axis, 
 							(float)motion.GetUpperLimit() - (float)motion.GetLowerLimit(), 
 							0.125f, 
-							new Color(0f, 0f, 1f, 0.25f)
+							new(0f, 0f, 1f, 0.25f)
 							);
 					}
 				}
@@ -673,11 +648,11 @@ namespace BioIK {
 						c = Color.blue;
 					}
 					DrawLine(A,	B, 3f, c);
-					DrawCube(A, motion.Joint.Segment.Transform.rotation, 0.0125f, new Color(c.r, c.g, c.b, 0.5f));
-					DrawCube(B, motion.Joint.Segment.Transform.rotation, 0.0125f, new Color(c.r, c.g, c.b, 0.5f));
+					DrawCube(A, motion.Joint.Segment.Transform.rotation, 0.0125f, new(c.r, c.g, c.b, 0.5f));
+					DrawCube(B, motion.Joint.Segment.Transform.rotation, 0.0125f, new(c.r, c.g, c.b, 0.5f));
 				}
 
-			} else if(Target.SelectedSegment != motion.Joint.Segment) {
+			} else if(Target.selectedSegment != motion.Joint.Segment) {
 				DrawArrow(motion.Joint.GetAnchorInWorldSpace(), motion.Joint.Segment.Transform.rotation * Quaternion.LookRotation(motion.Axis), 0.05f, motion.IsEnabled() ? color : Color.clear);
 			}
 		}
@@ -719,7 +694,7 @@ namespace BioIK {
 		}
 
 		private void DrawPosition(Position objective) {
-			DrawSphere(objective.GetTargetPosition(), 0.1f, new Color(1f, 0f, 0f, 0.75f));
+			DrawSphere(objective.GetTargetPosition(), 0.1f, new(1f, 0f, 0f, 0.75f));
 			Handles.Label(objective.GetTargetPosition(), "Target");
 		}
 
@@ -729,9 +704,9 @@ namespace BioIK {
 			Vector3 up = rotation * Vector3.up;
 			Vector3 forward = rotation * Vector3.forward;
 			float length = 0.1f;
-			DrawLine(objective.Segment.Transform.position - length * right, objective.Segment.Transform.position + length * right, 5f, new Color(1f, 0f, 0f, 0.75f));
-			DrawLine(objective.Segment.Transform.position - length * up, objective.Segment.Transform.position + length * up, 5f, new Color(0f, 1f, 0f, 0.75f));
-			DrawLine(objective.Segment.Transform.position - length * forward, objective.Segment.Transform.position + length * forward, 5f, new Color(0f, 0f, 1f, 0.75f));
+			DrawLine(objective.Segment.Transform.position - length * right, objective.Segment.Transform.position + length * right, 5f, new(1f, 0f, 0f, 0.75f));
+			DrawLine(objective.Segment.Transform.position - length * up, objective.Segment.Transform.position + length * up, 5f, new(0f, 1f, 0f, 0.75f));
+			DrawLine(objective.Segment.Transform.position - length * forward, objective.Segment.Transform.position + length * forward, 5f, new(0f, 0f, 1f, 0.75f));
 			Handles.Label(objective.Segment.Transform.position, "Target");
 		}
 
@@ -742,12 +717,12 @@ namespace BioIK {
 		}
 
 		private void DrawDistance(Distance objective) {
-			DrawSphere(objective.transform.position, (float)objective.GetRadius(), new Color(0f, 1f, 0f, 0.5f));
+			DrawSphere(objective.transform.position, (float)objective.GetRadius(), new(0f, 1f, 0f, 0.5f));
 			DistancePoint[] points = objective.GetPoints();
 			for(int i=0; i<points.Length; i++) {
 				DistancePoint point = points[i];
 				if(point != null) {
-					DrawSphere(point.GetTargetPoint(), (float)point.GetRadius(), new Color(1f, 0f, 0f, 0.5f));
+					DrawSphere(point.GetTargetPoint(), (float)point.GetRadius(), new(1f, 0f, 0f, 0.5f));
 				}
 			}
 		}

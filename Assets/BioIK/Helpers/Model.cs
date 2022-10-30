@@ -43,9 +43,9 @@ namespace BioIK {
 			AddNode(Root);
 			
 			//Build Model
-			BioObjective[] objectives = CollectObjectives(Root, new List<BioObjective>());
+			BioObjective[] objectives = CollectObjectives(Root, new());
 			for(int i=0; i<objectives.Length; i++) {
-				List<BioSegment> chain = Character.GetChain(Root, objectives[i].Segment);
+				List<BioSegment> chain = Character.GetChain(objectives[i].Segment);
 				for(int j=1; j<chain.Count; j++) {
 					AddNode(chain[j]);
 				}
@@ -203,7 +203,7 @@ namespace BioIK {
 		public bool CheckConvergence(double[] configuration) {
 			FK(configuration);
 			for(int i=0; i<ObjectivePtrs.Length; i++) {
-				Model.Node node = ObjectivePtrs[i].Node;
+				Node node = ObjectivePtrs[i].Node;
 				if(!ObjectivePtrs[i].Objective.CheckConvergence(node.WPX, node.WPY, node.WPZ, node.WRX, node.WRY, node.WRZ, node.WRW, node, configuration)) {
 					return false;
 				}
@@ -222,28 +222,28 @@ namespace BioIK {
 		//Adds a segment node into the model
 		private void AddNode(BioSegment segment) {
 			if(FindNode(segment.Transform) == null) {
-				Node node = new Node(this, FindNode(segment.Transform.parent), segment);
+				Node node = new(this, FindNode(segment.Transform.parent), segment);
 
 				if(node.Joint != null) {
 					if(node.Joint.GetDoF() == 0 || !node.Joint.enabled) {
 						node.Joint = null;
 					} else {
 						if(node.Joint.X.IsEnabled()) {
-							MotionPtr motionPtr = new MotionPtr(node.Joint.X, node, MotionPtrs.Length);
+							MotionPtr motionPtr = new(node.Joint.X, node, MotionPtrs.Length);
 							System.Array.Resize(ref MotionPtrs, MotionPtrs.Length+1);
 							MotionPtrs[MotionPtrs.Length-1] = motionPtr;
 							node.XEnabled = true;
 							node.XIndex = motionPtr.Index;
 						}
 						if(node.Joint.Y.IsEnabled()) {
-							MotionPtr motionPtr = new MotionPtr(node.Joint.Y, node, MotionPtrs.Length);
+							MotionPtr motionPtr = new(node.Joint.Y, node, MotionPtrs.Length);
 							System.Array.Resize(ref MotionPtrs, MotionPtrs.Length+1);
 							MotionPtrs[MotionPtrs.Length-1] = motionPtr;
 							node.YEnabled = true;
 							node.YIndex = motionPtr.Index;
 						}
 						if(node.Joint.Z.IsEnabled()) {
-							MotionPtr motionPtr = new MotionPtr(node.Joint.Z, node, MotionPtrs.Length);
+							MotionPtr motionPtr = new(node.Joint.Z, node, MotionPtrs.Length);
 							System.Array.Resize(ref MotionPtrs, MotionPtrs.Length+1);
 							MotionPtrs[MotionPtrs.Length-1] = motionPtr;
 							node.ZEnabled = true;
@@ -256,7 +256,7 @@ namespace BioIK {
 				for(int i=0; i<objectives.Length; i++) {
 					if(objectives[i].enabled) {
 						System.Array.Resize(ref ObjectivePtrs, ObjectivePtrs.Length+1);
-						ObjectivePtrs[ObjectivePtrs.Length-1] = new ObjectivePtr(objectives[i], node, ObjectivePtrs.Length);
+						ObjectivePtrs[ObjectivePtrs.Length-1] = new(objectives[i], node, ObjectivePtrs.Length);
 					}
 				}
 
@@ -325,15 +325,15 @@ namespace BioIK {
 			public double LRX, LRY, LRZ, LRW;			//Local rotation
 			//public double RootX, RootY, RootZ;		//World position of root joint
 
-			public bool XEnabled = false;
-			public bool YEnabled = false;
-			public bool ZEnabled = false;
+			public bool XEnabled;
+			public bool YEnabled;
+			public bool ZEnabled;
 			public int XIndex = -1;
 			public int YIndex = -1;
 			public int ZIndex = -1;
-			public double XValue = 0.0;					//
-			public double YValue = 0.0;					//
-			public double ZValue = 0.0;					//
+			public double XValue;					//
+			public double YValue;					//
+			public double ZValue;					//
 		
 			public bool[] ObjectiveImpacts;				//Boolean values to represent which objective indices in the whole kinematic tree are affected (TODO: Refactor this)
 
@@ -347,7 +347,7 @@ namespace BioIK {
 				Transform = segment.Transform;
 				Joint = segment.Joint;
 
-				List<Transform> reverseChain = new List<Transform>();
+				List<Transform> reverseChain = new();
 				reverseChain.Add(Transform);
 				Node p = parent;
 				while(p != null) {

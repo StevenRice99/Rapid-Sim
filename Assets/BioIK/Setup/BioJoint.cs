@@ -12,38 +12,21 @@ namespace BioIK {
 		[SerializeField] private Vector3 Orientation = Vector3.zero;				//Joint orientation		
 		[SerializeField] private float DPX, DPY, DPZ, DRX, DRY, DRZ, DRW;			//Default frame
 
-		private Vector3 AnimationPosition, AnimatedDefaultPosition;
-		private Quaternion AnimationRotation, AnimatedDefaultRotation;
+		private Vector3 AnimatedDefaultPosition;
+		private Quaternion AnimatedDefaultRotation;
 		private double R1, R2, R3, R4, R5, R6, R7, R8, R9;							//Precomputed rotation information
 		private Vector3 LSA;														//LocalScaledAnchor
 		private Vector3 ADPADRSA;													//AnimatedDefaultPosition + AnimatedDefaultRotation * LocalScaledAnchor
-		private Vector3 LastPosition;
-		private Quaternion LastRotation;
 		private Vector3 Scale;
 
-		void Awake() {
-
-		}
-
-		void Start() {
-			LastPosition = transform.localPosition;
-			LastRotation = transform.localRotation;
-		}
-
-		void OnEnable() {
-			LastPosition = transform.localPosition;
-			LastRotation = transform.localRotation;
+		private void OnEnable() {
 			if(Segment != null) {
 				Segment.Character.Refresh();
 			}
 		}
 
-		void OnDisable() {
+		private void OnDisable() {
 			Segment.Character.Refresh();
-		}
-
-		void OnDestroy() {
-
 		}
 
 		public BioJoint Create(BioSegment segment) {
@@ -51,9 +34,9 @@ namespace BioIK {
 			Segment.Transform.hideFlags = HideFlags.NotEditable;
 			hideFlags = HideFlags.HideInInspector;
 
-			X = new Motion(this, Vector3.right);
-			Y = new Motion(this, Vector3.up);
-			Z = new Motion(this, Vector3.forward);
+			X = new(this, Vector3.right);
+			Y = new(this, Vector3.up);
+			Z = new(this, Vector3.forward);
 
 			SetDefaultFrame(transform.localPosition, transform.localRotation);
 			SetAnchor(Anchor);
@@ -69,9 +52,6 @@ namespace BioIK {
 			} else {
 				SetOrientation(Orientation);
 			}
-
-			LastPosition = transform.localPosition;
-			LastRotation = transform.localRotation;
 
 			return this;
 		}
@@ -94,23 +74,9 @@ namespace BioIK {
 			Utility.Destroy(this);
 		}
 
-		public void PrecaptureAnimation() {
-			transform.hasChanged = false;
-		}
-
-		public void PostcaptureAnimation() {
-			if(transform.hasChanged) {
-				AnimationPosition = transform.localPosition;
-				AnimationRotation = transform.localRotation;
-			} else {
-				AnimationPosition = new Vector3(DPX, DPY, DPZ);
-				AnimationRotation = new Quaternion(DRX, DRY, DRZ, DRW);
-			}
-		}
-
 		public void UpdateData() {
-			AnimatedDefaultPosition = (1f-Segment.Character.AnimationWeight) * new Vector3(DPX, DPY, DPZ) + Segment.Character.AnimationWeight * AnimationPosition;
-			AnimatedDefaultRotation = Quaternion.Slerp(new Quaternion(DRX, DRY, DRZ, DRW), AnimationRotation, Segment.Character.AnimationWeight);
+			AnimatedDefaultPosition = new(DPX, DPY, DPZ);
+			AnimatedDefaultRotation = new(DRX, DRY, DRZ, DRW);
 			R1 = (1.0 - 2.0 * (AnimatedDefaultRotation.y * AnimatedDefaultRotation.y + AnimatedDefaultRotation.z * AnimatedDefaultRotation.z));
 			R2 = 2.0 * (AnimatedDefaultRotation.x * AnimatedDefaultRotation.y + AnimatedDefaultRotation.w * AnimatedDefaultRotation.z);
 			R3 = 2.0 * (AnimatedDefaultRotation.x * AnimatedDefaultRotation.z - AnimatedDefaultRotation.w * AnimatedDefaultRotation.y);
@@ -133,28 +99,16 @@ namespace BioIK {
 			//Compute local transformation
 			double lpX, lpY, lpZ, lrX, lrY, lrZ, lrW;
 			if(JointType == JointType.Rotational) {
-				ComputeLocalTransformation(Utility.Deg2Rad*X.ProcessMotion(Segment.Character.MotionType), Utility.Deg2Rad*Y.ProcessMotion(Segment.Character.MotionType), Utility.Deg2Rad*Z.ProcessMotion(Segment.Character.MotionType), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
+				ComputeLocalTransformation(Utility.Deg2Rad*X.ProcessMotion(), Utility.Deg2Rad*Y.ProcessMotion(), Utility.Deg2Rad*Z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
 			} else {
-				ComputeLocalTransformation(X.ProcessMotion(Segment.Character.MotionType), Y.ProcessMotion(Segment.Character.MotionType), Z.ProcessMotion(Segment.Character.MotionType), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
+				ComputeLocalTransformation(X.ProcessMotion(), Y.ProcessMotion(), Z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
 			}
 
 			//Apply local transformation
-			if(Application.isPlaying) {
-				//Assigning transformation
-				transform.localPosition = (1f-Segment.Character.Smoothing) * new Vector3((float)lpX, (float)lpY, (float)lpZ) + Segment.Character.Smoothing * LastPosition;
-				transform.localRotation = Quaternion.Slerp(new Quaternion((float)lrX, (float)lrY, (float)lrZ, (float)lrW), LastRotation, Segment.Character.Smoothing);
-
-				//Blending animation
-				transform.localPosition = (1f-Segment.Character.AnimationBlend) * transform.localPosition + Segment.Character.AnimationBlend * AnimationPosition;
-				transform.localRotation = Quaternion.Slerp(transform.localRotation, AnimationRotation, Segment.Character.AnimationBlend);
-			} else {
-				transform.localPosition = new Vector3((float)lpX, (float)lpY, (float)lpZ);
-				transform.localRotation = new Quaternion((float)lrX, (float)lrY, (float)lrZ, (float)lrW);
-			}
+			transform.localPosition = new((float)lpX, (float)lpY, (float)lpZ);
+			transform.localRotation = new((float)lrX, (float)lrY, (float)lrZ, (float)lrW);
 
 			//Remember transformation
-			LastPosition = transform.localPosition;
-			LastRotation = transform.localRotation;
 
 			transform.hasChanged = false;
 		}
@@ -309,11 +263,11 @@ namespace BioIK {
 		}
 
 		public Vector3 GetDefaultPosition() {
-			return new Vector3(DPX, DPY, DPZ);
+			return new(DPX, DPY, DPZ);
 		}
 
 		public Quaternion GetDefaultRotation() {
-			return new Quaternion(DRX, DRY, DRZ, DRW);
+			return new(DRX, DRY, DRZ, DRW);
 		}
 
 		public int GetDoF() {
@@ -341,8 +295,8 @@ namespace BioIK {
 		}
 
 		public void RestoreDefaultFrame() {
-			transform.localPosition = new Vector3(DPX, DPY, DPZ);
-			transform.localRotation = new Quaternion(DRX, DRY, DRZ, DRW);
+			transform.localPosition = new(DPX, DPY, DPZ);
+			transform.localRotation = new(DRX, DRY, DRZ, DRW);
 		}
 
 		[System.Serializable]
@@ -369,22 +323,13 @@ namespace BioIK {
 			}
 
 			//Runs one motion control cycle
-			public double ProcessMotion(MotionType type) {
+			public double ProcessMotion() {
 				if(!Enabled) {
 					//return CurrentValue;
 					return 0.0;
 				}
 
-				if(!Application.isPlaying) {
-					UpdateInstantaneous();
-				} else {
-					if(type == MotionType.Instantaneous) {
-						UpdateInstantaneous();
-					}
-					if(type == MotionType.Realistic) {
-						UpdateRealistic();
-					}
-				}
+				UpdateInstantaneous();
 
 				return CurrentValue;
 			}
@@ -395,59 +340,6 @@ namespace BioIK {
 				CurrentError = 0f;
 				CurrentVelocity = 0f;
 				CurrentAcceleration = 0f;
-			}
-
-			//Performs realistic motion control
-			//Input: TargetValue, CurrentValue, CurrentVelocity (initially 0), CurrentAcceleration (initially 0), MaximumVelocity, MaximumAcceleration
-			//Output: CurrentValue, CurrentVelocity, CurrentAcceleration
-			private void UpdateRealistic() {
-				if(Time.deltaTime == 0f) {
-					return;
-				}
-
-				double maxVel = Joint.JointType == JointType.Rotational ? Utility.Rad2Deg * Joint.Segment.Character.MaximumVelocity : Joint.Segment.Character.MaximumVelocity;
-				double maxAcc = Joint.JointType == JointType.Rotational ? Utility.Rad2Deg * Joint.Segment.Character.MaximumAcceleration : Joint.Segment.Character.MaximumAcceleration;
-
-				//Compute current error
-				CurrentError = TargetValue-CurrentValue;	
-
-				//Minimum distance to stop: s = |(v^2)/(2a_max)| + |a/2*t^2| + |v*t|
-				double stoppingDistance = 
-					System.Math.Abs((CurrentVelocity*CurrentVelocity)/(2.0*maxAcc*Slowdown))
-					+ System.Math.Abs(CurrentAcceleration)/2.0*Time.deltaTime*Time.deltaTime
-					+ System.Math.Abs(CurrentVelocity)*Time.deltaTime;
-
-				if(System.Math.Abs(CurrentError) > stoppingDistance) {
-					//Accelerate
-					CurrentAcceleration = System.Math.Sign(CurrentError)*System.Math.Min(System.Math.Abs(CurrentError) / Time.deltaTime, maxAcc*Speedup);
-				} else {
-					//Deccelerate
-					if(CurrentError == 0.0) {
-						CurrentAcceleration = -System.Math.Sign(CurrentVelocity)*
-						System.Math.Min(System.Math.Abs(CurrentVelocity) / Time.deltaTime, maxAcc);
-						
-					} else {
-						CurrentAcceleration = -System.Math.Sign(CurrentVelocity)*
-						System.Math.Min(
-							System.Math.Min(System.Math.Abs(CurrentVelocity) / Time.deltaTime, maxAcc), 
-							System.Math.Abs((CurrentVelocity*CurrentVelocity)/(2.0*CurrentError))
-						);
-					}
-				}
-
-				//Compute new velocity
-				CurrentVelocity += CurrentAcceleration*Time.deltaTime;
-
-				//Clamp velocity
-				if(CurrentVelocity > maxVel) {
-					CurrentVelocity = maxVel;
-				}
-				if(CurrentVelocity < -maxVel) {
-					CurrentVelocity = -maxVel;
-				}
-				
-				//Update Current Value
-				CurrentValue += CurrentVelocity*Time.deltaTime;
 			}
 
 			public void SetEnabled(bool enabled) {

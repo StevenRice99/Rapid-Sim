@@ -21,7 +21,7 @@ namespace BioIK {
 		private Individual[] Population;                    	//Array for current individuals
 		private Individual[] Offspring;							//Array for offspring individuals
 
-		private List<Individual> Pool = new List<Individual>();	//Selection pool for recombination
+		private List<Individual> Pool = new();	//Selection pool for recombination
 		private int PoolCount;									//Current size of the selection pool
 		private double[] Probabilities;							//Current probabilities for selection
 		private double Gene;									//Simple storage variable #1
@@ -29,37 +29,35 @@ namespace BioIK {
 		private bool[] Constrained;
 
         //Variables for elitism exploitation
-        private bool UseThreading;
-        private bool Evolving = false;
-        private bool[] Improved = null;
-        private Model[] Models = null;
-        private BFGS[] Optimisers = null;
+        private bool Evolving;
+        private bool[] Improved;
+        private Model[] Models;
+        private BFGS[] Optimisers;
 
         //Threading
-		private bool ThreadsRunning = false;
-        private ManualResetEvent[] Handles = null;
-        private Thread[] Threads = null;
-	    private bool[] Work = null;
+        private ManualResetEvent[] Handles;
+        private Thread[] Threads;
+	    private bool[] Work;
         
         //Variables for optimisation queries
 		private double[] Solution;                       		//Evolutionary solution
 		private double Fitness;                  				//Evolutionary fitness
 
-        private bool Killed = false;
+        private bool Killed;
 
 		//Initialises the algorithm
-		public Evolution(Model model, int populationSize, int elites, bool useThreading) {
+		public Evolution(Model model, int populationSize, int elites)
+        {
 			Model = model;
 			PopulationSize = populationSize;
 			Elites = elites;
 			Dimensionality = model.GetDoF();
-            UseThreading = useThreading;
 
 			Population = new Individual[PopulationSize];
 			Offspring = new Individual[PopulationSize];
 			for(int i=0; i<PopulationSize; i++) {
-				Population[i] = new Individual(Dimensionality);
-				Offspring[i] = new Individual(Dimensionality);
+				Population[i] = new(Dimensionality);
+				Offspring[i] = new(Dimensionality);
 			}
 
 			LowerBounds = new double[Dimensionality];
@@ -73,27 +71,10 @@ namespace BioIK {
             Improved = new bool[Elites];
             for(int i=0; i<Elites; i++) {
                 int index = i;
-                Models[index] = new Model(Model.GetCharacter());
-                Optimisers[index] = new BFGS(Dimensionality, x => Models[index].ComputeLoss(x), y => Models[index].ComputeGradient(y, 1e-5));
+                Models[index] = new(Model.GetCharacter());
+                Optimisers[index] = new(Dimensionality, x => Models[index].ComputeLoss(x), y => Models[index].ComputeGradient(y, 1e-5));
             }
-
-            if(UseThreading) {
-                //Start Threads
-                ThreadsRunning = true;
-                Work = new bool[Elites];
-                Handles = new ManualResetEvent[Elites];
-                Threads = new Thread[Elites];
-                for(int i=0; i<Elites; i++) {
-                    int index = i;
-                    Work[index] = false;
-                    Handles[index] = new ManualResetEvent(true);
-                    Threads[index] = new Thread(x => SurviveThread(index));
-                    //Threads[index].Start();
-                }
-            } else {
-                ThreadsRunning = false;
-            }
-		}
+        }
 
         ~Evolution() {
             Kill();
@@ -104,28 +85,11 @@ namespace BioIK {
                 return;
             }
             Killed = true;
-            if(UseThreading) {
-                //Stop Threads
-                ThreadsRunning = false;
-                for(int i=0; i<Elites; i++) {
-                    if(Threads[i].IsAlive) {
-                        Handles[i].Set();
-                        Threads[i].Join();
-                    }
-                }
-            }
         }
 
-		public double[] Optimise(int generations, double[] seed) {
-            if(UseThreading) {
-                for(int i=0; i<Elites; i++) {
-                    if(!Threads[i].IsAlive) {
-                        Threads[i].Start();
-                    }
-                }
-            }
-
-			Model.Refresh();
+		public double[] Optimise(int generations, double[] seed)
+        {
+            Model.Refresh();
             
 			for(int i=0; i<Dimensionality; i++) {
 				LowerBounds[i] = Model.MotionPtrs[i].Motion.GetLowerLimit(true);
@@ -176,91 +140,37 @@ namespace BioIK {
 			Pool.Clear();
 			Pool.AddRange(Population);
 			PoolCount = PopulationSize;
+            
+            //Evolve offspring
+            System.DateTime timestamp = Utility.GetTimestamp();
+            for(int i=Elites; i<PopulationSize; i++) {
+                if(PoolCount > 0) {
+                    Individual parentA = Select(Pool);
+                    Individual parentB = Select(Pool);
+                    Individual prototype = Select(Pool);
 
-            if(UseThreading) {
-                //Evolve offspring
-                Evolving = true;
+                    //Recombination and Adoption
+                    Reproduce(Offspring[i], parentA, parentB, prototype);
 
-                //Exploit elites in threads
-                for(int i=0; i<Elites; i++) {
-                    Handles[i].Set();
-                }
-
-                //Evolve non elites sequentially
-                for(int i=Elites; i<PopulationSize; i++) {
-                    if(PoolCount > 0) {
-                        Individual parentA = Select(Pool);
-                        Individual parentB = Select(Pool);
-                        Individual prototype = Select(Pool);
-
-                        //Recombination and Adoption
-                        Reproduce(Offspring[i], parentA, parentB, prototype);
-
-                        //Pre-Selection Niching
-                        if(Offspring[i].Fitness < parentA.Fitness) {
-                            Pool.Remove(parentA);
-                            PoolCount -= 1;
-                        }
-                        if(Offspring[i].Fitness < parentB.Fitness) {
-                            Pool.Remove(parentB);
-                            PoolCount -= 1;
-                        }
-                    } else {
-                        //Fill the population
-                        Reroll(Offspring[i]);
+                    //Pre-Selection Niching
+                    if(Offspring[i].Fitness < parentA.Fitness) {
+                        Pool.Remove(parentA);
+                        PoolCount -= 1;
                     }
-                }
-
-                //Finish evolving
-                Evolving = false;
-
-                //Wait for threads to finish
-                //System.DateTime timer = Utility.GetTimestamp();
-                while(HasWork()) {
-                    //Wait one cycle
-                    /*
-                    if(Utility.GetElapsedTime(timer) > 0.5f) {
-                        Debug.Log("!!! !!! !!! FIXING CRASH !!! !!! !!!");
-                        for(int i=0; i<Work.Length; i++) {
-                            Debug.Log("Work: " + i + " : " + Work[i]);
-                        }
-                        break;
+                    if(Offspring[i].Fitness < parentB.Fitness) {
+                        Pool.Remove(parentB);
+                        PoolCount -= 1;
                     }
-                    */
+                } else {
+                    //Fill the population
+                    Reroll(Offspring[i]);
                 }
+            }
+            double duration = Utility.GetElapsedTime(timestamp);
 
-            } else {
-                //Evolve offspring
-                System.DateTime timestamp = Utility.GetTimestamp();
-                for(int i=Elites; i<PopulationSize; i++) {
-                    if(PoolCount > 0) {
-                        Individual parentA = Select(Pool);
-                        Individual parentB = Select(Pool);
-                        Individual prototype = Select(Pool);
-
-                        //Recombination and Adoption
-                        Reproduce(Offspring[i], parentA, parentB, prototype);
-
-                        //Pre-Selection Niching
-                        if(Offspring[i].Fitness < parentA.Fitness) {
-                            Pool.Remove(parentA);
-                            PoolCount -= 1;
-                        }
-                        if(Offspring[i].Fitness < parentB.Fitness) {
-                            Pool.Remove(parentB);
-                            PoolCount -= 1;
-                        }
-                    } else {
-                        //Fill the population
-                        Reroll(Offspring[i]);
-                    }
-                }
-                double duration = Utility.GetElapsedTime(timestamp);
-
-                //Exploit elites sequentially
-                for(int i=0; i<Elites; i++) {
-                    SurviveSequential(i, duration);
-                }
+            //Exploit elites sequentially
+            for(int i=0; i<Elites; i++) {
+                SurviveSequential(i, duration);
             }
 
 			//Reroll elite if exploitation was not successful
@@ -338,42 +248,6 @@ namespace BioIK {
 				return false;
 			}
 		}
-
-        private void SurviveThread(int index) {
-			while(ThreadsRunning) {
-                Work[index] = true;
-
-                //Copy elitist survivor
-                Individual survivor = Population[index];
-                Individual elite = Offspring[index];
-                for(int i=0; i<Dimensionality; i++) {
-                    elite.Genes[i] = survivor.Genes[i];
-                    elite.Momentum[i] = survivor.Momentum[i];
-                }
-
-                //Exploit
-                double fitness = Models[index].ComputeLoss(elite.Genes);
-                Optimisers[index].Minimise(elite.Genes, ref Evolving);
-                if(Optimisers[index].Value < fitness) {
-                    for(int i=0; i<Dimensionality; i++) {
-                        elite.Momentum[i] = Optimisers[index].Solution[i] - elite.Genes[i];
-                        elite.Genes[i] = Optimisers[index].Solution[i];
-                    }
-                    elite.Fitness = Optimisers[index].Value;
-                    Improved[index] = true;
-                } else {
-                    elite.Fitness = fitness;
-                    Improved[index] = false;
-                }
-                
-                Handles[index].Reset();
-                
-                //Finish
-                Work[index] = false;
-
-                Handles[index].WaitOne();
-            }
-        }
 
 		private void SurviveSequential(int index, double timeout) {
             //Copy elitist survivor
@@ -634,7 +508,7 @@ namespace BioIK {
         private double Factor = 1e+5;
         private double Tolerance = 0.0;
         private int IPrint = 101;
-        private int TotalSize = 0;
+        private int TotalSize;
 
         private double F;
         private double[] G;
@@ -1832,7 +1706,7 @@ namespace BioIK {
                 bmv(m, sy, _sy_offset, wt, _wt_offset,
                     col, p, _p_offset, v, _v_offset, ref info);
 
-                f2 = (f2 - BFGS.ddot(col2, v, _v_offset, 1, p, _p_offset, 1));
+                f2 = (f2 - ddot(col2, v, _v_offset, 1, p, _p_offset, 1));
             }
 
             dtm = (-((f1 / f2)));
@@ -3900,7 +3774,7 @@ namespace BioIK {
             csave = Task.Start;
 
         L556:
-            gd = BFGS.ddot(n, g, _g_offset, 1, d, _d_offset, 1);
+            gd = ddot(n, g, _g_offset, 1, d, _d_offset, 1);
 
             if ((ifun == 0))
             {

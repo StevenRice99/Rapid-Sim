@@ -12,7 +12,7 @@ namespace BioIK {
 	[AddComponentMenu("")]
 	public class JointValue : BioObjective {
 
-		public double TargetValue = 0.0;
+		public double TargetValue;
 		public bool X, Y, Z;
 		
 		private BioJoint.Motion Motion;

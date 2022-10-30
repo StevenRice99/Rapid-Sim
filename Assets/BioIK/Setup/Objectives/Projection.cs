@@ -48,8 +48,8 @@ namespace BioIK {
 				SetTargetRotation(Target.rotation);
 			}
 
-			Vector3 position = new Vector3((float)TPX, (float)TPY, (float)TPZ);
-			Quaternion rotation = new Quaternion((float)TRX, (float)TRY, (float)TRZ, (float)TRW);
+			Vector3 position = new((float)TPX, (float)TPY, (float)TPZ);
+			Quaternion rotation = new((float)TRX, (float)TRY, (float)TRZ, (float)TRW);
 
 			Vector3 normal = rotation * Normal;
 			Vector3 start = position - Length * normal;
@@ -176,7 +176,7 @@ namespace BioIK {
 		}
 
 		public Vector3 GetTargetPosition() {
-			return new Vector3((float)TPX, (float)TPY, (float)TPZ);
+			return new((float)TPX, (float)TPY, (float)TPZ);
 		}
 
 		public void SetTargetRotation(Quaternion rotation) {

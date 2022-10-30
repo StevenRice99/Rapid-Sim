@@ -87,7 +87,7 @@ namespace BioIK {
 
 		public DistancePoint AddPoint() {
 			System.Array.Resize(ref Points, Points.Length+1);
-			Points[Points.Length-1] = new DistancePoint();
+			Points[Points.Length-1] = new();
 			return Points[Points.Length-1];
 		}
 
@@ -118,7 +118,7 @@ namespace BioIK {
 		}
 
 		public Vector3 GetTargetPoint() {
-			return new Vector3((float)TPX, (float)TPY, (float)TPZ);
+			return new((float)TPX, (float)TPY, (float)TPZ);
 		}
 
 		public void SetRadius(double radius) {

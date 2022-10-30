@@ -83,7 +83,7 @@ namespace RapidSim
         {
             _bioIK.DeInitialise();
             _bioIK.Initialise();
-            _bioIK.Solution = new double[_bioIK.Evolution.GetModel().GetDoF()];
+            _bioIK.solution = new double[_bioIK.Evolution.GetModel().GetDoF()];
             
             _position.SetTargetPosition(position);
             _orientation.SetTargetRotation(orientation);
@@ -114,22 +114,22 @@ namespace RapidSim
                     _motions[i].SetTargetValue(starting[i]);
                 }
             
-                _bioIK.UpdateData(_bioIK.Root);
+                BioIK.BioIK.UpdateData(_bioIK.root);
             
-                for (int i = 0; i < _bioIK.Solution.Length; i++)
+                for (int i = 0; i < _bioIK.solution.Length; i++)
                 {
-                    _bioIK.Solution[i] = _bioIK.Evolution.GetModel().MotionPtrs[i].Motion.GetTargetValue(true);
+                    _bioIK.solution[i] = _bioIK.Evolution.GetModel().MotionPtrs[i].Motion.GetTargetValue(true);
                 }
             
-                _bioIK.Solution = _bioIK.Evolution.Optimise(_bioIK.GetGenerations(), _bioIK.Solution);
+                _bioIK.solution = _bioIK.Evolution.Optimise(_bioIK.generations, _bioIK.solution);
 
-                for (int i = 0; i< _bioIK.Solution.Length; i++)
+                for (int i = 0; i< _bioIK.solution.Length; i++)
                 {
                     BioJoint.Motion motion = _bioIK.Evolution.GetModel().MotionPtrs[i].Motion;
-                    motion.SetTargetValue(_bioIK.Solution[i], true);
+                    motion.SetTargetValue(_bioIK.solution[i], true);
                 }
 
-                _bioIK.ProcessMotion(_bioIK.Root);
+                BioIK.BioIK.ProcessMotion(_bioIK.root);
 
                 double[] ending = new double[_motions.Length];
                 for (int i = 0; i < _motions.Length; i++)
@@ -241,9 +241,7 @@ namespace RapidSim
                 }
             };
             _bioIK = bioIkHolder.AddComponent<BioIK.BioIK>();
-            _bioIK.SetThreading(false);
-            _bioIK.Smoothing = 0;
-            _bioIK.SetGenerations(bioIkGenerations);
+            _bioIK.generations = bioIkGenerations;
             _bioIK.SetPopulationSize(bioIkPopulationSize);
             _bioIK.SetElites(bioIkElites);
 
