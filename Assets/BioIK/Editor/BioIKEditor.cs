@@ -162,7 +162,7 @@ namespace BioIK.Editor {
 				if(segment == Target.selectedSegment) {
 					SetGUIColor(Color5);
 				} else {
-					SetGUIColor(Color.Lerp(Color4, Color8, (float)indent / (float)maxIndent));
+					SetGUIColor(Color.Lerp(Color4, Color8, indent / (float)maxIndent));
 				}
 				if(GUILayout.Button(segment.transform.name, GUILayout.Height(25f), GUILayout.ExpandWidth(true))) {
 					if(Target.selectedSegment == segment) {

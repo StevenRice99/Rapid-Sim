@@ -121,14 +121,14 @@ namespace RapidSim
             
                 for (int i = 0; i < _bioIK.solution.Length; i++)
                 {
-                    _bioIK.solution[i] = _bioIK.Evolution.GetModel().MotionPtrs[i].Motion.GetTargetValue(true);
+                    _bioIK.solution[i] = _bioIK.Evolution.GetModel().MotionPointers[i].Motion.GetTargetValue(true);
                 }
             
                 _bioIK.solution = _bioIK.Evolution.Optimise(_bioIK.generations, _bioIK.solution);
 
                 for (int i = 0; i< _bioIK.solution.Length; i++)
                 {
-                    BioJoint.Motion motion = _bioIK.Evolution.GetModel().MotionPtrs[i].Motion;
+                    BioJoint.Motion motion = _bioIK.Evolution.GetModel().MotionPointers[i].Motion;
                     motion.SetTargetValue(_bioIK.solution[i], true);
                 }
 

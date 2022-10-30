@@ -90,8 +90,8 @@ namespace BioIK.Helpers {
             Model.Refresh();
             
 			for(int i=0; i<Dimensionality; i++) {
-				LowerBounds[i] = Model.MotionPtrs[i].Motion.GetLowerLimit(true);
-				UpperBounds[i] = Model.MotionPtrs[i].Motion.GetUpperLimit(true);
+				LowerBounds[i] = Model.MotionPointers[i].Motion.GetLowerLimit(true);
+				UpperBounds[i] = Model.MotionPointers[i].Motion.GetUpperLimit(true);
 				Solution[i] = seed[i];
 			}
 			Fitness = Model.ComputeLoss(Solution);
@@ -191,7 +191,7 @@ namespace BioIK.Helpers {
 		//Returns the mutation probability from two parents
 		private double GetMutationProbability(Individual parentA, Individual parentB) {
 			double extinction = 0.5 * (parentA.Extinction + parentB.Extinction);
-			double inverse = 1.0/(double)Dimensionality;
+			double inverse = 1.0/Dimensionality;
 			return extinction * (1.0-inverse) + inverse;
 		}
 
@@ -205,7 +205,7 @@ namespace BioIK.Helpers {
 			double min = Population[0].Fitness;
 			double max = Population[PopulationSize-1].Fitness;
 			for(int i=0; i<PopulationSize; i++) {
-				double grading = (double)i/((double)PopulationSize-1);
+				double grading = i/((double)PopulationSize-1);
 				Population[i].Extinction = (Population[i].Fitness + min*(grading-1.0)) / max;
 			}
 		}
@@ -320,9 +320,9 @@ namespace BioIK.Helpers {
 
 		//Rank-based selection of an individual
 		private Individual Select(List<Individual> pool) {
-			double rankSum = (double)(PoolCount*(PoolCount+1)) / 2.0;
+			double rankSum = PoolCount*(PoolCount+1) / 2.0;
 			for(int i=0; i<PoolCount; i++) {
-				Probabilities[i] = (double)(PoolCount-i)/rankSum;
+				Probabilities[i] = (PoolCount-i)/rankSum;
 			}
 			return pool[GetRandomWeightedIndex(Probabilities, PoolCount)];
 		}
@@ -4130,9 +4130,9 @@ namespace BioIK.Helpers {
                 tol = factr * epsmch;
                 // 
                 // c           for measuring running time:
-                cachyt = (double)0;
-                sbtime = (double)0;
-                lnscht = (double)0;
+                cachyt = 0;
+                sbtime = 0;
+                lnscht = 0;
 
                 // 
                 // c           'info' records the termination information.
