@@ -30,7 +30,7 @@ namespace BioIK.Helpers {
         private bool _evolving;
         private readonly bool[] _improved;
         private readonly Model[] _models;
-        private readonly BFGS[] _optimisers;
+        private readonly Bfgs[] _optimisers;
 
         //Variables for optimisation queries
 		private readonly double[] _solution;    //Evolutionary solution
@@ -46,7 +46,7 @@ namespace BioIK.Helpers {
 
 			_population = new Individual[_populationSize];
 			_offspring = new Individual[_populationSize];
-			for (int i = 0; i<_populationSize; i++)
+			for (int i = 0; i < _populationSize; i++)
             {
 				_population[i] = new(_dimensionality);
 				_offspring[i] = new(_dimensionality);
@@ -58,7 +58,7 @@ namespace BioIK.Helpers {
 			_solution = new double[_dimensionality];
 
             _models = new Model[_elites];
-            _optimisers = new BFGS[_elites];
+            _optimisers = new Bfgs[_elites];
             _improved = new bool[_elites];
             for (int i = 0; i < _elites; i++)
             {
@@ -72,7 +72,8 @@ namespace BioIK.Helpers {
         {
             _model.Refresh();
             
-			for(int i=0; i<_dimensionality; i++) {
+			for (int i = 0; i < _dimensionality; i++)
+            {
 				_lowerBounds[i] = _model.MotionPointers[i].Motion.GetLowerLimit(true);
 				_upperBounds[i] = _model.MotionPointers[i].Motion.GetUpperLimit(true);
 				_solution[i] = seed[i];
@@ -80,12 +81,14 @@ namespace BioIK.Helpers {
 			_fitness = _model.ComputeLoss(_solution);
 
             Initialise(seed);
-            for(int i=0; i<_elites; i++) {
+            for (int i = 0; i < _elites; i++)
+            {
                 _models[i].CopyFrom(_model);
                 _optimisers[i].LowerBounds = _lowerBounds;
                 _optimisers[i].UpperBounds = _upperBounds;
             }
-            for(int i=0; i<generations; i++) {
+            for (int i = 0; i < generations; i++)
+            {
                 Evolve();
             }
 
@@ -93,14 +96,17 @@ namespace BioIK.Helpers {
 		}
 
 		//Initialises the population with the seed
-		private void Initialise(double[] seed) {
-			for(int i=0; i<_dimensionality; i++) {
+		private void Initialise(double[] seed)
+        {
+			for (int i = 0; i < _dimensionality; i++)
+            {
 				_population[0].Genes[i] = seed[i];
 				_population[0].Momentum[i] = 0.0;
 			}
 			_population[0].Fitness = _model.ComputeLoss(_population[0].Genes);
 
-			for(int i=1; i<_populationSize; i++) {
+			for (int i=1; i < _populationSize; i++)
+            {
 				Reroll(_population[i]);
 			}
 
@@ -112,7 +118,8 @@ namespace BioIK.Helpers {
 		}
 
 		//One evolutionary cycle
-		private void Evolve() {
+		private void Evolve()
+        {
 			//Create mating pool
 			_pool.Clear();
 			_pool.AddRange(_population);
@@ -120,8 +127,10 @@ namespace BioIK.Helpers {
             
             //Evolve offspring
             System.DateTime timestamp = Utility.GetTimestamp();
-            for(int i=_elites; i<_populationSize; i++) {
-                if(_poolCount > 0) {
+            for (int i=_elites; i < _populationSize; i++)
+            {
+                if (_poolCount > 0)
+                {
                     Individual parentA = Select(_pool);
                     Individual parentB = Select(_pool);
                     Individual prototype = Select(_pool);
@@ -130,15 +139,19 @@ namespace BioIK.Helpers {
                     Reproduce(_offspring[i], parentA, parentB, prototype);
 
                     //Pre-Selection Niching
-                    if(_offspring[i].Fitness < parentA.Fitness) {
+                    if (_offspring[i].Fitness < parentA.Fitness)
+                    {
                         _pool.Remove(parentA);
                         _poolCount -= 1;
                     }
-                    if(_offspring[i].Fitness < parentB.Fitness) {
+                    if (_offspring[i].Fitness < parentB.Fitness)
+                    {
                         _pool.Remove(parentB);
                         _poolCount -= 1;
                     }
-                } else {
+                }
+                else
+                {
                     //Fill the population
                     Reroll(_offspring[i]);
                 }
@@ -146,13 +159,16 @@ namespace BioIK.Helpers {
             double duration = Utility.GetElapsedTime(timestamp);
 
             //Exploit elites sequentially
-            for(int i=0; i<_elites; i++) {
+            for (int i = 0; i < _elites; i++)
+            {
                 SurviveSequential(i, duration);
             }
 
 			//Reroll elite if exploitation was not successful
-			for(int i=0; i<_elites; i++) {
-				if(!_improved[i]) {
+			for (int i = 0; i < _elites; i++)
+            {
+				if (!_improved[i])
+                {
 					Reroll(_offspring[i]);
 				}
 			}
@@ -164,39 +180,49 @@ namespace BioIK.Helpers {
 			SortByFitness();
 
 			//Check improvement and wipeout criterion
-			if(!TryUpdateSolution() && !HasAnyEliteImproved()) {
+			if (!TryUpdateSolution() && !HasAnyEliteImproved())
+            {
 				Initialise(_solution);
-			} else {
+			}
+            else
+            {
                 ComputeExtinctions();
             }
 		}
 
 		//Returns the mutation probability from two parents
-		private double GetMutationProbability(Individual parentA, Individual parentB) {
+		private double GetMutationProbability(Individual parentA, Individual parentB)
+        {
 			double extinction = 0.5 * (parentA.Extinction + parentB.Extinction);
-			double inverse = 1.0/_dimensionality;
-			return extinction * (1.0-inverse) + inverse;
+			double inverse = 1.0 / _dimensionality;
+			return extinction * (1.0 - inverse) + inverse;
 		}
 
 		//Returns the mutation strength from two parents
-		private double GetMutationStrength(Individual parentA, Individual parentB) {
+		private static double GetMutationStrength(Individual parentA, Individual parentB)
+        {
 			return 0.5 * (parentA.Extinction + parentB.Extinction);
 		}
 
 		//Computes the extinction factors for all individuals
-		private void ComputeExtinctions() {
+		private void ComputeExtinctions()
+        {
 			double min = _population[0].Fitness;
 			double max = _population[_populationSize-1].Fitness;
-			for(int i=0; i<_populationSize; i++) {
-				double grading = i/((double)_populationSize-1);
-				_population[i].Extinction = (_population[i].Fitness + min*(grading-1.0)) / max;
+			for (int i = 0; i < _populationSize; i++)
+            {
+				double grading = i/((double) _populationSize - 1);
+				_population[i].Extinction = (_population[i].Fitness + min * (grading - 1.0)) / max;
 			}
 		}
 
 		//Returns whether any elite could be improved by the exploitation
-		private bool HasAnyEliteImproved() {
-			for(int i=0; i<_elites; i++) {
-				if(_improved[i]){
+		private bool HasAnyEliteImproved()
+        {
+			for (int i = 0; i < _elites; i++)
+            {
+				if (_improved[i])
+                {
 					return true;
 				}
 			}
@@ -204,10 +230,13 @@ namespace BioIK.Helpers {
 		}
 
 		//Tries to improve the evolutionary solution by the population, and returns whether it was successful
-		private bool TryUpdateSolution() {
+		private bool TryUpdateSolution()
+        {
 			double candidateFitness = _population[0].Fitness;
-			if(candidateFitness < _fitness) {
-				for(int i=0; i<_dimensionality; i++) {
+			if (candidateFitness < _fitness)
+            {
+				for (int i = 0; i < _dimensionality; i++)
+                {
 					_solution[i] = _population[0].Genes[i];
 				}
 				_fitness = candidateFitness;
@@ -217,11 +246,13 @@ namespace BioIK.Helpers {
             return false;
         }
 
-		private void SurviveSequential(int index, double timeout) {
+		private void SurviveSequential(int index, double timeout)
+        {
             //Copy elitist survivor
             Individual survivor = _population[index];
             Individual elite = _offspring[index];
-            for(int i=0; i<_dimensionality; i++) {
+            for (int i = 0; i < _dimensionality; i++)
+            {
                 elite.Genes[i] = survivor.Genes[i];
                 elite.Momentum[i] = survivor.Momentum[i];
             }
@@ -229,35 +260,42 @@ namespace BioIK.Helpers {
             //Exploit
             double fitness = _models[index].ComputeLoss(elite.Genes);
             _optimisers[index].Minimise(elite.Genes, timeout);
-            if(_optimisers[index].Value < fitness) {
-                for(int i=0; i<_dimensionality; i++) {
+            if (_optimisers[index].Value < fitness)
+            {
+                for (int i = 0; i < _dimensionality; i++)
+                {
                     elite.Momentum[i] = _optimisers[index].Solution[i] - elite.Genes[i];
                     elite.Genes[i] = _optimisers[index].Solution[i];
                 }
                 elite.Fitness = _optimisers[index].Value;        
                 _improved[index] = true;
-            } else {
+            }
+            else
+            {
                 elite.Fitness = fitness;
                 _improved[index] = false;
             }
 		}
 
 		//Evolves a new individual
-		private void Reproduce(Individual offspring, Individual parentA, Individual parentB, Individual prototype) {
+		private void Reproduce(Individual offspring, Individual parentA, Individual parentB, Individual prototype)
+        {
             double mutationProbability = GetMutationProbability(parentA, parentB);
 			double mutationStrength = GetMutationStrength(parentA, parentB);
 
-			for(int i=0; i<_dimensionality; i++) {
+			for (int i = 0; i < _dimensionality; i++)
+            {
 				//Recombination
 				_weight = Random.value;
 				double momentum = Random.value * parentA.Momentum[i] + Random.value * parentB.Momentum[i];
-				offspring.Genes[i] = _weight*parentA.Genes[i] + (1.0-_weight)*parentB.Genes[i] + momentum;
+				offspring.Genes[i] = _weight * parentA.Genes[i] + (1.0 - _weight)*parentB.Genes[i] + momentum;
 
 				//Store
 				_gene = offspring.Genes[i];
 
 				//Mutation
-                if(Random.value < mutationProbability) {
+                if (Random.value < mutationProbability)
+                {
                     offspring.Genes[i] += (Random.value * (_upperBounds[i] - _lowerBounds[i]) + _lowerBounds[i]) * mutationStrength;
                 }
 
@@ -265,13 +303,15 @@ namespace BioIK.Helpers {
 				_weight = Random.value;
 				offspring.Genes[i] += 
 					_weight * Random.value * (0.5 * (parentA.Genes[i] + parentB.Genes[i]) - offspring.Genes[i])
-					+ (1.0-_weight) * Random.value * (prototype.Genes[i] - offspring.Genes[i]);
+					+ (1.0 - _weight) * Random.value * (prototype.Genes[i] - offspring.Genes[i]);
 
 				//Project
-                if(offspring.Genes[i] < _lowerBounds[i]) {
+                if (offspring.Genes[i] < _lowerBounds[i])
+                {
                     offspring.Genes[i] = _lowerBounds[i];
                 }
-                if(offspring.Genes[i] > _upperBounds[i]) {
+                if (offspring.Genes[i] > _upperBounds[i])
+                {
                     offspring.Genes[i] = _upperBounds[i];
                 }
 
@@ -284,8 +324,10 @@ namespace BioIK.Helpers {
 		}
 
 		//Generates a random individual
-		private void Reroll(Individual individual) {
-			for(int i=0; i<_dimensionality; i++) {
+		private void Reroll(Individual individual)
+        {
+			for (int i = 0; i < _dimensionality; i++)
+            {
                 individual.Genes[i] = Random.Range((float)_lowerBounds[i], (float)_upperBounds[i]);
                 individual.Momentum[i] = 0.0;
 			}
@@ -293,127 +335,63 @@ namespace BioIK.Helpers {
 		}
 
 		//Rank-based selection of an individual
-		private Individual Select(List<Individual> pool) {
-			double rankSum = _poolCount*(_poolCount+1) / 2.0;
-			for(int i=0; i<_poolCount; i++) {
-				_probabilities[i] = (_poolCount-i)/rankSum;
+		private Individual Select(List<Individual> pool)
+        {
+			double rankSum = _poolCount * (_poolCount + 1) / 2.0;
+			for (int i = 0; i < _poolCount; i++)
+            {
+				_probabilities[i] = (_poolCount - i) / rankSum;
 			}
 			return pool[GetRandomWeightedIndex(_probabilities, _poolCount)];
 		}
 		
 		//Returns a random index with respect to the probability weights
-		private int GetRandomWeightedIndex(double[] probabilities, int count) {
+		private static int GetRandomWeightedIndex(double[] probabilities, int count)
+        {
 			double weightSum = 0.0;
-			for(int i=0; i<count; i++) {
+			for (int i = 0; i < count; i++)
+            {
 				weightSum += probabilities[i];
 			}
 			double rVal = Random.value * weightSum;
-			for(int i=0; i<count; i++) {
+			for (int i = 0; i < count; i++)
+            {
 				rVal -= probabilities[i];
-				if(rVal <= 0.0) {
+				if (rVal <= 0.0)
+                {
 					return i;
 				}
 			}
 			return count-1;
 		}
 
-        /*
-		//Projects a single gene to stay within search space
-		private double Project(double gene, double min, double max, bool constrained) {
-			if(max - min == 0.0) {
-				return 0.0;
-			}
-			if(type == JointType.Revolute || type == JointType.Prismatic) {
-				//Bounce
-				while(gene < min || gene > max) {
-					if(gene > max) {
-						gene = max + max - gene;
-					}
-					if(gene < min) {
-						gene = min + min - gene;
-					}
-				}
-			}
-			if(type == JointType.Continuous) {
-				//Overflow
-				while(gene < -PI || gene > PI) {
-					if(gene > PI) {
-						gene -= PI + PI;
-					}
-					if(gene < -PI) {
-						gene += PI + PI;
-					}
-				}
-			}
-			if(type == JointType.Floating) {
-				//nothing
-			}
-            return gene;
-		}
-        */
-
-		//Sorts the population by their fitness values (descending)
-		private void SortByFitness() {
-			System.Array.Sort(_population,
-				delegate(Individual a, Individual b) {
-					return a.Fitness.CompareTo(b.Fitness);
-				}
-			);
+        //Sorts the population by their fitness values (descending)
+		private void SortByFitness()
+        {
+			System.Array.Sort(_population, (a, b) => a.Fitness.CompareTo(b.Fitness));
 		}
 
 		//In-place swap by references
-		private void Swap(ref Individual[] a, ref Individual[] b) {
-			Individual[] tmp = a;
-			a = b;
-			b = tmp;
-		}
+		private static void Swap(ref Individual[] a, ref Individual[] b)
+        {
+			(a, b) = (b, a);
+        }
 
-        public Model GetModel() {
+        public Model GetModel()
+        {
             return _model;
         }
 
-        public double[] GetSolution() {
-            return _solution;
-        }
-
-        public double GetFitness() {
-            return _fitness;
-        }
-
-        public double[] GetLowerBounds() {
-            return _lowerBounds;
-        }
-
-        public double[] GetUpperBounds() {
-            return _upperBounds;
-        }
-
-		public double[,] GetGeneLandscape() {
-			double[,] values = new double[_populationSize, _dimensionality];
-			for(int i=0; i<_populationSize; i++) {
-				for(int j=0; j<_dimensionality; j++) {
-					values[i,j] = _population[i].Genes[j];
-				}
-			}
-			return values;
-		}
-
-		public double[] GetFitnessLandscape() {
-			double[] values = new double[_populationSize];
-			for(int i=0; i<_populationSize; i++) {
-				values[i] = _population[i].Fitness;
-			}
-			return values;
-		}
-
 		//Data class for the individuals
-		public class Individual {
+		public class Individual
+        {
 			public double[] Genes;
 			public double[] Momentum;
 			public double Fitness;
             public double Extinction;
 
-			public Individual(int dimensionality) {
+			public Individual(int dimensionality)
+            {
 				Genes = new double[dimensionality];
 				Momentum = new double[dimensionality];
 				Fitness = 0.0;
@@ -449,300 +427,112 @@ namespace BioIK.Helpers {
     ///        Vol. 35, No. 151, pp. 773--782, 1980.
     ///        Dong C. Liu, Jorge Nocedal. On the limited memory BFGS method for large scale optimization.
     
-    public partial class BFGS {
+    public class Bfgs
+    {
+        public enum Task { None, Start, NewX, Fg, FgLN, FgSt, Abnormal, Convergence, Error, RestartLN, Warning }
 
-        public enum Task{None, Start, New_X, FG, FG_LN, FG_ST, Abnormal, Convergence, Error, Restart_LN, Warning};
-
-        public System.Func<double[], double> Function;
-        public System.Func<double[], double[]> Gradient;
-        public int Dimensionality;
-        public double[] Solution;
+        private readonly System.Func<double[], double> _function;
+        private readonly System.Func<double[], double[]> _gradient;
+        private readonly int _dimensionality;
+        public readonly double[] Solution;
         public double Value;
         public double[] LowerBounds;
         public double[] UpperBounds;
 
-        private const double stpmin = 1e-20;
-        private const double stpmax = 1e20;
-        private int Corrections = 1;
-        private double Factor = 1e+5;
-        private double Tolerance = 0.0;
-        private int IPrint = 101;
-        private int TotalSize;
+        private const int Corrections = 1;
+        private const double Factor = 1e+5;
+        private const double Tolerance = 0.0;
+        private const int Print = 101;
 
-        private double F;
-        private double[] G;
+        private double _f;
+        private readonly double[] _g;
 
-        private bool[] LSave;
-        private int[] ISave;
-        private double[] DSave;
+        private readonly bool[] _lSave;
+        private readonly int[] _save;
+        private readonly double[] _dSave;
 
-        private int[] IWA;
-        private int[] NBD;
-        private double[] Work;
+        private readonly int[] _iwa;
+        private readonly int[] _nbd;
+        private readonly double[] _work;
 
-        private Task _Task;
-        private Task _CSave;
+        private Task _task;
+        private Task _cSave;
 
-        private double NewF;
-        private double[] NewG;
+        private double _newF;
+        private double[] _newG;
 
-        public BFGS(int dimensionality, System.Func<double[], double> function, System.Func<double[], double[]> gradient) {
-            Dimensionality = dimensionality;
-            Function = function;
-            Gradient = gradient;
-            UpperBounds = new double[Dimensionality];
-            LowerBounds = new double[Dimensionality];
-            Solution = new double[Dimensionality];
+        public Bfgs(int dimensionality, System.Func<double[], double> function, System.Func<double[], double[]> gradient)
+        {
+            _dimensionality = dimensionality;
+            _function = function;
+            _gradient = gradient;
+            UpperBounds = new double[_dimensionality];
+            LowerBounds = new double[_dimensionality];
+            Solution = new double[_dimensionality];
 
-            TotalSize = 2 * Corrections * Dimensionality + 11 * Corrections * Corrections + 5 * Dimensionality + 8 * Corrections;
-            NBD = new int[Dimensionality];
-            for(int i=0; i<Dimensionality; i++) {
-                NBD[i] = 2;
+            int totalSize = 2 * Corrections * _dimensionality + 11 * Corrections * Corrections + 5 * _dimensionality + 8 * Corrections;
+            _nbd = new int[_dimensionality];
+            for (int i = 0; i < _dimensionality; i++)
+            {
+                _nbd[i] = 2;
             }
 
-            F = 0.0;
-            G = new double[Dimensionality];
-            LSave = new bool[4];
-            ISave = new int[44];
-            DSave = new double[29];
-            IWA = new int[3 * Dimensionality];
-            Work = new double[TotalSize];
-            _Task = Task.Start;
-            _CSave = Task.None;
-            NewF = 0;
-            NewG = null;
+            _f = 0.0;
+            _g = new double[_dimensionality];
+            _lSave = new bool[4];
+            _save = new int[44];
+            _dSave = new double[29];
+            _iwa = new int[3 * _dimensionality];
+            _work = new double[totalSize];
+            _task = Task.Start;
+            _cSave = Task.None;
+            _newF = 0;
+            _newG = null;
         }
 
-        public void Minimise(double[] values, ref bool evolving) {
-            for(int i=0; i<Dimensionality; i++) {
+        public void Minimise(double[] values, double timeout)
+        {
+            for (int i = 0; i < _dimensionality; i++)
+            {
                 Solution[i] = values[i];
             }
 
-            F = 0.0;
-            System.Array.Clear(G, 0, G.Length);
-            System.Array.Clear(LSave, 0, LSave.Length);
-            System.Array.Clear(ISave, 0, ISave.Length);
-            System.Array.Clear(DSave, 0, DSave.Length);
-            System.Array.Clear(IWA, 0, IWA.Length);
-            System.Array.Clear(Work, 0, Work.Length);
-            _Task = Task.Start;
-            _CSave = Task.None;
-            NewF = 0;
-            NewG = null;
-            
-            while(evolving) {
-                setulb(
-                    Dimensionality, Corrections, Solution, 0, LowerBounds, 0, UpperBounds, 0, NBD, 0, ref F, G, 0,
-                    Factor, Tolerance, Work, 0, IWA, 0, ref _Task, IPrint, ref _CSave,
-                    LSave, 0, ISave, 0, DSave, 0
-                    );
-
-                if(_Task == Task.FG_LN || _Task == Task.FG_ST) {
-                    NewF = Function(Solution);
-                    NewG = Gradient(Solution);
-                    F = NewF;
-                    for(int i=0; i<Dimensionality; i++) {
-                        G[i] = NewG[i];
-                    }
-                }
-            }
-
-            Value = Function(Solution);
-        }
-
-        public void Minimise(double[] values, double timeout) {
-            for(int i=0; i<Dimensionality; i++) {
-                Solution[i] = values[i];
-            }
-
-            F = 0.0;
-            System.Array.Clear(G, 0, G.Length);
-            System.Array.Clear(LSave, 0, LSave.Length);
-            System.Array.Clear(ISave, 0, ISave.Length);
-            System.Array.Clear(DSave, 0, DSave.Length);
-            System.Array.Clear(IWA, 0, IWA.Length);
-            System.Array.Clear(Work, 0, Work.Length);
-            _Task = Task.Start;
-            _CSave = Task.None;
-            NewF = 0;
-            NewG = null;
+            _f = 0.0;
+            System.Array.Clear(_g, 0, _g.Length);
+            System.Array.Clear(_lSave, 0, _lSave.Length);
+            System.Array.Clear(_save, 0, _save.Length);
+            System.Array.Clear(_dSave, 0, _dSave.Length);
+            System.Array.Clear(_iwa, 0, _iwa.Length);
+            System.Array.Clear(_work, 0, _work.Length);
+            _task = Task.Start;
+            _cSave = Task.None;
+            _newF = 0;
+            _newG = null;
 
             System.DateTime timestamp = Utility.GetTimestamp();
-            while(Utility.GetElapsedTime(timestamp) < timeout) {
-                setulb(
-                    Dimensionality, Corrections, Solution, 0, LowerBounds, 0, UpperBounds, 0, NBD, 0, ref F, G, 0,
-                    Factor, Tolerance, Work, 0, IWA, 0, ref _Task, IPrint, ref _CSave,
-                    LSave, 0, ISave, 0, DSave, 0
+            while(Utility.GetElapsedTime(timestamp) < timeout)
+            {
+                Setulb(
+                    _dimensionality, Corrections, Solution, 0, LowerBounds, 0, UpperBounds, 0, _nbd, 0, ref _f, _g, 0,
+                    Factor, Tolerance, _work, 0, _iwa, 0, ref _task, Print, ref _cSave,
+                    _lSave, 0, _save, 0, _dSave, 0
                     );
 
-                if(_Task == Task.FG_LN || _Task == Task.FG_ST) {
-                    NewF = Function(Solution);
-                    NewG = Gradient(Solution);
-                    F = NewF;
-                    for(int i=0; i<Dimensionality; i++) {
-                        G[i] = NewG[i];
+                if (_task is Task.FgLN or Task.FgSt)
+                {
+                    _newF = _function(Solution);
+                    _newG = _gradient(Solution);
+                    _f = _newF;
+                    for (int i = 0; i < _dimensionality; i++)
+                    {
+                        _g[i] = _newG[i];
                     }
                 }
             }
 
-            Value = Function(Solution);
+            Value = _function(Solution);
         }
-
-    }
-
-    /*
-    public partial class BFGS {
-
-        public enum Task{None, Start, New_X, FG, FG_LN, FG_ST, Abnormal, Convergence, Error, Restart_LN, Warning};
         
-        public int NumberOfVariables { get; protected set; }
-        public System.Func<double[], double> Function { get; set; }
-        public System.Func<double[], double[]> Gradient { get; set; }
-        public double[] Solution;
-        public double Value;
-        public double[] UpperBounds;
-        public double[] LowerBounds;
-
-        private const double stpmin = 1e-20;
-        private const double stpmax = 1e20;
-        private int corrections = 1;
-        private double[] work;
-        private double factr = 1e+5;
-        private double pgtol = 0.0;
-        private int n;
-        private int m;
-        private Task task = Task.None;
-        private Task csave = Task.None;
-        private int totalSize;
-        private int iprint;
-        private bool[] lsave;
-        private int[] nbd;
-        private int[] iwa;
-        private int[] isave;
-        private double f;
-        private double[] l;
-        private double[] u;
-        private double[] g;
-        private double[] dsave;
-        private double newF;
-        private double[] newG;
-
-        public BFGS(int numberOfVariables, System.Func<double[], double> function, System.Func<double[], double[]> gradient) {
-            NumberOfVariables = numberOfVariables;
-            Function = function;
-            Gradient = gradient;
-            Solution = new double[numberOfVariables];
-            UpperBounds = new double[numberOfVariables];
-            LowerBounds = new double[numberOfVariables];
-
-            n = NumberOfVariables;
-            m = corrections;
-            totalSize = 2 * m * n + 11 * m * m + 5 * n + 8 * m;
-            iprint = 101;
-            lsave = new bool[4];
-            nbd = new int[n];
-            iwa = new int[3*n];
-            isave = new int[44];
-            l = new double[n];
-            u = new double[n];
-            g = new double[n];
-            dsave = new double[29];
-            work = new double[totalSize];
-        }
-
-        private void Prepare(double[] values) {
-            for(int i=0; i<NumberOfVariables; i++) {
-                Solution[i] = values[i];
-            }
-
-            task = Task.None;
-            csave = Task.None;
-            for(int i=0; i<4; i++) {
-                lsave[i] = false;
-            }
-            for(int i=0; i<n; i++) {
-                nbd[i] = 2;
-            }
-            for(int i=0; i<3*n; i++) {
-                iwa[i] = 0;
-            }
-            for(int i=0; i<44; i++) {
-                isave[i] = 0;
-            }
-            for(int i=0; i<n; i++) {
-                l[i] = LowerBounds[i];
-                u[i] = UpperBounds[i];
-            }
-            for(int i=0; i<29; i++) {
-                dsave[i] = 0.0;
-            }
-            for(int i=0; i<totalSize; i++) {
-                work[i] = 0.0;
-            }
-
-            f = 0.0d;
-            for(int i=0; i<n; i++) {
-                g[i] = 0.0;
-            }
-
-            newF = 0;
-            newG = null;
-        }
-
-        public void Minimise(double[] values, ref bool evolving) {
-            Prepare(values);
-            Optimise(ref evolving);
-            Value = Function(Solution);
-        }
-
-        private void Optimise(ref bool evolving) {
-            task = Task.Start;
-            while(evolving) {
-                setulb(n, m, Solution, 0, l, 0, u, 0, nbd, 0, ref f, g, 0,
-                    factr, pgtol, work, 0, iwa, 0, ref task, iprint, ref csave,
-                    lsave, 0, isave, 0, dsave, 0);
-
-                if (task == Task.FG_LN || task == Task.FG_ST) {
-                    newF = Function(Solution);
-                    newG = Gradient(Solution);
-                    f = newF;
-                    for (int j = 0; j < newG.Length; j++) {
-                        g[j] = newG[j];
-                    }
-                }
-            }
-        }
-
-        public void Minimise(double[] values, double timeout) {
-            Prepare(values);
-            Optimise(timeout);
-            Value = Function(Solution);
-        }
-
-        private void Optimise(double timeout) {
-            System.DateTime then = System.DateTime.Now;
-            task = Task.Start;
-            while((System.DateTime.Now-then).Duration().TotalSeconds < timeout) {
-                setulb(n, m, Solution, 0, l, 0, u, 0, nbd, 0, ref f, g, 0,
-                    factr, pgtol, work, 0, iwa, 0, ref task, iprint, ref csave,
-                    lsave, 0, isave, 0, dsave, 0);
-
-                if (task == Task.FG_LN || task == Task.FG_ST) {
-                    newF = Function(Solution);
-                    newG = Gradient(Solution);
-                    f = newF;
-                    for (int j = 0; j < newG.Length; j++) {
-                        g[j] = newG[j];
-                    }
-                }
-            }
-        }
-    }
-    */
-
-    partial class BFGS
-    {
-
         // 
         // c======================= The end of mainlb =============================
         // 
@@ -778,14 +568,11 @@ namespace BioIK.Helpers {
         // 
         // c     Initialize nbdd, prjctd, cnstnd and boxed.
         // 
-        private static void active(int n, double[] l, int _l_offset, double[] u, int _u_offset, int[] nbd,
-            int _nbd_offset, double[] x, int _x_offset, int[] iwhere, int _iwhere_offset, int iprint,
-            ref bool prjctd, ref bool cnstnd, ref bool boxed)
+        private static void Active(int n, double[] l, int lOffset, double[] u, int uOffset, int[] nbd,
+            int nbdOffset, double[] x, int xOffset, int[] iwhere, int iwhereOffset,
+            out bool prjctd, out bool cnstnd, out bool boxed)
         {
-
-            int nbdd = 0;
-            int i = 0;
-            nbdd = 0;
+            int i;
             prjctd = false;
             cnstnd = false;
             boxed = true;
@@ -795,27 +582,25 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    if (nbd[i - 1 + _nbd_offset] > 0)
+                    if (nbd[i - 1 + nbdOffset] > 0)
                     {
-                        if (nbd[i - 1 + _nbd_offset] <= 2
-                            && x[i - 1 + _x_offset] <= l[i - 1 + _l_offset])
+                        if (nbd[i - 1 + nbdOffset] <= 2
+                            && x[i - 1 + xOffset] <= l[i - 1 + lOffset])
                         {
-                            if (x[i - 1 + _x_offset] < l[i - 1 + _l_offset])
+                            if (x[i - 1 + xOffset] < l[i - 1 + lOffset])
                             {
                                 prjctd = true;
-                                x[i - 1 + _x_offset] = l[i - 1 + _l_offset];
+                                x[i - 1 + xOffset] = l[i - 1 + lOffset];
                             }
-                            nbdd = nbdd + 1;
                         }
-                        else if (nbd[i - 1 + _nbd_offset] >= 2
-                                 && x[i - 1 + _x_offset] >= u[i - 1 + _u_offset])
+                        else if (nbd[i - 1 + nbdOffset] >= 2
+                                 && x[i - 1 + xOffset] >= u[i - 1 + uOffset])
                         {
-                            if (x[i - 1 + _x_offset] > u[i - 1 + _u_offset])
+                            if (x[i - 1 + xOffset] > u[i - 1 + uOffset])
                             {
                                 prjctd = true;
-                                x[i - 1 + _x_offset] = u[i - 1 + _u_offset];
+                                x[i - 1 + xOffset] = u[i - 1 + uOffset];
                             }
-                            nbdd = nbdd + 1;
                         }
                     }
                 }
@@ -826,50 +611,32 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    if (nbd[i - 1 + _nbd_offset] != 2)
+                    if (nbd[i - 1 + nbdOffset] != 2)
                     {
                         boxed = false;
                     }
-                    if (nbd[i - 1 + _nbd_offset] == 0)
+                    if (nbd[i - 1 + nbdOffset] == 0)
                     {
                         // this variable is always free
-                        iwhere[i - 1 + _iwhere_offset] = -1;
+                        iwhere[i - 1 + iwhereOffset] = -1;
                         // 
                         // otherwise set x(i)=mid(x(i), u(i), l(i)).
                     }
                     else
                     {
                         cnstnd = true;
-                        if (nbd[i - 1 + _nbd_offset] == 2 &&
-                            u[i - 1 + _u_offset] - l[i - 1 + _l_offset] <= 0.0)
+                        if (nbd[i - 1 + nbdOffset] == 2 &&
+                            u[i - 1 + uOffset] - l[i - 1 + lOffset] <= 0.0)
                         {
                             // this variable is always fixed
-                            iwhere[i - 1 + _iwhere_offset] = 3;
+                            iwhere[i - 1 + iwhereOffset] = 3;
                         }
                         else
                         {
-                            iwhere[i - 1 + _iwhere_offset] = 0;
+                            iwhere[i - 1 + iwhereOffset] = 0;
                         }
                     }
                 }
-            }
-
-            // 
-            if (iprint >= 0)
-            {
-                if (prjctd)
-                {
-                    // DISPLAY: The initial X is infeasible.  Restart with its projection.";
-                }
-                if (!cnstnd)
-                {
-                    // DISPLAY: "This problem is unconstrained."
-                }
-            }
-
-            if (iprint > 0)
-            {
-                // DISPLAY: 'At X0 ',i9,' variables are exactly at the bounds'" (nbdd)
             }
         }
 
@@ -940,22 +707,19 @@ namespace BioIK.Helpers {
         // c        check for zero diagonal elements.
         // c
 
-        private static void dtrsl(double[] t, int _t_offset, int ldt, int n,
-            double[] b, int _b_offset, int job, ref int info)
+        private static void Dtrsl(double[] t, int tOffset, int ldt, int n,
+            double[] b, int bOffset, int job, out int info)
         {
-            double temp = 0.0d;
-            int Case = 0;
-            int j = 0;
-            int jj = 0;
+            double temp;
+            int j;
+            int jj;
 
+            for (info = 1; info <= n; info++)
             {
-                for (info = 1; info <= n; info++)
+                // ......exit
+                if (t[info - 1 + (info - 1) * ldt + tOffset] == 0.0e0)
                 {
-                    // ......exit
-                    if (t[info - 1 + (info - 1) * ldt + _t_offset] == 0.0e0)
-                    {
-                        return;
-                    }
+                    return;
                 }
             }
 
@@ -964,53 +728,51 @@ namespace BioIK.Helpers {
             // 
             // determine the task and go to it.
             // 
-            Case = 1;
+            int @case = 1;
 
             if (job % 10 != 0)
             {
-                Case = 2;
+                @case = 2;
             }
 
             if (job % 100 / 10 != 0)
             {
-                Case = Case + 2;
+                @case += 2;
             }
 
+            switch (@case)
             {
-                int _cg_tmp = Case;
-                if (_cg_tmp == 1)
+                case 1:
                     goto L20;
-                else if (_cg_tmp == 2)
+                case 2:
                     goto L50;
-                else if (_cg_tmp == 3)
+                case 3:
                     goto L80;
-                else if (_cg_tmp == 4)
-                    goto L110;
             }
 
-        //
+            goto L110;
+
+            //
         // solve t*x=b for t lower triangular
         //
         L20:
 
-            b[1 - 1 + _b_offset] = b[1 - 1 + _b_offset]
-                                   / t[1 - 1 + (1 - 1) * ldt + _t_offset];
+            b[1 - 1 + bOffset] /= t[tOffset];
 
             if (n < 2)
             {
                 return;
             }
 
+            for (j = 2; j <= n; j++)
             {
-                for (j = 2; j <= n; j++)
-                {
-                    temp = -b[j - 1 - 1 + _b_offset];
-                    daxpy(n - j + 1, temp, t, j - 1 + (j - 1
-                                                         - 1) * ldt + _t_offset, 1, b, j - 1 + _b_offset, 1);
-                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset] / t[j - 1
-                                                                    + (j - 1) * ldt + _t_offset];
-                }
+                temp = -b[j - 1 - 1 + bOffset];
+                Daxpy(n - j + 1, temp, t, j - 1 + (j - 1
+                                                     - 1) * ldt + tOffset, 1, b, j - 1 + bOffset, 1);
+                b[j - 1 + bOffset] /= t[j - 1
+                                        + (j - 1) * ldt + tOffset];
             }
+
             return;
 
         // 
@@ -1018,26 +780,22 @@ namespace BioIK.Helpers {
         // 
         L50:
 
-            b[n - 1 + _b_offset] = b[n - 1 + _b_offset]
-                                   / t[n - 1 + (n - 1) * ldt + _t_offset];
+            b[n - 1 + bOffset] /= t[n - 1 + (n - 1) * ldt + tOffset];
 
             if (n < 2)
             {
                 return;
             }
 
+            for (jj = 2; jj <= n; jj++)
             {
-                for (jj = 2; jj <= n; jj++)
-                {
-                    j = n - jj + 1;
-                    temp = -b[j + 1 - 1 + _b_offset];
-                    daxpy(j, temp,
-                        t, 1 - 1 + (j + 1 - 1) * ldt + _t_offset, 1,
-                        b, 1 - 1 + _b_offset, 1);
+                j = n - jj + 1;
+                temp = -b[j + 1 - 1 + bOffset];
+                Daxpy(j, temp,
+                    t, 1 - 1 + (j + 1 - 1) * ldt + tOffset, 1,
+                    b, 1 - 1 + bOffset, 1);
 
-                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset]
-                                           / t[j - 1 + (j - 1) * ldt + _t_offset];
-                }
+                b[j - 1 + bOffset] /= t[j - 1 + (j - 1) * ldt + tOffset];
             }
 
             return;
@@ -1045,50 +803,42 @@ namespace BioIK.Helpers {
         // solve trans(t)*x=b for t lower triangular.
         // 
         L80:
-            b[n - 1 + _b_offset] = b[n - 1 + _b_offset]
-                                   / t[n - 1 + (n - 1) * ldt + _t_offset];
+            b[n - 1 + bOffset] /= t[n - 1 + (n - 1) * ldt + tOffset];
 
             if (n < 2)
             {
                 return;
             }
 
+            for (jj = 2; jj <= n; jj++)
             {
-                for (jj = 2; jj <= n; jj++)
-                {
-                    j = n - jj + 1;
-                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset]
-                                           - ddot(jj - 1, t, j + 1 - 1 + (j - 1) * ldt + _t_offset,
-                                               1, b, j + 1 - 1 + _b_offset, 1);
+                j = n - jj + 1;
+                b[j - 1 + bOffset] -= Ddot(jj - 1, t, j + 1 - 1 + (j - 1) * ldt + tOffset,
+                    1, b, j + 1 - 1 + bOffset, 1);
 
-                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset] / t[j - 1
-                                                                    + (j - 1) * ldt + _t_offset];
-                }
+                b[j - 1 + bOffset] /= t[j - 1
+                                        + (j - 1) * ldt + tOffset];
             }
+
             return;
 
         // 
         // solve trans(t)*x=b for t upper triangular.
         // 
         L110:
-            b[1 - 1 + _b_offset] = b[1 - 1 + _b_offset]
-                                   / t[1 - 1 + (1 - 1) * ldt + _t_offset];
+            b[1 - 1 + bOffset] /= t[tOffset];
 
             if (n < 2)
             {
                 return;
             }
 
+            for (j = 2; j <= n; j++)
             {
-                for (j = 2; j <= n; j++)
-                {
-                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset]
-                                           - ddot(j - 1, t, 1 - 1 + (j - 1) * ldt + _t_offset,
-                                               1, b, 1 - 1 + _b_offset, 1);
+                b[j - 1 + bOffset] -= Ddot(j - 1, t, 1 - 1 + (j - 1) * ldt + tOffset,
+                    1, b, 1 - 1 + bOffset, 1);
 
-                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset]
-                                           / t[j - 1 + (j - 1) * ldt + _t_offset];
-                }
+                b[j - 1 + bOffset] /= t[j - 1 + (j - 1) * ldt + tOffset];
             }
         }
 
@@ -1157,14 +907,14 @@ namespace BioIK.Helpers {
         // c     ************
         // 
         // 
-        private static void bmv(int m, double[] sy, int _sy_offset, double[] wt, int _wt_offset,
-            int col, double[] v, int _v_offset, double[] p, int _p_offset, ref int info)
+        private static void Bmv(int m, double[] sy, int syOffset, double[] wt, int wtOffset,
+            int col, double[] v, int vOffset, double[] p, int pOffset, ref int info)
         {
 
-            int i = 0;
-            int k = 0;
-            int i2 = 0;
-            double sum = 0.0d;
+            int i;
+            int k;
+            int i2;
+            double sum;
 
             if (col == 0)
                 return;
@@ -1175,37 +925,31 @@ namespace BioIK.Helpers {
             // 
             //  solve Jp2=v2+LD^(-1)v1.
             //
-            p[col + 1 - 1 + _p_offset] = v[col + 1 - 1 + _v_offset];
+            p[col + 1 - 1 + pOffset] = v[col + 1 - 1 + vOffset];
+            for (i = 2; i <= col; i++)
             {
-                for (i = 2; i <= col; i++)
+                i2 = col + i;
+                sum = 0.0e0;
+                for (k = 1; k <= i - 1; k++)
                 {
-                    i2 = col + i;
-                    sum = 0.0e0;
-                    {
-                        for (k = 1; k <= i - 1; k++)
-                        {
-                            sum = sum + sy[i - 1 + (k - 1) * m
-                                                 + _sy_offset] * v[k - 1 + _v_offset] / sy[k - 1
-                                + (k - 1) * m + _sy_offset];
-                        }
-                    }
-
-                    p[i2 - 1 + _p_offset] = v[i2 - 1 + _v_offset] + sum;
+                    sum += sy[i - 1 + (k - 1) * m
+                                    + syOffset] * v[k - 1 + vOffset] / sy[k - 1
+                                                                          + (k - 1) * m + syOffset];
                 }
+
+                p[i2 - 1 + pOffset] = v[i2 - 1 + vOffset] + sum;
             }
 
             // Solve the triangular system
-            dtrsl(wt, _wt_offset, m, col, p,
-                col + 1 - 1 + _p_offset, 11, ref info);
+            Dtrsl(wt, wtOffset, m, col, p,
+                col + 1 - 1 + pOffset, 11, out info);
 
             // 
             // solve D^(1/2)p1=v1.
+            for (i = 1; i <= col; i++)
             {
-                for (i = 1; i <= col; i++)
-                {
-                    p[i - 1 + _p_offset] = v[i - 1 + _v_offset]
-                                           / System.Math.Sqrt(sy[i - 1 + (i - 1) * m + _sy_offset]);
-                }
+                p[i - 1 + pOffset] = v[i - 1 + vOffset]
+                                     / System.Math.Sqrt(sy[i - 1 + (i - 1) * m + syOffset]);
             }
 
             // 
@@ -1214,33 +958,28 @@ namespace BioIK.Helpers {
             // 
             //    solve J^Tp2=p2. 
             //
-            dtrsl(wt, _wt_offset, m, col,
-                p, col + 1 - 1 + _p_offset, 01, ref info);
+            Dtrsl(wt, wtOffset, m, col,
+                p, col + 1 - 1 + pOffset, 01, out info);
 
             // 
             // compute p1 = -D^(-1/2)(p1-D^(-1/2)L'p2)
             //            = -D^(-1/2)p1+D^(-1)L'p2.  
+            for (i = 1; i <= col; i++)
             {
-                for (i = 1; i <= col; i++)
-                {
-                    p[i - 1 + _p_offset] = -(p[i - 1 + _p_offset]
-                                             / System.Math.Sqrt(sy[i - 1 + (i - 1) * m + _sy_offset]));
-                }
+                p[i - 1 + pOffset] = -(p[i - 1 + pOffset]
+                                       / System.Math.Sqrt(sy[i - 1 + (i - 1) * m + syOffset]));
             }
 
+            for (i = 1; i <= col; i++)
             {
-                for (i = 1; i <= col; i++)
+                sum = 0.0e0;
+                for (k = i + 1; k <= col; k++)
                 {
-                    sum = 0.0e0;
-                    {
-                        for (k = i + 1; k <= col; k++)
-                        {
-                            sum = sum + sy[k - 1 + (i - 1) * m + _sy_offset]
-                                * p[col + k - 1 + _p_offset] / sy[i - 1 + (i - 1) * m + _sy_offset];
-                        }
-                    }
-                    p[i - 1 + _p_offset] = p[i - 1 + _p_offset] + sum;
+                    sum += sy[k - 1 + (i - 1) * m + syOffset]
+                        * p[col + k - 1 + pOffset] / sy[i - 1 + (i - 1) * m + syOffset];
                 }
+
+                p[i - 1 + pOffset] += sum;
             }
         }
 
@@ -1435,194 +1174,157 @@ namespace BioIK.Helpers {
         // c       compute the Cauchy direction d and the breakpoints t; initialize
         // c       the derivative f1 and the vector p = W'd (for theta = 1).
         // 
-        private static void cauchy(int n, double[] x, int _x_offset, double[] l, int _l_offset,
-            double[] u, int _u_offset, int[] nbd, int _nbd_offset, double[] g, int _g_offset,
-            int[] iorder, int _iorder_offset, int[] iwhere, int _iwhere_offset, double[] t, int _t_offset,
-            double[] d, int _d_offset, double[] xcp, int _xcp_offset, int m,
-            double[] wy, int _wy_offset, double[] ws, int _ws_offset, double[] sy, int _sy_offset,
-            double[] wt, int _wt_offset, double theta, int col,
-            int head, double[] p, int _p_offset, double[] c, int _c_offset,
-            double[] wbp, int _wbp_offset, double[] v, int _v_offset, ref int nseg,
-            int iprint, double sbgnrm, ref int info, double epsmch)
+        private static void Cauchy(int n, double[] x, int xOffset, double[] l, int lOffset,
+            double[] u, int uOffset, int[] nbd, int nbdOffset, double[] g, int gOffset,
+            int[] iorder, int iorderOffset, int[] iwhere, int iwhereOffset, double[] t, int tOffset,
+            double[] d, int dOffset, double[] xcp, int xcpOffset, int m,
+            double[] wy, int wyOffset, double[] ws, int wsOffset, double[] sy, int syOffset,
+            double[] wt, int wtOffset, double theta, int col,
+            int head, double[] p, int pOffset, double[] c, int cOffset,
+            double[] wbp, int wbpOffset, double[] v, int vOffset, ref int nseg, double sbgnrm, ref int info, double epsmch)
         {
-
-            bool xlower = false;
-            bool xupper = false;
-            bool bnded = false;
-            int i = 0;
-            int j = 0;
-            int col2 = 0;
-            int nfree = 0;
-            int nbreak = 0;
-            int pointr = 0;
-            int ibp = 0;
-            int nleft = 0;
-            int ibkmin = 0;
-            int iter = 0;
-            double f1 = 0.0d;
-            double f2 = 0.0d;
-            double dt = 0.0d;
-            double dtm = 0.0d;
-            double tsum = 0.0d;
-            double dibp = 0.0d;
-            double zibp = 0.0d;
-            double dibp2 = 0.0d;
-            double bkmin = 0.0d;
+            int i;
+            int j;
+            int pointr;
+            int ibp;
+            double zibp;
             double tu = 0.0d;
             double tl = 0.0d;
-            double wmc = 0.0d;
-            double wmp = 0.0d;
-            double wmw = 0.0d;
-            double tj = 0.0d;
-            double tj0 = 0.0d;
-            double neggi = 0.0d;
-            double f2_org = 0.0d;
 
             if (sbgnrm <= 0.0)
             {
-                if (iprint >= 0)
-                {
-                    // DISPLAY: Subgnorm = 0.  GCP = X.
-                }
-
-                dcopy(n, x, _x_offset, 1, xcp, _xcp_offset, 1);
+                Dcopy(n, x, xOffset, 1, xcp, xcpOffset, 1);
                 return;
             }
 
-            bnded = true;
-            nfree = n + 1;
-            nbreak = 0;
-            ibkmin = 0;
-            bkmin = 0.0;
-            col2 = 2 * col;
-            f1 = 0.0;
-            if (iprint >= 99)
-            {
-                // DISPLAY: '---------------- CAUCHY entered-------------------'
-            }
+            bool bnded = true;
+            int nfree = n + 1;
+            int nbreak = 0;
+            int ibkmin = 0;
+            double bkmin = 0.0;
+            int col2 = 2 * col;
+            double f1 = 0.0;
             // 
             // c     We set p to zero and build it up as we determine d.
             // 
+            for (i = 1; i <= col2; i++)
             {
-                for (i = 1; i <= col2; i++)
-                {
-                    p[i - 1 + _p_offset] = 0.0;
-                }
+                p[i - 1 + pOffset] = 0.0;
             }
+
             // 
             // c     In the following loop we determine for each variable its bound
             // c        status and its breakpoint, and update p accordingly.
             // c        Smallest breakpoint is identified.
             // 
+            for (i = 1; i <= n; i++)
             {
-                for (i = 1; i <= n; i++)
-                {
-                    neggi = -g[i - 1 + _g_offset];
+                double neggi = -g[i - 1 + gOffset];
 
-                    if (iwhere[i - 1 + _iwhere_offset] != 3
-                        && iwhere[i - 1 + _iwhere_offset] != -1)
+                if (iwhere[i - 1 + iwhereOffset] != 3
+                    && iwhere[i - 1 + iwhereOffset] != -1)
+                {
+                    // c             if x(i) is not a constant and has bounds,
+                    // c             compute the difference between x(i) and its bounds.
+                    if (nbd[i - 1 + nbdOffset] <= 2)
                     {
-                        // c             if x(i) is not a constant and has bounds,
-                        // c             compute the difference between x(i) and its bounds.
-                        if (nbd[i - 1 + _nbd_offset] <= 2)
+                        tl = x[i - 1 + xOffset] - l[i - 1 + lOffset];
+                    }
+
+                    if (nbd[i - 1 + nbdOffset] >= 2)
+                    {
+                        tu = u[i - 1 + uOffset] - x[i - 1 + xOffset];
+                    }
+
+                    // 
+                    // c           If a variable is close enough to a bound
+                    // c             we treat it as at bound.
+                    bool xlower = nbd[i - 1 + nbdOffset] <= 2 && tl <= 0.0;
+                    bool xupper = nbd[i - 1 + nbdOffset] >= 2 && tu <= 0.0;
+                    // 
+                    // c              reset iwhere(i).
+                    iwhere[i - 1 + iwhereOffset] = 0;
+                    if (xlower)
+                    {
+                        if (neggi <= 0.0)
                         {
-                            tl = x[i - 1 + _x_offset] - l[i - 1 + _l_offset];
-                        }
-                        if (nbd[i - 1 + _nbd_offset] >= 2)
-                        {
-                            tu = u[i - 1 + _u_offset] - x[i - 1 + _x_offset];
-                        }
-                        // 
-                        // c           If a variable is close enough to a bound
-                        // c             we treat it as at bound.
-                        xlower = nbd[i - 1 + _nbd_offset] <= 2 && tl <= 0.0;
-                        xupper = nbd[i - 1 + _nbd_offset] >= 2 && tu <= 0.0;
-                        // 
-                        // c              reset iwhere(i).
-                        iwhere[i - 1 + _iwhere_offset] = 0;
-                        if (xlower)
-                        {
-                            if (neggi <= 0.0)
-                            {
-                                iwhere[i - 1 + _iwhere_offset] = 1;
-                            }
-                        }
-                        else if (xupper)
-                        {
-                            if (neggi >= 0.0)
-                            {
-                                iwhere[i - 1 + _iwhere_offset] = 2;
-                            }
-                        }
-                        else
-                        {
-                            if (System.Math.Abs(neggi) <= 0.0)
-                            {
-                                iwhere[i - 1 + _iwhere_offset] = -3;
-                            }
+                            iwhere[i - 1 + iwhereOffset] = 1;
                         }
                     }
-                    pointr = head;
-                    if (iwhere[i - 1 + _iwhere_offset] != 0 && iwhere[i - 1 + _iwhere_offset] != -1)
+                    else if (xupper)
                     {
-                        d[i - 1 + _d_offset] = 0.0;
+                        if (neggi >= 0.0)
+                        {
+                            iwhere[i - 1 + iwhereOffset] = 2;
+                        }
                     }
                     else
                     {
-                        d[i - 1 + _d_offset] = neggi;
-                        f1 = f1 - neggi * neggi;
-
-                        // calculate p := p - W'e_i* (g_i).
+                        if (System.Math.Abs(neggi) <= 0.0)
                         {
-                            for (j = 1; j <= col; j++)
-                            {
-                                p[j - 1 + _p_offset] = p[j - 1
-                                                         + _p_offset] + wy[i - 1 + (pointr - 1) * n + _wy_offset] * neggi;
-                                p[col + j - 1 + _p_offset] = p[col + j - 1
-                                                               + _p_offset] + ws[i - 1 + (pointr - 1) * n + _ws_offset] * neggi;
-                                pointr = pointr % m + 1;
-                            }
+                            iwhere[i - 1 + iwhereOffset] = -3;
                         }
-                        if (nbd[i - 1 + _nbd_offset] <= 2
-                            && nbd[i - 1 + _nbd_offset] != 0 && neggi < 0.0)
-                        {
-                            // x(i) + d(i) is bounded; compute t(i).
+                    }
+                }
 
-                            nbreak = nbreak + 1;
-                            iorder[nbreak - 1 + _iorder_offset] = i;
-                            t[nbreak - 1 + _t_offset] = tl / -neggi;
-                            if (nbreak == 1 || t[nbreak - 1 + _t_offset] < bkmin)
-                            {
-                                bkmin = t[nbreak - 1 + _t_offset];
-                                ibkmin = nbreak;
-                            }
-                        }
-                        else if (nbd[i - 1 + _nbd_offset] >= 2 && neggi > 0.0)
-                        {
-                            // x(i) + d(i) is bounded; compute t(i).
+                pointr = head;
+                if (iwhere[i - 1 + iwhereOffset] != 0 && iwhere[i - 1 + iwhereOffset] != -1)
+                {
+                    d[i - 1 + dOffset] = 0.0;
+                }
+                else
+                {
+                    d[i - 1 + dOffset] = neggi;
+                    f1 -= neggi * neggi;
 
-                            nbreak = nbreak + 1;
-                            iorder[nbreak - 1 + _iorder_offset] = i;
-                            t[nbreak - 1 + _t_offset] = tu / neggi;
-                            if (nbreak == 1 || t[nbreak - 1 + _t_offset] < bkmin)
-                            {
-                                bkmin = t[nbreak - 1 + _t_offset];
-                                ibkmin = nbreak;
-                            }
-                        }
-                        else
+                    // calculate p := p - W'e_i* (g_i).
+                    for (j = 1; j <= col; j++)
+                    {
+                        p[j - 1 + pOffset] += wy[i - 1 + (pointr - 1) * n + wyOffset] * neggi;
+                        p[col + j - 1 + pOffset] += ws[i - 1 + (pointr - 1) * n + wsOffset] * neggi;
+                        pointr = pointr % m + 1;
+                    }
+
+                    if (nbd[i - 1 + nbdOffset] <= 2
+                        && nbd[i - 1 + nbdOffset] != 0 && neggi < 0.0)
+                    {
+                        // x(i) + d(i) is bounded; compute t(i).
+
+                        nbreak += 1;
+                        iorder[nbreak - 1 + iorderOffset] = i;
+                        t[nbreak - 1 + tOffset] = tl / -neggi;
+                        if (nbreak == 1 || t[nbreak - 1 + tOffset] < bkmin)
                         {
-                            // x(i) + d(i) is not bounded.
-                            nfree = nfree - 1;
-                            iorder[nfree - 1 + _iorder_offset] = i;
-                            if (System.Math.Abs(neggi) > 0.0)
-                            {
-                                bnded = false;
-                            }
+                            bkmin = t[nbreak - 1 + tOffset];
+                            ibkmin = nbreak;
+                        }
+                    }
+                    else if (nbd[i - 1 + nbdOffset] >= 2 && neggi > 0.0)
+                    {
+                        // x(i) + d(i) is bounded; compute t(i).
+
+                        nbreak += 1;
+                        iorder[nbreak - 1 + iorderOffset] = i;
+                        t[nbreak - 1 + tOffset] = tu / neggi;
+                        if (nbreak == 1 || t[nbreak - 1 + tOffset] < bkmin)
+                        {
+                            bkmin = t[nbreak - 1 + tOffset];
+                            ibkmin = nbreak;
+                        }
+                    }
+                    else
+                    {
+                        // x(i) + d(i) is not bounded.
+                        nfree -= 1;
+                        iorder[nfree - 1 + iorderOffset] = i;
+                        if (System.Math.Abs(neggi) > 0.0)
+                        {
+                            bnded = false;
                         }
                     }
                 }
             }
+
             // 
             // The indices of the nonzero components of d are now stored
             // in iorder(1),...,iorder(nbreak) and iorder(nfree),...,iorder(n).
@@ -1631,13 +1333,13 @@ namespace BioIK.Helpers {
             if (theta != 1.0)
             {
                 // complete the initialization of p for theta not= one.
-                dscal(col, theta, p, col + 1 - 1 + _p_offset, 1);
+                Dscal(col, theta, p, col + 1 - 1 + pOffset, 1);
             }
 
             // 
             // c     Initialize GCP xcp = x.
             // 
-            dcopy(n, x, _x_offset, 1, xcp, _xcp_offset, 1);
+            Dcopy(n, x, xOffset, 1, xcp, xcpOffset, 1);
 
             if (nbreak == 0 && nfree == n + 1)
             {
@@ -1648,34 +1350,27 @@ namespace BioIK.Helpers {
             // 
             // c     Initialize c = W'(xcp - x) = 0.
             // 
+            for (j = 1; j <= col2; j++)
             {
-                for (j = 1; j <= col2; j++)
-                {
-                    c[j - 1 + _c_offset] = 0.0;
-                }
+                c[j - 1 + cOffset] = 0.0;
             }
 
             // 
             // c     Initialize derivative f2.
             // 
-            f2 = -(theta * f1);
-            f2_org = f2;
+            double f2 = -(theta * f1);
+            double f2Org = f2;
             if (col > 0)
             {
-                bmv(m, sy, _sy_offset, wt, _wt_offset,
-                    col, p, _p_offset, v, _v_offset, ref info);
+                Bmv(m, sy, syOffset, wt, wtOffset,
+                    col, p, pOffset, v, vOffset, ref info);
 
-                f2 = f2 - ddot(col2, v, _v_offset, 1, p, _p_offset, 1);
+                f2 -= Ddot(col2, v, vOffset, 1, p, pOffset, 1);
             }
 
-            dtm = -(f1 / f2);
-            tsum = 0.0;
+            double dtm = -(f1 / f2);
+            double tsum = 0.0;
             nseg = 1;
-
-            if (iprint >= 99)
-            {
-                // DISPLAY: "There are " + nbreak + "  breakpoints "
-            }
 
             // 
             // c     If there are no breakpoints, locate the GCP and return. 
@@ -1683,19 +1378,19 @@ namespace BioIK.Helpers {
             if (nbreak == 0)
                 goto L888;
 
-            nleft = nbreak;
-            iter = 1;
-            tj = 0.0;
+            int nleft = nbreak;
+            int iter = 1;
+            double tj = 0.0;
 
-        // 
-        // c------------------- the beginning of the loop -------------------------
-        // 
-        L777:
+            // 
+            // c------------------- the beginning of the loop -------------------------
+            // 
+            L777:
             // 
             //     Find the next smallest breakpoint;
             //      compute dt = t(nleft) - t(nleft + 1).
             // 
-            tj0 = tj;
+            double tj0 = tj;
 
             if (iter == 1)
             {
@@ -1703,7 +1398,7 @@ namespace BioIK.Helpers {
                 // heapsort yet. Often only one breakpoint is used and the
                 // cost of heapsort is avoided.
                 tj = bkmin;
-                ibp = iorder[ibkmin - 1 + _iorder_offset];
+                ibp = iorder[ibkmin - 1 + iorderOffset];
             }
             else
             {
@@ -1714,30 +1409,20 @@ namespace BioIK.Helpers {
 
                     if (ibkmin != nbreak)
                     {
-                        t[ibkmin - 1 + _t_offset] = t[nbreak - 1 + _t_offset];
-                        iorder[ibkmin - 1 + _iorder_offset] = iorder[nbreak - 1 + _iorder_offset];
+                        t[ibkmin - 1 + tOffset] = t[nbreak - 1 + tOffset];
+                        iorder[ibkmin - 1 + iorderOffset] = iorder[nbreak - 1 + iorderOffset];
                     }
                     // Update heap structure of breakpoints
                     //   (if iter=2, initialize heap).
                 }
-                hpsolb(nleft, t, _t_offset, iorder, _iorder_offset, iter - 2);
-                tj = t[nleft - 1 + _t_offset];
-                ibp = iorder[nleft - 1 + _iorder_offset];
+                Hpsolb(nleft, t, tOffset, iorder, iorderOffset, iter - 2);
+                tj = t[nleft - 1 + tOffset];
+                ibp = iorder[nleft - 1 + iorderOffset];
             }
+
             // 
-            dt = tj - tj0;
+            double dt = tj - tj0;
             // 
-            if (dt != 0.0 && iprint >= 100)
-            {
-                // DISPLAY: nseg, f1, f2
-                //          "/,'Piece    ',i3,' --f1, f2 at start point ',1p,2(1x,d11.4)"
-                // 
-                // DISPLAY: dt,
-                //          "'Distance to the next break point =  ',1p,d11.4"
-                //
-                // DISPLAY: dtm,
-                //          "'Distance to the stationary point =  ',1p,d11.4"
-            }
 
             // 
             // If a minimizer is within this interval, locate the GCP and return.
@@ -1749,28 +1434,23 @@ namespace BioIK.Helpers {
             // Otherwise fix one variable and
             //   reset the corresponding component of d to zero.
             // 
-            tsum = tsum + dt;
-            nleft = nleft - 1;
-            iter = iter + 1;
-            dibp = d[ibp - 1 + _d_offset];
-            d[ibp - 1 + _d_offset] = 0.0;
+            tsum += dt;
+            nleft -= 1;
+            iter += 1;
+            double dibp = d[ibp - 1 + dOffset];
+            d[ibp - 1 + dOffset] = 0.0;
 
             if (dibp > 0.0)
             {
-                zibp = u[ibp - 1 + _u_offset] - x[ibp - 1 + _x_offset];
-                xcp[ibp - 1 + _xcp_offset] = u[ibp - 1 + _u_offset];
-                iwhere[ibp - 1 + _iwhere_offset] = 2;
+                zibp = u[ibp - 1 + uOffset] - x[ibp - 1 + xOffset];
+                xcp[ibp - 1 + xcpOffset] = u[ibp - 1 + uOffset];
+                iwhere[ibp - 1 + iwhereOffset] = 2;
             }
             else
             {
-                zibp = l[ibp - 1 + _l_offset] - x[ibp - 1 + _x_offset];
-                xcp[ibp - 1 + _xcp_offset] = l[ibp - 1 + _l_offset];
-                iwhere[ibp - 1 + _iwhere_offset] = 1;
-            }
-
-            if (iprint >= 100)
-            {
-                // DISPLAY: "Variable  " + ibp + "  is fixed."
+                zibp = l[ibp - 1 + lOffset] - x[ibp - 1 + xOffset];
+                xcp[ibp - 1 + xcpOffset] = l[ibp - 1 + lOffset];
+                iwhere[ibp - 1 + iwhereOffset] = 1;
             }
 
             if (nleft == 0 && nbreak == n)
@@ -1784,8 +1464,8 @@ namespace BioIK.Helpers {
             // 
             // Update the derivative information.
             // 
-            nseg = nseg + 1;
-            dibp2 = System.Math.Pow(dibp, 2);
+            nseg += 1;
+            double dibp2 = System.Math.Pow(dibp, 2);
 
             // 
             // Update f1 and f2.
@@ -1793,12 +1473,12 @@ namespace BioIK.Helpers {
             // temporarily set f1 and f2 for col=0.
             //
             f1 = f1 + dt * f2 + dibp2 - theta * dibp * zibp;
-            f2 = f2 - theta * dibp2;
+            f2 -= theta * dibp2;
             // 
             if (col > 0)
             {
                 // update c = c + dt*p.
-                daxpy(col2, dt, p, _p_offset, 1, c, _c_offset, 1);
+                Daxpy(col2, dt, p, pOffset, 1, c, cOffset, 1);
 
                 // choose wbp,
                 // the row of W corresponding to the breakpoint encountered.
@@ -1806,34 +1486,34 @@ namespace BioIK.Helpers {
                 {
                     for (j = 1; j <= col; j++)
                     {
-                        wbp[j - 1 + _wbp_offset] = wy[ibp - 1
-                                                      + (pointr - 1) * n + _wy_offset];
+                        wbp[j - 1 + wbpOffset] = wy[ibp - 1
+                                                      + (pointr - 1) * n + wyOffset];
 
-                        wbp[col + j - 1 + _wbp_offset] = theta * ws[ibp
-                            - 1 + (pointr - 1) * n + _ws_offset];
+                        wbp[col + j - 1 + wbpOffset] = theta * ws[ibp
+                            - 1 + (pointr - 1) * n + wsOffset];
 
                         pointr = pointr % m + 1;
                     }
                 }
 
                 // compute (wbp)Mc, (wbp)Mp, and (wbp)M(wbp)'.
-                bmv(m, sy, _sy_offset, wt, _wt_offset, col, wbp,
-                    _wbp_offset, v, _v_offset, ref info);
+                Bmv(m, sy, syOffset, wt, wtOffset, col, wbp,
+                    wbpOffset, v, vOffset, ref info);
 
-                wmc = ddot(col2, c, _c_offset, 1, v, _v_offset, 1);
-                wmp = ddot(col2, p, _p_offset, 1, v, _v_offset, 1);
-                wmw = ddot(col2, wbp, _wbp_offset, 1, v, _v_offset, 1);
+                double wmc = Ddot(col2, c, cOffset, 1, v, vOffset, 1);
+                double wmp = Ddot(col2, p, pOffset, 1, v, vOffset, 1);
+                double wmw = Ddot(col2, wbp, wbpOffset, 1, v, vOffset, 1);
 
                 // update p = p - dibp*wbp. 
-                daxpy(col2, -dibp, wbp, _wbp_offset, 1, p, _p_offset, 1);
+                Daxpy(col2, -dibp, wbp, wbpOffset, 1, p, pOffset, 1);
 
                 // complete updating f1 and f2 while col > 0.
-                f1 = f1 + dibp * wmc;
+                f1 += dibp * wmc;
                 f2 = f2 + 2.0e0 * dibp * wmp - dibp2 * wmw;
             }
 
 
-            f2 = System.Math.Max(epsmch * f2_org, f2);
+            f2 = System.Math.Max(epsmch * f2Org, f2);
 
             if (nleft > 0)
             {
@@ -1841,10 +1521,9 @@ namespace BioIK.Helpers {
                 goto L777;
                 // to repeat the loop for unsearched intervals. 
             }
-            else if (bnded)
+
+            if (bnded)
             {
-                f1 = 0.0;
-                f2 = 0.0;
                 dtm = 0.0;
             }
             else
@@ -1852,31 +1531,22 @@ namespace BioIK.Helpers {
                 dtm = -(f1 / f2);
             }
 
-        // 
+            // 
         // c------------------- the end of the loop -------------------------------
         // 
         L888:
-
-            if (iprint >= 99)
-            {
-                // DISPLAY: "GCP found in this segment", 
-                //
-                // DISPLAY: nseg, f1, f2
-                //          'Piece    ',i3,' --f1, f2 at start point ',1p,2(1x,d11.4)"
-                //          dtm
-                //          "'Distance to the stationary point =  ',1p,d11.4"
-            }
+        
             if (dtm <= 0.0)
             {
                 dtm = 0.0;
             }
-            tsum = tsum + dtm;
+            tsum += dtm;
 
             // 
             // Move free variables (i.e., the ones w/o breakpoints) and 
             //   the variables whose breakpoints haven't been reached.
             // 
-            daxpy(n, tsum, d, _d_offset, 1, xcp, _xcp_offset, 1);
+            Daxpy(n, tsum, d, dOffset, 1, xcp, xcpOffset, 1);
         // 
         L999:
             // 
@@ -1885,24 +1555,8 @@ namespace BioIK.Helpers {
             // 
             if (col > 0)
             {
-                daxpy(col2, dtm, p, _p_offset, 1, c, _c_offset, 1);
+                Daxpy(col2, dtm, p, pOffset, 1, c, cOffset, 1);
             }
-
-            
-            if (iprint > 100)
-            {
-                for (i = 1; i <= n; i++)
-                {
-                    // DISPLAY: xcp[(i - (1)) + _xcp_offset];
-                }
-                // DISPLAY: "'Cauchy X =  ',/,(4x,1p,6(1x,d11.4))"
-            }
-
-            if (iprint >= 99)
-            {
-                // DISPLAY: '---------------- exit CAUCHY----------------------'
-            }
-
         }
 
         // 
@@ -1935,9 +1589,9 @@ namespace BioIK.Helpers {
         // c     ************
         // 
         // 
-        private static void cmprlb(int n, int m, double[] x, int _x_offset, double[] g, int _g_offset, double[] ws, int _ws_offset, double[] wy, int _wy_offset, double[] sy, int _sy_offset,
-        double[] wt, int _wt_offset, double[] z, int _z_offset, double[] r, int _r_offset,
-        double[] wa, int _wa_offset, int[] index, int _index_offset, double theta,
+        private static void Cmprlb(int n, int m, double[] x, int xOffset, double[] g, int gOffset, double[] ws, int wsOffset, double[] wy, int wyOffset, double[] sy, int syOffset,
+        double[] wt, int wtOffset, double[] z, int zOffset, double[] r, int rOffset,
+        double[] wa, int waOffset, int[] index, int indexOffset, double theta,
         int col, int head, int nfree, bool cnstnd, ref int info)
         {
 
@@ -1953,7 +1607,7 @@ namespace BioIK.Helpers {
                 {
                     for (i = 1; i <= n; i++)
                     {
-                        r[i - 1 + _r_offset] = -g[i - 1 + _g_offset];
+                        r[i - 1 + rOffset] = -g[i - 1 + gOffset];
                     }
                 }
             }
@@ -1962,29 +1616,29 @@ namespace BioIK.Helpers {
                 {
                     for (i = 1; i <= nfree; i++)
                     {
-                        k = index[i - 1 + _index_offset];
-                        r[i - 1 + _r_offset] = -(theta * (z[k - 1
-                                                            + _z_offset] - x[k - 1 + _x_offset])) - g[k - 1 + _g_offset];
+                        k = index[i - 1 + indexOffset];
+                        r[i - 1 + rOffset] = -(theta * (z[k - 1
+                                                            + zOffset] - x[k - 1 + xOffset])) - g[k - 1 + gOffset];
                     }
                 }
 
-                bmv(m, sy, _sy_offset, wt, _wt_offset, col, wa,
-                    2 * m + 1 - 1 + _wa_offset, wa, 1 - 1 + _wa_offset, ref info);
+                Bmv(m, sy, syOffset, wt, wtOffset, col, wa,
+                    2 * m + 1 - 1 + waOffset, wa, 1 - 1 + waOffset, ref info);
 
                 pointr = head;
 
                 {
                     for (j = 1; j <= col; j++)
                     {
-                        a1 = wa[j - 1 + _wa_offset];
-                        a2 = theta * wa[col + j - 1 + _wa_offset];
+                        a1 = wa[j - 1 + waOffset];
+                        a2 = theta * wa[col + j - 1 + waOffset];
                         {
                             for (i = 1; i <= nfree; i++)
                             {
-                                k = index[i - 1 + _index_offset];
-                                r[i - 1 + _r_offset] = r[i - 1 + _r_offset]
-                                                       + wy[k - 1 + (pointr - 1) * n + _wy_offset] * a1
-                                                       + ws[k - 1 + (pointr - 1) * n + _ws_offset] * a2;
+                                k = index[i - 1 + indexOffset];
+                                r[i - 1 + rOffset] = r[i - 1 + rOffset]
+                                                       + wy[k - 1 + (pointr - 1) * n + wyOffset] * a1
+                                                       + ws[k - 1 + (pointr - 1) * n + wsOffset] * a2;
                             }
                         }
 
@@ -2132,9 +1786,9 @@ namespace BioIK.Helpers {
         // 
         // c     Initialization block.
         // 
-        private static void dcsrch(double f, double g, ref double stp, double ftol,
+        private static void Dcsrch(double f, double g, ref double stp, double ftol,
         double gtol, double xtol, double stpmin, double stpmax, ref Task task,
-        int[] isave, int _isave_offset, double[] dsave, int _dsave_offset)
+        int[] isave, int isaveOffset, double[] dsave, int dsaveOffset)
         {
             bool brackt = false;
             int stage = 0;
@@ -2188,35 +1842,33 @@ namespace BioIK.Helpers {
                 gy = ginit;
                 stmin = 0.0;
                 stmax = stp + 4.0 * stp;
-                task = Task.FG;
+                task = Task.Fg;
                 goto L1000;
+            }
+
+            // Restore local variables.
+            if (isave[1 - 1 + isaveOffset] == 1)
+            {
+                brackt = true;
             }
             else
             {
-                // Restore local variables.
-                if (isave[1 - 1 + _isave_offset] == 1)
-                {
-                    brackt = true;
-                }
-                else
-                {
-                    brackt = false;
-                }
-                stage = isave[2 - 1 + _isave_offset];
-                ginit = dsave[1 - 1 + _dsave_offset];
-                gtest = dsave[2 - 1 + _dsave_offset];
-                gx = dsave[3 - 1 + _dsave_offset];
-                gy = dsave[4 - 1 + _dsave_offset];
-                finit = dsave[5 - 1 + _dsave_offset];
-                fx = dsave[6 - 1 + _dsave_offset];
-                fy = dsave[7 - 1 + _dsave_offset];
-                stx = dsave[8 - 1 + _dsave_offset];
-                sty = dsave[9 - 1 + _dsave_offset];
-                stmin = dsave[10 - 1 + _dsave_offset];
-                stmax = dsave[11 - 1 + _dsave_offset];
-                width = dsave[12 - 1 + _dsave_offset];
-                width1 = dsave[13 - 1 + _dsave_offset];
+                brackt = false;
             }
+            stage = isave[2 - 1 + isaveOffset];
+            ginit = dsave[1 - 1 + dsaveOffset];
+            gtest = dsave[2 - 1 + dsaveOffset];
+            gx = dsave[3 - 1 + dsaveOffset];
+            gy = dsave[4 - 1 + dsaveOffset];
+            finit = dsave[5 - 1 + dsaveOffset];
+            fx = dsave[6 - 1 + dsaveOffset];
+            fy = dsave[7 - 1 + dsaveOffset];
+            stx = dsave[8 - 1 + dsaveOffset];
+            sty = dsave[9 - 1 + dsaveOffset];
+            stmin = dsave[10 - 1 + dsaveOffset];
+            stmax = dsave[11 - 1 + dsaveOffset];
+            width = dsave[12 - 1 + dsaveOffset];
+            width1 = dsave[13 - 1 + dsaveOffset];
 
             // 
             // c     If psi(stp) <= 0 and f'(stp) >= 0 for some step, then the
@@ -2283,7 +1935,7 @@ namespace BioIK.Helpers {
                 // 
                 // Call dcstep to update stx, sty, and to compute the new step.
                 // 
-                dcstep(ref stx, ref fxm, ref gxm, ref sty, ref fym, ref gym,
+                Dcstep(ref stx, ref fxm, ref gxm, ref sty, ref fym, ref gym,
                     ref stp, fm, gm, ref brackt, stmin, stmax);
 
                 // 
@@ -2300,7 +1952,7 @@ namespace BioIK.Helpers {
                 // 
                 // Call dcstep to update stx, sty, and to compute the new step.
                 // 
-                dcstep(ref stx, ref fx, ref gx, ref sty, ref fy, ref gy,
+                Dcstep(ref stx, ref fx, ref gx, ref sty, ref fy, ref gy,
                     ref stp, f, g, ref brackt, stmin, stmax);
             }
 
@@ -2346,7 +1998,7 @@ namespace BioIK.Helpers {
             // 
             // c     Obtain another function and derivative.
             // 
-            task = Task.FG;
+            task = Task.Fg;
 
         // 
         L1000:
@@ -2356,27 +2008,27 @@ namespace BioIK.Helpers {
             // 
             if (brackt)
             {
-                isave[1 - 1 + _isave_offset] = 1;
+                isave[1 - 1 + isaveOffset] = 1;
             }
             else
             {
-                isave[1 - 1 + _isave_offset] = 0;
+                isave[1 - 1 + isaveOffset] = 0;
             }
 
-            isave[2 - 1 + _isave_offset] = stage;
-            dsave[1 - 1 + _dsave_offset] = ginit;
-            dsave[2 - 1 + _dsave_offset] = gtest;
-            dsave[3 - 1 + _dsave_offset] = gx;
-            dsave[4 - 1 + _dsave_offset] = gy;
-            dsave[5 - 1 + _dsave_offset] = finit;
-            dsave[6 - 1 + _dsave_offset] = fx;
-            dsave[7 - 1 + _dsave_offset] = fy;
-            dsave[8 - 1 + _dsave_offset] = stx;
-            dsave[9 - 1 + _dsave_offset] = sty;
-            dsave[10 - 1 + _dsave_offset] = stmin;
-            dsave[11 - 1 + _dsave_offset] = stmax;
-            dsave[12 - 1 + _dsave_offset] = width;
-            dsave[13 - 1 + _dsave_offset] = width1;
+            isave[2 - 1 + isaveOffset] = stage;
+            dsave[1 - 1 + dsaveOffset] = ginit;
+            dsave[2 - 1 + dsaveOffset] = gtest;
+            dsave[3 - 1 + dsaveOffset] = gx;
+            dsave[4 - 1 + dsaveOffset] = gy;
+            dsave[5 - 1 + dsaveOffset] = finit;
+            dsave[6 - 1 + dsaveOffset] = fx;
+            dsave[7 - 1 + dsaveOffset] = fy;
+            dsave[8 - 1 + dsaveOffset] = stx;
+            dsave[9 - 1 + dsaveOffset] = sty;
+            dsave[10 - 1 + dsaveOffset] = stmin;
+            dsave[11 - 1 + dsaveOffset] = stmax;
+            dsave[12 - 1 + dsaveOffset] = width;
+            dsave[13 - 1 + dsaveOffset] = width1;
         }
 
         // 
@@ -2477,7 +2129,7 @@ namespace BioIK.Helpers {
         // c     **********
         // 
         // 
-        internal static void dcstep(ref double stx, ref double fx, ref double dx,
+        internal static void Dcstep(ref double stx, ref double fx, ref double dx,
             ref double sty, ref double fy, ref double dy, ref double stp,
             double fp, double dp, ref bool brackt, double stpmin, double stpmax)
         {
@@ -2745,9 +2397,9 @@ namespace BioIK.Helpers {
         // 
         // c     Check the input arguments for errors.
         // 
-        private static void errclb(int n, int m, double factr,
-            double[] l, int _l_offset, double[] u, int _u_offset,
-            int[] nbd, int _nbd_offset, ref Task task, ref int info, ref int k)
+        private static void Errclb(int n, int m, double factr,
+            double[] l, int lOffset, double[] u, int uOffset,
+            int[] nbd, int nbdOffset, ref Task task, ref int info, ref int k)
         {
 
             int i = 0;
@@ -2770,16 +2422,16 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    if (nbd[i - 1 + _nbd_offset] < 0 || nbd[i - 1 + _nbd_offset] > 3)
+                    if (nbd[i - 1 + nbdOffset] < 0 || nbd[i - 1 + nbdOffset] > 3)
                     {
                         // c                                                   return
                         task = Task.Error;
                         info = -6;
                         k = i;
                     }
-                    if (nbd[i - 1 + _nbd_offset] == 2)
+                    if (nbd[i - 1 + nbdOffset] == 2)
                     {
-                        if (l[i - 1 + _l_offset] > u[i - 1 + _u_offset])
+                        if (l[i - 1 + lOffset] > u[i - 1 + uOffset])
                         {
                             // c                                    return
                             task = Task.Error;
@@ -2930,11 +2582,11 @@ namespace BioIK.Helpers {
         // c        where L_a is the strictly lower triangular part of S'AA'Y
         // c              R_z is the upper triangular part of S'ZZ'Y.
         // 
-        private static void formk(int n, int nsub, int[] ind, int _ind_offset,
-            int nenter, int ileave, int[] indx2, int _indx2_offset,
-            int iupdat, bool updatd, double[] wn, int _wn_offset, double[] wn1, int _wn1_offset,
-            int m, double[] ws, int _ws_offset, double[] wy, int _wy_offset,
-            double[] sy, int _sy_offset, double theta, int col, int head,
+        private static void Formk(int n, int nsub, int[] ind, int indOffset,
+            int nenter, int ileave, int[] indx2, int indx2Offset,
+            int iupdat, bool updatd, double[] wn, int wnOffset, double[] wn1, int wn1Offset,
+            int m, double[] ws, int wsOffset, double[] wy, int wyOffset,
+            double[] sy, int syOffset, double theta, int col, int head,
             ref int info)
         {
 
@@ -2970,12 +2622,12 @@ namespace BioIK.Helpers {
                         for (jy = 1; jy <= m - 1; jy++)
                         {
                             js = m + jy;
-                            dcopy(m - jy, wn1, jy + 1 - 1 + (jy + 1 - 1) * 2 * m
-                                                          + _wn1_offset, 1, wn1, jy - 1 + (jy - 1) * 2 * m + _wn1_offset, 1);
-                            dcopy(m - jy, wn1, js + 1 - 1 + (js + 1 - 1) * 2 * m
-                                                          + _wn1_offset, 1, wn1, js - 1 + (js - 1) * 2 * m + _wn1_offset, 1);
-                            dcopy(m - 1, wn1, m + 2 - 1 + (jy + 1 - 1) * 2 * m
-                                                        + _wn1_offset, 1, wn1, m + 1 - 1 + (jy - 1) * 2 * m + _wn1_offset, 1);
+                            Dcopy(m - jy, wn1, jy + 1 - 1 + (jy + 1 - 1) * 2 * m
+                                                          + wn1Offset, 1, wn1, jy - 1 + (jy - 1) * 2 * m + wn1Offset, 1);
+                            Dcopy(m - jy, wn1, js + 1 - 1 + (js + 1 - 1) * 2 * m
+                                                          + wn1Offset, 1, wn1, js - 1 + (js - 1) * 2 * m + wn1Offset, 1);
+                            Dcopy(m - 1, wn1, m + 2 - 1 + (jy + 1 - 1) * 2 * m
+                                                        + wn1Offset, 1, wn1, m + 1 - 1 + (jy - 1) * 2 * m + wn1Offset, 1);
                         }
                     }
                 }
@@ -2991,7 +2643,7 @@ namespace BioIK.Helpers {
                 ipntr = head + col - 1;
                 if (ipntr > m)
                 {
-                    ipntr = ipntr - m;
+                    ipntr -= m;
                 }
                 jpntr = head;
                 {
@@ -3006,26 +2658,26 @@ namespace BioIK.Helpers {
                         {
                             for (k = pbegin; k <= pend; k++)
                             {
-                                k1 = ind[k - 1 + _ind_offset];
-                                temp1 = temp1 + wy[k1 - 1 + (ipntr - 1)
-                                    * n + _wy_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
+                                k1 = ind[k - 1 + indOffset];
+                                temp1 += wy[k1 - 1 + (ipntr - 1)
+                                    * n + wyOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
                             }
                         }
                         // c             compute elements jy of row 'col' of L_a and S'AA'S
                         {
                             for (k = dbegin; k <= dend; k++)
                             {
-                                k1 = ind[k - 1 + _ind_offset];
-                                temp2 = temp2 + ws[k1 - 1 + (ipntr - 1)
-                                    * n + _ws_offset] * ws[k1 - 1 + (jpntr - 1) * n + _ws_offset];
-                                temp3 = temp3 + ws[k1 - 1 + (ipntr - 1)
-                                    * n + _ws_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
+                                k1 = ind[k - 1 + indOffset];
+                                temp2 += ws[k1 - 1 + (ipntr - 1)
+                                    * n + wsOffset] * ws[k1 - 1 + (jpntr - 1) * n + wsOffset];
+                                temp3 += ws[k1 - 1 + (ipntr - 1)
+                                    * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
                             }
                         }
 
-                        wn1[iy - 1 + (jy - 1) * 2 * m + _wn1_offset] = temp1;
-                        wn1[is2 - 1 + (js - 1) * 2 * m + _wn1_offset] = temp2;
-                        wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] = temp3;
+                        wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] = temp1;
+                        wn1[is2 - 1 + (js - 1) * 2 * m + wn1Offset] = temp2;
+                        wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] = temp3;
                         jpntr = jpntr % m + 1;
                     }
                 }
@@ -3036,7 +2688,7 @@ namespace BioIK.Helpers {
                 jpntr = head + col - 1;
                 if (jpntr > m)
                 {
-                    jpntr = jpntr - m;
+                    jpntr -= m;
                 }
                 ipntr = head;
                 {
@@ -3048,13 +2700,13 @@ namespace BioIK.Helpers {
                         {
                             for (k = pbegin; k <= pend; k++)
                             {
-                                k1 = ind[k - 1 + _ind_offset];
-                                temp3 = temp3 + ws[k1 - 1 + (ipntr - 1)
-                                    * n + _ws_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
+                                k1 = ind[k - 1 + indOffset];
+                                temp3 += ws[k1 - 1 + (ipntr - 1)
+                                    * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
                             }
                         }
                         ipntr = ipntr % m + 1;
-                        wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] = temp3;
+                        wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] = temp3;
                     }
                 }
                 upcl = col - 1;
@@ -3085,28 +2737,28 @@ namespace BioIK.Helpers {
                             {
                                 for (k = 1; k <= nenter; k++)
                                 {
-                                    k1 = indx2[k - 1 + _indx2_offset];
-                                    temp1 = temp1 + wy[k1 - 1 + (ipntr - 1)
-                                        * n + _wy_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
-                                    temp2 = temp2 + ws[k1 - 1 + (ipntr - 1)
-                                        * n + _ws_offset] * ws[k1 - 1 + (jpntr - 1) * n + _ws_offset];
+                                    k1 = indx2[k - 1 + indx2Offset];
+                                    temp1 += wy[k1 - 1 + (ipntr - 1)
+                                        * n + wyOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
+                                    temp2 += ws[k1 - 1 + (ipntr - 1)
+                                        * n + wsOffset] * ws[k1 - 1 + (jpntr - 1) * n + wsOffset];
                                 }
                             }
                             {
                                 for (k = ileave; k <= n; k++)
                                 {
-                                    k1 = indx2[k - 1 + _indx2_offset];
-                                    temp3 = temp3 + wy[k1 - 1 + (ipntr
-                                                                 - 1) * n + _wy_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
-                                    temp4 = temp4 + ws[k1 - 1 + (ipntr
-                                                                 - 1) * n + _ws_offset] * ws[k1 - 1 + (jpntr - 1) * n + _ws_offset];
+                                    k1 = indx2[k - 1 + indx2Offset];
+                                    temp3 += wy[k1 - 1 + (ipntr
+                                                          - 1) * n + wyOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
+                                    temp4 += ws[k1 - 1 + (ipntr
+                                                          - 1) * n + wsOffset] * ws[k1 - 1 + (jpntr - 1) * n + wsOffset];
                                 }
                             }
 
-                            wn1[iy - 1 + (jy - 1) * 2 * m + _wn1_offset] =
-                                wn1[iy - 1 + (jy - 1) * 2 * m + _wn1_offset] + temp1 - temp3;
-                            wn1[is2 - 1 + (js - 1) * 2 * m + _wn1_offset] =
-                                wn1[is2 - 1 + (js - 1) * 2 * m + _wn1_offset] - temp2 + temp4;
+                            wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] =
+                                wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] + temp1 - temp3;
+                            wn1[is2 - 1 + (js - 1) * 2 * m + wn1Offset] =
+                                wn1[is2 - 1 + (js - 1) * 2 * m + wn1Offset] - temp2 + temp4;
                             jpntr = jpntr % m + 1;
                         }
                     }
@@ -3130,29 +2782,29 @@ namespace BioIK.Helpers {
                             {
                                 for (k = 1; k <= nenter; k++)
                                 {
-                                    k1 = indx2[k - 1 + _indx2_offset];
-                                    temp1 = temp1 + ws[k1 - 1 + (ipntr
-                                                                 - 1) * n + _ws_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
+                                    k1 = indx2[k - 1 + indx2Offset];
+                                    temp1 += ws[k1 - 1 + (ipntr
+                                                          - 1) * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
                                 }
                             }
                             {
                                 for (k = ileave; k <= n; k++)
                                 {
-                                    k1 = indx2[k - 1 + _indx2_offset];
-                                    temp3 = temp3 + ws[k1 - 1 + (ipntr - 1)
-                                        * n + _ws_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
+                                    k1 = indx2[k - 1 + indx2Offset];
+                                    temp3 += ws[k1 - 1 + (ipntr - 1)
+                                        * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
                                 }
                             }
 
                             if (is2 <= jy + m)
                             {
-                                wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] =
-                                    wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] + temp1 - temp3;
+                                wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] =
+                                    wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] + temp1 - temp3;
                             }
                             else
                             {
-                                wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] =
-                                    wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] - temp1 + temp3;
+                                wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] =
+                                    wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] - temp1 + temp3;
                             }
                             jpntr = jpntr % m + 1;
                         }
@@ -3176,29 +2828,28 @@ namespace BioIK.Helpers {
                         {
                             js = col + jy;
                             js1 = m + jy;
-                            wn[jy - 1 + (iy - 1) * 2 * m + _wn_offset] =
-                                wn1[iy - 1 + (jy - 1) * 2 * m + _wn1_offset] / theta;
-                            wn[js - 1 + (is2 - 1) * 2 * m + _wn_offset] =
-                                wn1[is1 - 1 + (js1 - 1) * 2 * m + _wn1_offset] * theta;
+                            wn[jy - 1 + (iy - 1) * 2 * m + wnOffset] =
+                                wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] / theta;
+                            wn[js - 1 + (is2 - 1) * 2 * m + wnOffset] =
+                                wn1[is1 - 1 + (js1 - 1) * 2 * m + wn1Offset] * theta;
                         }
                     }
                     {
                         for (jy = 1; jy <= iy - 1; jy++)
                         {
-                            wn[jy - 1 + (is2 - 1) * 2 * m + _wn_offset] =
-                                -wn1[is1 - 1 + (jy - 1) * 2 * m + _wn1_offset];
+                            wn[jy - 1 + (is2 - 1) * 2 * m + wnOffset] =
+                                -wn1[is1 - 1 + (jy - 1) * 2 * m + wn1Offset];
                         }
                     }
                     {
                         for (jy = iy; jy <= col; jy++)
                         {
-                            wn[jy - 1 + (is2 - 1) * 2 * m + _wn_offset] =
-                                wn1[is1 - 1 + (jy - 1) * 2 * m + _wn1_offset];
+                            wn[jy - 1 + (is2 - 1) * 2 * m + wnOffset] =
+                                wn1[is1 - 1 + (jy - 1) * 2 * m + wn1Offset];
                         }
                     }
 
-                    wn[iy - 1 + (iy - 1) * 2 * m + _wn_offset] = wn[iy - 1 + (iy - 1) * 2 * m
-                                                                           + _wn_offset] + sy[iy - 1 + (iy - 1) * m + _sy_offset];
+                    wn[iy - 1 + (iy - 1) * 2 * m + wnOffset] += sy[iy - 1 + (iy - 1) * m + syOffset];
                 }
             }
 
@@ -3208,15 +2859,15 @@ namespace BioIK.Helpers {
             // 
             // c        first Cholesky factor (1,1) block of wn to get LL'
             // c                          with L' stored in the upper triangle of wn.
-            dpofa(wn, _wn_offset, m2, col, ref info);
+            Dpofa(wn, wnOffset, m2, col, ref info);
 
             // c        then form L^-1(-L_a'+R_z') in the (1,2) block.
             col2 = 2 * col;
             {
                 for (js = col + 1; js <= col2; js++)
                 {
-                    dtrsl(wn, _wn_offset, m2, col, wn, 1 - 1
-                        + (js - 1) * 2 * m + _wn_offset, 11, ref info);
+                    Dtrsl(wn, wnOffset, m2, col, wn, 1 - 1
+                        + (js - 1) * 2 * m + wnOffset, 11, out info);
                 }
             }
 
@@ -3231,10 +2882,8 @@ namespace BioIK.Helpers {
                     {
                         for (js = is2; js <= col2; js++)
                         {
-                            wn[is2 - 1 + (js - 1) * 2 * m + _wn_offset] =
-                                wn[is2 - 1 + (js - 1) * 2 * m + _wn_offset]
-                                + ddot(col, wn, 1 - 1 + (is2 - 1) * 2 * m
-                                                      + _wn_offset, 1, wn, 1 - 1 + (js - 1) * 2 * m + _wn_offset, 1);
+                            wn[is2 - 1 + (js - 1) * 2 * m + wnOffset] += Ddot(col, wn, 1 - 1 + (is2 - 1) * 2 * m
+                                + wnOffset, 1, wn, 1 - 1 + (js - 1) * 2 * m + wnOffset, 1);
                         }
                     }
                 }
@@ -3243,8 +2892,8 @@ namespace BioIK.Helpers {
             // 
             // c     Cholesky factorization of (2,2) block of wn.
             // 
-            dpofa(wn, col + 1 - 1 + (col + 1 - 1) 
-                * 2 * m + _wn_offset, m2, col, ref info);
+            Dpofa(wn, col + 1 - 1 + (col + 1 - 1) 
+                * 2 * m + wnOffset, m2, col, ref info);
         }
 
         // 
@@ -3285,10 +2934,10 @@ namespace BioIK.Helpers {
         // c     Form the upper half of  T = theta*SS + L*D^(-1)*L',
         // c        store T in the upper triangle of the array wt.
         // 
-        private static void formt(int m,
-            double[] wt, int _wt_offset,
-            double[] sy, int _sy_offset,
-            double[] ss, int _ss_offset,
+        private static void Formt(int m,
+            double[] wt, int wtOffset,
+            double[] sy, int syOffset,
+            double[] ss, int ssOffset,
             int col, double theta, ref int info)
         {
 
@@ -3301,8 +2950,8 @@ namespace BioIK.Helpers {
             {
                 for (j = 1; j <= col; j++)
                 {
-                    wt[1 - 1 + (j - 1) * m + _wt_offset] = theta * ss[1 - 1
-                                                                      + (j - 1) * m + _ss_offset];
+                    wt[1 - 1 + (j - 1) * m + wtOffset] = theta * ss[1 - 1
+                                                                      + (j - 1) * m + ssOffset];
                 }
             }
 
@@ -3318,14 +2967,14 @@ namespace BioIK.Helpers {
                             {
                                 for (k = 1; k <= k1; k++)
                                 {
-                                    ddum = ddum + sy[i - 1 + (k - 1) * m
-                                                           + _sy_offset] * sy[j - 1 + (k - 1) * m
-                                        + _sy_offset] / sy[k - 1 + (k - 1) * m + _sy_offset];
+                                    ddum += sy[i - 1 + (k - 1) * m
+                                                     + syOffset] * sy[j - 1 + (k - 1) * m
+                                                                            + syOffset] / sy[k - 1 + (k - 1) * m + syOffset];
                                 }
                             }
 
-                            wt[i - 1 + (j - 1) * m + _wt_offset] = ddum
-                                                                   + theta * ss[i - 1 + (j - 1) * m + _ss_offset];
+                            wt[i - 1 + (j - 1) * m + wtOffset] = ddum
+                                                                   + theta * ss[i - 1 + (j - 1) * m + ssOffset];
                         }
                     }
                 }
@@ -3335,7 +2984,7 @@ namespace BioIK.Helpers {
             // c     Cholesky factorize T to J*J' with 
             // c        J' stored in the upper triangle of wt.
             // 
-            dpofa(wt, _wt_offset, m, col, ref info);
+            Dpofa(wt, wtOffset, m, col, ref info);
         }
 
         // 
@@ -3382,9 +3031,9 @@ namespace BioIK.Helpers {
         // c     ************
         // 
         // 
-        private static void freev(int n, ref int nfree,
-            int[] index, int _index_offset, ref int nenter, ref int ileave,
-            int[] indx2, int _indx2_offset, int[] iwhere, int _iwhere_offset,
+        private static void Freev(int n, ref int nfree,
+            int[] index, int indexOffset, ref int nenter, ref int ileave,
+            int[] indx2, int indx2Offset, int[] iwhere, int iwhereOffset,
             ref bool wrk, bool updatd, bool cnstnd, int iprint, int iter)
         {
 
@@ -3401,16 +3050,16 @@ namespace BioIK.Helpers {
                 {
                     for (i = 1; i <= nfree; i++)
                     {
-                        k = index[i - 1 + _index_offset];
+                        k = index[i - 1 + indexOffset];
 
                         // 
                         // c            write(6,*) ' k  = index(i) ', k
                         // c            write(6,*) ' index = ', i
                         // 
-                        if (iwhere[k - 1 + _iwhere_offset] > 0)
+                        if (iwhere[k - 1 + iwhereOffset] > 0)
                         {
-                            ileave = ileave - 1;
-                            indx2[ileave - 1 + _indx2_offset] = k;
+                            ileave -= 1;
+                            indx2[ileave - 1 + indx2Offset] = k;
 
                             if (iprint >= 100)
                             {
@@ -3422,11 +3071,11 @@ namespace BioIK.Helpers {
                 {
                     for (i = 1 + nfree; i <= n; i++)
                     {
-                        k = index[i - 1 + _index_offset];
-                        if (iwhere[k - 1 + _iwhere_offset] <= 0)
+                        k = index[i - 1 + indexOffset];
+                        if (iwhere[k - 1 + iwhereOffset] <= 0)
                         {
-                            nenter = nenter + 1;
-                            indx2[nenter - 1 + _indx2_offset] = k;
+                            nenter += 1;
+                            indx2[nenter - 1 + indx2Offset] = k;
 
                             
                             if (iprint >= 100)
@@ -3454,15 +3103,15 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    if (iwhere[i - 1 + _iwhere_offset] <= 0)
+                    if (iwhere[i - 1 + iwhereOffset] <= 0)
                     {
-                        nfree = nfree + 1;
-                        index[nfree - 1 + _index_offset] = i;
+                        nfree += 1;
+                        index[nfree - 1 + indexOffset] = i;
                     }
                     else
                     {
-                        iact = iact - 1;
-                        index[iact - 1 + _index_offset] = i;
+                        iact -= 1;
+                        index[iact - 1 + indexOffset] = i;
                     }
                 }
             }
@@ -3522,8 +3171,8 @@ namespace BioIK.Helpers {
         // c     ************
         // 
         // 
-        private static void hpsolb(int n, double[] t, int _t_offset,
-        int[] iorder, int _iorder_offset, int iheap)
+        private static void Hpsolb(int n, double[] t, int tOffset,
+        int[] iorder, int iorderOffset, int iheap)
         {
 
             int i = 0;
@@ -3542,8 +3191,8 @@ namespace BioIK.Helpers {
                 {
                     for (k = 2; k <= n; k++)
                     {
-                        ddum = t[k - 1 + _t_offset];
-                        indxin = iorder[k - 1 + _iorder_offset];
+                        ddum = t[k - 1 + tOffset];
+                        indxin = iorder[k - 1 + iorderOffset];
                         // 
                         // c           Add ddum to the heap.
                         i = k;
@@ -3552,17 +3201,17 @@ namespace BioIK.Helpers {
                         if (i > 1)
                         {
                             j = i / 2;
-                            if (ddum < t[j - 1 + _t_offset])
+                            if (ddum < t[j - 1 + tOffset])
                             {
-                                t[i - 1 + _t_offset] = t[j - 1 + _t_offset];
-                                iorder[i - 1 + _iorder_offset] = iorder[j - 1 + _iorder_offset];
+                                t[i - 1 + tOffset] = t[j - 1 + tOffset];
+                                iorder[i - 1 + iorderOffset] = iorder[j - 1 + iorderOffset];
                                 i = j;
                                 goto L10;
                             }
                         }
 
-                        t[i - 1 + _t_offset] = ddum;
-                        iorder[i - 1 + _iorder_offset] = indxin;
+                        t[i - 1 + tOffset] = ddum;
+                        iorder[i - 1 + iorderOffset] = indxin;
                     }
                 }
             }
@@ -3574,10 +3223,10 @@ namespace BioIK.Helpers {
             if (n > 1)
             {
                 i = 1;
-                out2 = t[1 - 1 + _t_offset];
-                indxou = iorder[1 - 1 + _iorder_offset];
-                ddum = t[n - 1 + _t_offset];
-                indxin = iorder[n - 1 + _iorder_offset];
+                out2 = t[1 - 1 + tOffset];
+                indxou = iorder[1 - 1 + iorderOffset];
+                ddum = t[n - 1 + tOffset];
+                indxin = iorder[n - 1 + iorderOffset];
 
             // 
             // c        Restore the heap 
@@ -3585,25 +3234,25 @@ namespace BioIK.Helpers {
                 j = i + i;
                 if (j <= n - 1)
                 {
-                    if (t[j + 1 - 1 + _t_offset] < t[j - 1 + _t_offset])
+                    if (t[j + 1 - 1 + tOffset] < t[j - 1 + tOffset])
                     {
-                        j = j + 1;
+                        j += 1;
                     }
-                    if (t[j - 1 + _t_offset] < ddum)
+                    if (t[j - 1 + tOffset] < ddum)
                     {
-                        t[i - 1 + _t_offset] = t[j - 1 + _t_offset];
-                        iorder[i - 1 + _iorder_offset] = iorder[j - 1 + _iorder_offset];
+                        t[i - 1 + tOffset] = t[j - 1 + tOffset];
+                        iorder[i - 1 + iorderOffset] = iorder[j - 1 + iorderOffset];
                         i = j;
                         goto L30;
                     }
                 }
-                t[i - 1 + _t_offset] = ddum;
-                iorder[i - 1 + _iorder_offset] = indxin;
+                t[i - 1 + tOffset] = ddum;
+                iorder[i - 1 + iorderOffset] = indxin;
                 // 
                 // c     Put the least member in t(n). 
                 // 
-                t[n - 1 + _t_offset] = out2;
-                iorder[n - 1 + _iorder_offset] = indxou;
+                t[n - 1 + tOffset] = out2;
+                iorder[n - 1 + iorderOffset] = indxou;
             }
         }
 
@@ -3640,27 +3289,27 @@ namespace BioIK.Helpers {
         // c     **********
         // 
         // 
-        private static void lnsrlb(int n, double[] l, int _l_offset, double[] u, int _u_offset,
-            int[] nbd, int _nbd_offset, double[] x, int _x_offset, double f, ref double fold, ref double gd,
-            ref double gdold, double[] g, int _g_offset, double[] d, int _d_offset, double[] r, int _r_offset,
-            double[] t, int _t_offset, double[] z, int _z_offset, ref double stp,
+        private static void Lnsrlb(int n, double[] l, int lOffset, double[] u, int uOffset,
+            int[] nbd, int nbdOffset, double[] x, int xOffset, double f, ref double fold, ref double gd,
+            ref double gdold, double[] g, int gOffset, double[] d, int dOffset, double[] r, int rOffset,
+            double[] t, int tOffset, double[] z, int zOffset, ref double stp,
             ref double dnorm, ref double dtd, ref double xstep, ref double stpmx, int iter,
             ref int ifun, ref int iback, ref int nfgv, ref int info, ref Task task,
-            bool boxed, bool cnstnd, ref Task csave, int[] isave, int _isave_offset,
-            double[] dsave, int _dsave_offset)
+            bool boxed, bool cnstnd, ref Task csave, int[] isave, int isaveOffset,
+            double[] dsave, int dsaveOffset)
         {
 
             int i = 0;
             double a1 = 0.0d;
             double a2 = 0.0d;
 
-            if (task == Task.FG_LN)
+            if (task == Task.FgLN)
             {
                 goto L556;
             }
 
             // 
-            dtd = ddot(n, d, _d_offset, 1, d, _d_offset, 1);
+            dtd = Ddot(n, d, dOffset, 1, d, dOffset, 1);
             dnorm = System.Math.Sqrt(dtd);
             // 
             // c     Determine the maximum step length.
@@ -3677,12 +3326,12 @@ namespace BioIK.Helpers {
                     {
                         for (i = 1; i <= n; i++)
                         {
-                            a1 = d[i - 1 + _d_offset];
-                            if (nbd[i - 1 + _nbd_offset] != 0)
+                            a1 = d[i - 1 + dOffset];
+                            if (nbd[i - 1 + nbdOffset] != 0)
                             {
-                                if (a1 < 0.0 && nbd[i - 1 + _nbd_offset] <= 2)
+                                if (a1 < 0.0 && nbd[i - 1 + nbdOffset] <= 2)
                                 {
-                                    a2 = l[i - 1 + _l_offset] - x[i - 1 + _x_offset];
+                                    a2 = l[i - 1 + lOffset] - x[i - 1 + xOffset];
                                     if (a2 >= 0.0)
                                     {
                                         stpmx = 0.0;
@@ -3692,9 +3341,9 @@ namespace BioIK.Helpers {
                                         stpmx = a2 / a1;
                                     }
                                 }
-                                else if (a1 > 0.0 && nbd[i - 1 + _nbd_offset] >= 2)
+                                else if (a1 > 0.0 && nbd[i - 1 + nbdOffset] >= 2)
                                 {
-                                    a2 = u[i - 1 + _u_offset] - x[i - 1 + _x_offset];
+                                    a2 = u[i - 1 + uOffset] - x[i - 1 + xOffset];
                                     if (a2 <= 0.0)
                                     {
                                         stpmx = 0.0;
@@ -3724,8 +3373,8 @@ namespace BioIK.Helpers {
             }
 
             // 
-            dcopy(n, x, _x_offset, 1, t, _t_offset, 1);
-            dcopy(n, g, _g_offset, 1, r, _r_offset, 1);
+            Dcopy(n, x, xOffset, 1, t, tOffset, 1);
+            Dcopy(n, g, gOffset, 1, r, rOffset, 1);
 
             fold = f;
             ifun = 0;
@@ -3733,7 +3382,7 @@ namespace BioIK.Helpers {
             csave = Task.Start;
 
         L556:
-            gd = ddot(n, g, _g_offset, 1, d, _d_offset, 1);
+            gd = Ddot(n, g, gOffset, 1, d, dOffset, 1);
 
             if (ifun == 0)
             {
@@ -3749,37 +3398,37 @@ namespace BioIK.Helpers {
                 }
             }
 
-            dcsrch(f, gd, ref stp,
+            Dcsrch(f, gd, ref stp,
                 0.001000000000000000020816681711721685132943,
                 0.9000000000000000222044604925031308084726,
                 0.1000000000000000055511151231257827021182, 0.0,
-                stpmx, ref csave, isave, _isave_offset, dsave, _dsave_offset);
+                stpmx, ref csave, isave, isaveOffset, dsave, dsaveOffset);
 
             // 
             xstep = stp * dnorm;
             if (csave != Task.Convergence && csave != Task.Warning)
             {
-                task = Task.FG_LN;
-                ifun = ifun + 1;
-                nfgv = nfgv + 1;
+                task = Task.FgLN;
+                ifun += 1;
+                nfgv += 1;
                 iback = ifun - 1;
                 if (stp == 1.0)
                 {
-                    dcopy(n, z, _z_offset, 1, x, _x_offset, 1);
+                    Dcopy(n, z, zOffset, 1, x, xOffset, 1);
                 }
                 else
                 {
                     {
                         for (i = 1; i <= n; i++)
                         {
-                            x[i - 1 + _x_offset] = stp * d[i - 1 + _d_offset] + t[i - 1 + _t_offset];
+                            x[i - 1 + xOffset] = stp * d[i - 1 + dOffset] + t[i - 1 + tOffset];
                         }
                     }
                 }
             }
             else
             {
-                task = Task.New_X;
+                task = Task.NewX;
             }
         }
 
@@ -3975,38 +3624,38 @@ namespace BioIK.Helpers {
         // c     ************
         // 
         // 
-        private static void mainlb(int n,
+        private static void Mainlb(int n,
             int m,
-            double[] x, int _x_offset,
-            double[] l, int _l_offset,
-            double[] u, int _u_offset,
-            int[] nbd, int _nbd_offset,
+            double[] x, int xOffset,
+            double[] l, int lOffset,
+            double[] u, int uOffset,
+            int[] nbd, int nbdOffset,
             ref double f,
-            double[] g, int _g_offset,
+            double[] g, int gOffset,
             double factr,
             double pgtol,
-            double[] ws, int _ws_offset,
-            double[] wy, int _wy_offset,
-            double[] sy, int _sy_offset,
-            double[] ss, int _ss_offset,
-            double[] wt, int _wt_offset,
-            double[] wn, int _wn_offset,
-            double[] snd, int _snd_offset,
-            double[] z, int _z_offset,
-            double[] r, int _r_offset,
-            double[] d, int _d_offset,
-            double[] t, int _t_offset,
-            double[] xp, int _xp_offset,
-            double[] wa, int _wa_offset,
-            int[] index, int _index_offset,
-            int[] iwhere, int _iwhere_offset,
-            int[] indx2, int _indx2_offset,
+            double[] ws, int wsOffset,
+            double[] wy, int wyOffset,
+            double[] sy, int syOffset,
+            double[] ss, int ssOffset,
+            double[] wt, int wtOffset,
+            double[] wn, int wnOffset,
+            double[] snd, int sndOffset,
+            double[] z, int zOffset,
+            double[] r, int rOffset,
+            double[] d, int dOffset,
+            double[] t, int tOffset,
+            double[] xp, int xpOffset,
+            double[] wa, int waOffset,
+            int[] index, int indexOffset,
+            int[] iwhere, int iwhereOffset,
+            int[] indx2, int indx2Offset,
             ref Task task,
             int iprint,
             ref Task csave,
-            bool[] lsave, int _lsave_offset,
-            int[] isave, int _isave_offset,
-            double[] dsave, int _dsave_offset)
+            bool[] lsave, int lsaveOffset,
+            int[] isave, int isaveOffset,
+            double[] dsave, int dsaveOffset)
         {
 
             bool prjctd = false;
@@ -4121,8 +3770,8 @@ namespace BioIK.Helpers {
                 // 
                 // c        Check the input arguments for errors.
                 // 
-                errclb(n, m, factr, l, _l_offset, u, _u_offset,
-                    nbd, _nbd_offset, ref task, ref info, ref k);
+                Errclb(n, m, factr, l, lOffset, u, uOffset,
+                    nbd, nbdOffset, ref task, ref info, ref k);
 
                 if (task == Task.Error)
                 {
@@ -4140,8 +3789,8 @@ namespace BioIK.Helpers {
                 // 
                 // c        Initialize iwhere & project x onto the feasible set.
                 // 
-                active(n, l, _l_offset, u, _u_offset, nbd, _nbd_offset, x,
-                    _x_offset, iwhere, _iwhere_offset, iprint, ref prjctd, ref cnstnd, ref boxed);
+                Active(n, l, lOffset, u, uOffset, nbd, nbdOffset, x,
+                    xOffset, iwhere, iwhereOffset, out prjctd, out cnstnd, out boxed);
                 // 
                 // c        The end of the initialization.
                 // 
@@ -4150,61 +3799,61 @@ namespace BioIK.Helpers {
             {
                 // c          restore local variables.
                 // 
-                prjctd = lsave[1 - 1 + _lsave_offset];
-                cnstnd = lsave[2 - 1 + _lsave_offset];
-                boxed = lsave[3 - 1 + _lsave_offset];
-                updatd = lsave[4 - 1 + _lsave_offset];
+                prjctd = lsave[1 - 1 + lsaveOffset];
+                cnstnd = lsave[2 - 1 + lsaveOffset];
+                boxed = lsave[3 - 1 + lsaveOffset];
+                updatd = lsave[4 - 1 + lsaveOffset];
                 // 
-                nintol = isave[1 - 1 + _isave_offset];
-                itfile = isave[3 - 1 + _isave_offset];
-                iback = isave[4 - 1 + _isave_offset];
-                nskip = isave[5 - 1 + _isave_offset];
-                head = isave[6 - 1 + _isave_offset];
-                col = isave[7 - 1 + _isave_offset];
-                itail = isave[8 - 1 + _isave_offset];
-                iter = isave[9 - 1 + _isave_offset];
-                iupdat = isave[10 - 1 + _isave_offset];
-                nseg = isave[12 - 1 + _isave_offset];
-                nfgv = isave[13 - 1 + _isave_offset];
-                info = isave[14 - 1 + _isave_offset];
-                ifun = isave[15 - 1 + _isave_offset];
-                iword = isave[16 - 1 + _isave_offset];
-                nfree = isave[17 - 1 + _isave_offset];
-                nact = isave[18 - 1 + _isave_offset];
-                ileave = isave[19 - 1 + _isave_offset];
-                nenter = isave[20 - 1 + _isave_offset];
+                nintol = isave[1 - 1 + isaveOffset];
+                itfile = isave[3 - 1 + isaveOffset];
+                iback = isave[4 - 1 + isaveOffset];
+                nskip = isave[5 - 1 + isaveOffset];
+                head = isave[6 - 1 + isaveOffset];
+                col = isave[7 - 1 + isaveOffset];
+                itail = isave[8 - 1 + isaveOffset];
+                iter = isave[9 - 1 + isaveOffset];
+                iupdat = isave[10 - 1 + isaveOffset];
+                nseg = isave[12 - 1 + isaveOffset];
+                nfgv = isave[13 - 1 + isaveOffset];
+                info = isave[14 - 1 + isaveOffset];
+                ifun = isave[15 - 1 + isaveOffset];
+                iword = isave[16 - 1 + isaveOffset];
+                nfree = isave[17 - 1 + isaveOffset];
+                nact = isave[18 - 1 + isaveOffset];
+                ileave = isave[19 - 1 + isaveOffset];
+                nenter = isave[20 - 1 + isaveOffset];
                 // 
-                theta = dsave[1 - 1 + _dsave_offset];
-                fold = dsave[2 - 1 + _dsave_offset];
-                tol = dsave[3 - 1 + _dsave_offset];
-                dnorm = dsave[4 - 1 + _dsave_offset];
-                epsmch = dsave[5 - 1 + _dsave_offset];
-                cpu1 = dsave[6 - 1 + _dsave_offset];
-                cachyt = dsave[7 - 1 + _dsave_offset];
-                sbtime = dsave[8 - 1 + _dsave_offset];
-                lnscht = dsave[9 - 1 + _dsave_offset];
-                time1 = dsave[10 - 1 + _dsave_offset];
-                gd = dsave[11 - 1 + _dsave_offset];
-                stpmx = dsave[12 - 1 + _dsave_offset];
-                sbgnrm = dsave[13 - 1 + _dsave_offset];
-                stp = dsave[14 - 1 + _dsave_offset];
-                gdold = dsave[15 - 1 + _dsave_offset];
-                dtd = dsave[16 - 1 + _dsave_offset];
+                theta = dsave[1 - 1 + dsaveOffset];
+                fold = dsave[2 - 1 + dsaveOffset];
+                tol = dsave[3 - 1 + dsaveOffset];
+                dnorm = dsave[4 - 1 + dsaveOffset];
+                epsmch = dsave[5 - 1 + dsaveOffset];
+                cpu1 = dsave[6 - 1 + dsaveOffset];
+                cachyt = dsave[7 - 1 + dsaveOffset];
+                sbtime = dsave[8 - 1 + dsaveOffset];
+                lnscht = dsave[9 - 1 + dsaveOffset];
+                time1 = dsave[10 - 1 + dsaveOffset];
+                gd = dsave[11 - 1 + dsaveOffset];
+                stpmx = dsave[12 - 1 + dsaveOffset];
+                sbgnrm = dsave[13 - 1 + dsaveOffset];
+                stp = dsave[14 - 1 + dsaveOffset];
+                gdold = dsave[15 - 1 + dsaveOffset];
+                dtd = dsave[16 - 1 + dsaveOffset];
                 // 
                 // c        After returning from the driver go to the point where execution
                 // c        is to resume.
                 // 
-                if (task == Task.FG_LN)
+                if (task == Task.FgLN)
                 {
                     goto L666;
                 }
 
-                if (task == Task.New_X)
+                if (task == Task.NewX)
                 {
                     goto L777;
                 }
 
-                if (task == Task.FG_ST)
+                if (task == Task.FgSt)
                 {
                     goto L111;
                 }
@@ -4213,7 +3862,7 @@ namespace BioIK.Helpers {
             // 
             // c     Compute f0 and g0.
             // 
-            task = Task.FG_ST;
+            task = Task.FgSt;
 
             // c          return to the driver to calculate f and g; reenter at 111.
             goto L1000;
@@ -4225,8 +3874,8 @@ namespace BioIK.Helpers {
             // 
             // c     Compute the infinity norm of the (-) projected gradient.
             // 
-            projgr(n, l, _l_offset, u, _u_offset, nbd, _nbd_offset,
-                x, _x_offset, g, _g_offset, ref sbgnrm);
+            Projgr(n, l, lOffset, u, uOffset, nbd, nbdOffset,
+                x, xOffset, g, gOffset, ref sbgnrm);
 
             if (sbgnrm <= pgtol)
             {
@@ -4240,19 +3889,19 @@ namespace BioIK.Helpers {
         L222:
             iword = -1;
             //Compute the Generalized Cauchy Point (GCP).
-            cauchy(n, x, _x_offset, l, _l_offset, u, _u_offset, nbd, _nbd_offset,
-                g, _g_offset, indx2, _indx2_offset, iwhere, _iwhere_offset, t, _t_offset,
-                d, _d_offset, z, _z_offset, m, wy, _wy_offset, ws, _ws_offset, sy, _sy_offset,
-                wt, _wt_offset, theta, col, head, wa, 1 - 1 + _wa_offset, wa,
-                2 * m + 1 - 1 + _wa_offset, wa, 4 * m + 1 - 1 + _wa_offset, wa,
-                6 * m + 1 - 1 + _wa_offset, ref nseg, iprint, sbgnrm, ref info, epsmch);
+            Cauchy(n, x, xOffset, l, lOffset, u, uOffset, nbd, nbdOffset,
+                g, gOffset, indx2, indx2Offset, iwhere, iwhereOffset, t, tOffset,
+                d, dOffset, z, zOffset, m, wy, wyOffset, ws, wsOffset, sy, syOffset,
+                wt, wtOffset, theta, col, head, wa, 1 - 1 + waOffset, wa,
+                2 * m + 1 - 1 + waOffset, wa, 4 * m + 1 - 1 + waOffset, wa,
+                6 * m + 1 - 1 + waOffset, ref nseg, sbgnrm, ref info, epsmch);
 
             cachyt = cachyt + cpu2 - cpu1;
-            nintol = nintol + nseg;
+            nintol += nseg;
             // Count the entering and leaving variables for iter > 0; 
             // find the index set of free and active variables at the GCP.
-            freev(n, ref nfree, index, _index_offset, ref nenter, ref ileave, indx2, _indx2_offset,
-                iwhere, _iwhere_offset, ref wrk, updatd, cnstnd, iprint, iter);
+            Freev(n, ref nfree, index, indexOffset, ref nenter, ref ileave, indx2, indx2Offset,
+                iwhere, iwhereOffset, ref wrk, updatd, cnstnd, iprint, iter);
             nact = n - nfree;
             // If there are no free variables or B=theta*I, 
             // then skip the subspace minimization.
@@ -4267,80 +3916,76 @@ namespace BioIK.Helpers {
             // c       where     E = [-I  0]
             // c                     [ 0  I]
             if (wrk) {
-                formk(n, nfree, index, _index_offset, nenter,
-                    ileave, indx2, _indx2_offset, iupdat, updatd, wn, _wn_offset,
-                    snd, _snd_offset, m, ws, _ws_offset, wy, _wy_offset, sy, _sy_offset,
+                Formk(n, nfree, index, indexOffset, nenter,
+                    ileave, indx2, indx2Offset, iupdat, updatd, wn, wnOffset,
+                    snd, sndOffset, m, ws, wsOffset, wy, wyOffset, sy, syOffset,
                     theta, col, head, ref info);
             }
             // compute r=-Z'B(xcp-xk)-Z'g   (using wa(2m+1)=W'(xcp-x) from 'cauchy')
-            cmprlb(n, m, x, _x_offset, g, _g_offset, ws, _ws_offset, wy, _wy_offset,
-                sy, _sy_offset, wt, _wt_offset, z, _z_offset, r, _r_offset, wa, _wa_offset,
-                index, _index_offset, theta, col, head, nfree, cnstnd, ref info);
+            Cmprlb(n, m, x, xOffset, g, gOffset, ws, wsOffset, wy, wyOffset,
+                sy, syOffset, wt, wtOffset, z, zOffset, r, rOffset, wa, waOffset,
+                index, indexOffset, theta, col, head, nfree, cnstnd, ref info);
             // c-jlm-jn   call the direct method. 
-            subsm(n, m, nfree, index, _index_offset, l, _l_offset, u, _u_offset,
-                nbd, _nbd_offset, z, _z_offset, r, _r_offset, xp, _xp_offset, ws, _ws_offset,
-                wy, _wy_offset, theta, x, _x_offset, g, _g_offset, col, head,
-                ref iword, wa, _wa_offset, wn, _wn_offset, iprint, ref info);          
+            Subsm(n, m, nfree, index, indexOffset, l, lOffset, u, uOffset,
+                nbd, nbdOffset, z, zOffset, r, rOffset, xp, xpOffset, ws, wsOffset,
+                wy, wyOffset, theta, x, xOffset, g, gOffset, col, head,
+                ref iword, wa, waOffset, wn, wnOffset, iprint, ref info);          
 
         L555:
             // c     Line search and optimality tests.
             // c     Generate the search direction d:=z-x.
             for (i = 1; i <= n; i++) {
-                d[i - 1 + _d_offset] = z[i - 1 + _z_offset] - x[i - 1 + _x_offset];
+                d[i - 1 + dOffset] = z[i - 1 + zOffset] - x[i - 1 + xOffset];
             }
 
         L666:
-            lnsrlb(n, l, _l_offset, u, _u_offset, nbd, _nbd_offset, x, _x_offset,
-                f, ref fold, ref gd, ref gdold, g, _g_offset, d, _d_offset, r, _r_offset, t, _t_offset,
-                z, _z_offset, ref stp, ref dnorm, ref dtd, ref xstep, ref stpmx, iter, ref ifun,
+            Lnsrlb(n, l, lOffset, u, uOffset, nbd, nbdOffset, x, xOffset,
+                f, ref fold, ref gd, ref gdold, g, gOffset, d, dOffset, r, rOffset, t, tOffset,
+                z, zOffset, ref stp, ref dnorm, ref dtd, ref xstep, ref stpmx, iter, ref ifun,
                 ref iback, ref nfgv, ref info, ref task, boxed, cnstnd, ref csave, isave,
-                22 - 1 + _isave_offset, dsave, 17 - 1 + _dsave_offset);
+                22 - 1 + isaveOffset, dsave, 17 - 1 + dsaveOffset);
 
             if (iback >= 20)
             {
                 // restore the previous iterate.
-                dcopy(n, t, _t_offset, 1, x, _x_offset, 1);
-                dcopy(n, r, _r_offset, 1, g, _g_offset, 1);
+                Dcopy(n, t, tOffset, 1, x, xOffset, 1);
+                Dcopy(n, r, rOffset, 1, g, gOffset, 1);
                 f = fold;
                 if (col == 0)
                 {
                     info = -9;
                     // restore the actual number of f and g evaluations etc.
-                    nfgv = nfgv - 1;
-                    ifun = ifun - 1;
-                    iback = iback - 1;
+                    nfgv -= 1;
+                    ifun -= 1;
+                    iback -= 1;
                     task = Task.Abnormal;
-                    iter = iter + 1;
+                    iter += 1;
                     goto L999;
                 }
-                else
-                {
-                    nfgv = nfgv - 1;
-                    info = 0;
-                    col = 0;
-                    head = 1;
-                    theta = 1.0;
-                    iupdat = 0;
-                    updatd = false;
-                    task = Task.Restart_LN;
-                    goto L222;
-                }
+
+                nfgv -= 1;
+                info = 0;
+                col = 0;
+                head = 1;
+                theta = 1.0;
+                iupdat = 0;
+                updatd = false;
+                task = Task.RestartLN;
+                goto L222;
             }
-            else if (task == Task.FG_LN)
+
+            if (task == Task.FgLN)
             {
                 // return to the driver for calculating f and g; reenter at 666.
                 goto L1000;
             }
-            else
-            {
-                // calculate and print out the quantities related to the new X.
-                iter = iter + 1;
-                // Compute the infinity norm of the projected (-)gradient.
-                projgr(n, l, _l_offset, u, _u_offset, nbd, _nbd_offset, x, _x_offset, g, _g_offset, ref sbgnrm);
-                goto L1000;
-            }
+            // calculate and print out the quantities related to the new X.
+            iter += 1;
+            // Compute the infinity norm of the projected (-)gradient.
+            Projgr(n, l, lOffset, u, uOffset, nbd, nbdOffset, x, xOffset, g, gOffset, ref sbgnrm);
+            goto L1000;
 
-        L777:
+            L777:
             // c     Test for termination.
             if (sbgnrm <= pgtol)
             {
@@ -4370,10 +4015,10 @@ namespace BioIK.Helpers {
             // 
             for (i = 1; i <= n; i++)
             {
-                r[i - 1 + _r_offset] = g[i - 1 + _g_offset] - r[i - 1 + _r_offset];
+                r[i - 1 + rOffset] = g[i - 1 + gOffset] - r[i - 1 + rOffset];
             }
 
-            rr = ddot(n, r, _r_offset, 1, r, _r_offset, 1);
+            rr = Ddot(n, r, rOffset, 1, r, rOffset, 1);
 
             if (stp == 1.0)
             {
@@ -4383,14 +4028,14 @@ namespace BioIK.Helpers {
             else
             {
                 dr = (gd - gdold) * stp;
-                dscal(n, stp, d, _d_offset, 1);
+                Dscal(n, stp, d, dOffset, 1);
                 ddum = -(gdold * stp);
             }
 
             if (dr <= epsmch * ddum)
             {
                 // skip the L-BFGS update.
-                nskip = nskip + 1;
+                nskip += 1;
                 updatd = false;
 
 
@@ -4411,13 +4056,13 @@ namespace BioIK.Helpers {
             // cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             // 
             updatd = true;
-            iupdat = iupdat + 1;
+            iupdat += 1;
 
             // 
             // c     Update matrices WS and WY and form the middle matrix in B.
             // 
-            matupd(n, m, ws, _ws_offset, wy, _wy_offset, sy, _sy_offset,
-                ss, _ss_offset, d, _d_offset, r, _r_offset, ref itail, iupdat, ref col,
+            Matupd(n, m, ws, wsOffset, wy, wyOffset, sy, syOffset,
+                ss, ssOffset, d, dOffset, r, rOffset, ref itail, iupdat, ref col,
                 ref head, ref theta, rr, dr, stp, dtd);
 
             // 
@@ -4426,8 +4071,8 @@ namespace BioIK.Helpers {
             // c        Cholesky factorize T to J*J' with
             // c           J' stored in the upper triangular of wt.
             // 
-            formt(m, wt, _wt_offset, sy, _sy_offset, ss,
-                _ss_offset, col, theta, ref info);
+            Formt(m, wt, wtOffset, sy, syOffset, ss,
+                ssOffset, col, theta, ref info);
 
         // 
         //   Now the inverse of the middle matrix in B is
@@ -4448,46 +4093,46 @@ namespace BioIK.Helpers {
             // 
             //   Save local variables.
             // 
-            lsave[1 - 1 + _lsave_offset] = prjctd;
-            lsave[2 - 1 + _lsave_offset] = cnstnd;
-            lsave[3 - 1 + _lsave_offset] = boxed;
-            lsave[4 - 1 + _lsave_offset] = updatd;
+            lsave[1 - 1 + lsaveOffset] = prjctd;
+            lsave[2 - 1 + lsaveOffset] = cnstnd;
+            lsave[3 - 1 + lsaveOffset] = boxed;
+            lsave[4 - 1 + lsaveOffset] = updatd;
             // 
-            isave[1 - 1 + _isave_offset] = nintol;
-            isave[3 - 1 + _isave_offset] = itfile;
-            isave[4 - 1 + _isave_offset] = iback;
-            isave[5 - 1 + _isave_offset] = nskip;
-            isave[6 - 1 + _isave_offset] = head;
-            isave[7 - 1 + _isave_offset] = col;
-            isave[8 - 1 + _isave_offset] = itail;
-            isave[9 - 1 + _isave_offset] = iter;
-            isave[10 - 1 + _isave_offset] = iupdat;
-            isave[12 - 1 + _isave_offset] = nseg;
-            isave[13 - 1 + _isave_offset] = nfgv;
-            isave[14 - 1 + _isave_offset] = info;
-            isave[15 - 1 + _isave_offset] = ifun;
-            isave[16 - 1 + _isave_offset] = iword;
-            isave[17 - 1 + _isave_offset] = nfree;
-            isave[18 - 1 + _isave_offset] = nact;
-            isave[19 - 1 + _isave_offset] = ileave;
-            isave[20 - 1 + _isave_offset] = nenter;
+            isave[1 - 1 + isaveOffset] = nintol;
+            isave[3 - 1 + isaveOffset] = itfile;
+            isave[4 - 1 + isaveOffset] = iback;
+            isave[5 - 1 + isaveOffset] = nskip;
+            isave[6 - 1 + isaveOffset] = head;
+            isave[7 - 1 + isaveOffset] = col;
+            isave[8 - 1 + isaveOffset] = itail;
+            isave[9 - 1 + isaveOffset] = iter;
+            isave[10 - 1 + isaveOffset] = iupdat;
+            isave[12 - 1 + isaveOffset] = nseg;
+            isave[13 - 1 + isaveOffset] = nfgv;
+            isave[14 - 1 + isaveOffset] = info;
+            isave[15 - 1 + isaveOffset] = ifun;
+            isave[16 - 1 + isaveOffset] = iword;
+            isave[17 - 1 + isaveOffset] = nfree;
+            isave[18 - 1 + isaveOffset] = nact;
+            isave[19 - 1 + isaveOffset] = ileave;
+            isave[20 - 1 + isaveOffset] = nenter;
             // 
-            dsave[1 - 1 + _dsave_offset] = theta;
-            dsave[2 - 1 + _dsave_offset] = fold;
-            dsave[3 - 1 + _dsave_offset] = tol;
-            dsave[4 - 1 + _dsave_offset] = dnorm;
-            dsave[5 - 1 + _dsave_offset] = epsmch;
-            dsave[6 - 1 + _dsave_offset] = cpu1;
-            dsave[7 - 1 + _dsave_offset] = cachyt;
-            dsave[8 - 1 + _dsave_offset] = sbtime;
-            dsave[9 - 1 + _dsave_offset] = lnscht;
-            dsave[10 - 1 + _dsave_offset] = time1;
-            dsave[11 - 1 + _dsave_offset] = gd;
-            dsave[12 - 1 + _dsave_offset] = stpmx;
-            dsave[13 - 1 + _dsave_offset] = sbgnrm;
-            dsave[14 - 1 + _dsave_offset] = stp;
-            dsave[15 - 1 + _dsave_offset] = gdold;
-            dsave[16 - 1 + _dsave_offset] = dtd;
+            dsave[1 - 1 + dsaveOffset] = theta;
+            dsave[2 - 1 + dsaveOffset] = fold;
+            dsave[3 - 1 + dsaveOffset] = tol;
+            dsave[4 - 1 + dsaveOffset] = dnorm;
+            dsave[5 - 1 + dsaveOffset] = epsmch;
+            dsave[6 - 1 + dsaveOffset] = cpu1;
+            dsave[7 - 1 + dsaveOffset] = cachyt;
+            dsave[8 - 1 + dsaveOffset] = sbtime;
+            dsave[9 - 1 + dsaveOffset] = lnscht;
+            dsave[10 - 1 + dsaveOffset] = time1;
+            dsave[11 - 1 + dsaveOffset] = gd;
+            dsave[12 - 1 + dsaveOffset] = stpmx;
+            dsave[13 - 1 + dsaveOffset] = sbgnrm;
+            dsave[14 - 1 + dsaveOffset] = stp;
+            dsave[15 - 1 + dsaveOffset] = gdold;
+            dsave[16 - 1 + dsaveOffset] = dtd;
 
             return;
         }
@@ -4524,10 +4169,10 @@ namespace BioIK.Helpers {
         // 
         // c     Set pointers for matrices WS and WY.
         // 
-        internal static void matupd(int n,
-            int m, double[] ws, int _ws_offset, double[] wy, int _wy_offset,
-            double[] sy, int _sy_offset, double[] ss, int _ss_offset, double[] d, int _d_offset,
-            double[] r, int _r_offset, ref int itail, int iupdat, ref int col,
+        internal static void Matupd(int n,
+            int m, double[] ws, int wsOffset, double[] wy, int wyOffset,
+            double[] sy, int syOffset, double[] ss, int ssOffset, double[] d, int dOffset,
+            double[] r, int rOffset, ref int itail, int iupdat, ref int col,
             ref int head, ref double theta, double rr, double dr, double stp, double dtd)
         {
 
@@ -4548,8 +4193,8 @@ namespace BioIK.Helpers {
             // 
             // c     Update matrices WS and WY.
             // 
-            dcopy(n, d, _d_offset, 1, ws, 1 - 1 + (itail - 1) * n + _ws_offset, 1);
-            dcopy(n, r, _r_offset, 1, wy, 1 - 1 + (itail - 1) * n + _wy_offset, 1);
+            Dcopy(n, d, dOffset, 1, ws, 1 - 1 + (itail - 1) * n + wsOffset, 1);
+            Dcopy(n, r, rOffset, 1, wy, 1 - 1 + (itail - 1) * n + wyOffset, 1);
 
             // 
             // c     Set theta=yy/ys.
@@ -4567,10 +4212,10 @@ namespace BioIK.Helpers {
                 {
                     for (j = 1; j <= col - 1; j++)
                     {
-                        dcopy(j, ss, 2 - 1 + (j + 1 - 1) * m
-                                           + _ss_offset, 1, ss, 1 - 1 + (j - 1) * m + _ss_offset, 1);
-                        dcopy(col - j, sy, j + 1 - 1 + (j + 1
-                                                        - 1) * m + _sy_offset, 1, sy, j - 1 + (j - 1) * m + _sy_offset, 1);
+                        Dcopy(j, ss, 2 - 1 + (j + 1 - 1) * m
+                                           + ssOffset, 1, ss, 1 - 1 + (j - 1) * m + ssOffset, 1);
+                        Dcopy(col - j, sy, j + 1 - 1 + (j + 1
+                                                        - 1) * m + syOffset, 1, sy, j - 1 + (j - 1) * m + syOffset, 1);
                     }
                 }
             }
@@ -4580,29 +4225,29 @@ namespace BioIK.Helpers {
             {
                 for (j = 1; j <= col - 1; j++)
                 {
-                    sy[col - 1 + (j - 1) * m + _sy_offset] =
-                        ddot(n,
-                          d, _d_offset, 1,
-                        wy, 1 - 1 + (pointr - 1) * n + _wy_offset, 1);
+                    sy[col - 1 + (j - 1) * m + syOffset] =
+                        Ddot(n,
+                          d, dOffset, 1,
+                        wy, 1 - 1 + (pointr - 1) * n + wyOffset, 1);
 
-                    ss[j - 1 + (col - 1) * m + _ss_offset] =
-                        ddot(n,
-                          ws, 1 - 1 + (pointr - 1) * n + _ws_offset, 1,
-                          d, _d_offset, 1);
+                    ss[j - 1 + (col - 1) * m + ssOffset] =
+                        Ddot(n,
+                          ws, 1 - 1 + (pointr - 1) * n + wsOffset, 1,
+                          d, dOffset, 1);
 
                     pointr = pointr % m + 1;
                 }
             }
             if (stp == 1.0)
             {
-                ss[col - 1 + (col - 1) * m + _ss_offset] = dtd;
+                ss[col - 1 + (col - 1) * m + ssOffset] = dtd;
             }
             else
             {
-                ss[col - 1 + (col - 1) * m + _ss_offset] = stp * stp * dtd;
+                ss[col - 1 + (col - 1) * m + ssOffset] = stp * stp * dtd;
             }
 
-            sy[col - 1 + (col - 1) * m + _sy_offset] = dr;
+            sy[col - 1 + (col - 1) * m + syOffset] = dr;
 
             return;
         }
@@ -4633,12 +4278,12 @@ namespace BioIK.Helpers {
         // c     ************
         // 
         // 
-        internal static void projgr(int n,
-        double[] l, int _l_offset,
-        double[] u, int _u_offset,
-        int[] nbd, int _nbd_offset,
-        double[] x, int _x_offset,
-        double[] g, int _g_offset,
+        internal static void Projgr(int n,
+        double[] l, int lOffset,
+        double[] u, int uOffset,
+        int[] nbd, int nbdOffset,
+        double[] x, int xOffset,
+        double[] g, int gOffset,
         ref double sbgnrm)
         {
 
@@ -4648,21 +4293,21 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    gi = g[i - 1 + _g_offset];
-                    if (nbd[i - 1 + _nbd_offset] != 0)
+                    gi = g[i - 1 + gOffset];
+                    if (nbd[i - 1 + nbdOffset] != 0)
                     {
                         if (gi < 0.0)
                         {
-                            if (nbd[i - 1 + _nbd_offset] >= 2)
+                            if (nbd[i - 1 + nbdOffset] >= 2)
                             {
-                                gi = System.Math.Max(x[i - 1 + _x_offset] - u[i - 1 + _u_offset], gi);
+                                gi = System.Math.Max(x[i - 1 + xOffset] - u[i - 1 + uOffset], gi);
                             }
                         }
                         else
                         {
-                            if (nbd[i - 1 + _nbd_offset] <= 2)
+                            if (nbd[i - 1 + nbdOffset] <= 2)
                             {
-                                gi = System.Math.Min(x[i - 1 + _x_offset] - l[i - 1 + _l_offset], gi);
+                                gi = System.Math.Min(x[i - 1 + xOffset] - l[i - 1 + lOffset], gi);
                             }
                         }
                     }
@@ -4904,24 +4549,24 @@ namespace BioIK.Helpers {
         // c
         // c     ************
         // 
-        internal static void setulb(int n,
+        internal static void Setulb(int n,
         int m,
-        double[] x, int _x_offset,
-        double[] l, int _l_offset,
-        double[] u, int _u_offset,
-        int[] nbd, int _nbd_offset,
+        double[] x, int xOffset,
+        double[] l, int lOffset,
+        double[] u, int uOffset,
+        int[] nbd, int nbdOffset,
         ref double f,
-        double[] g, int _g_offset,
+        double[] g, int gOffset,
         double factr,
         double pgtol,
-        double[] wa, int _wa_offset,
-        int[] iwa, int _iwa_offset,
+        double[] wa, int waOffset,
+        int[] iwa, int iwaOffset,
         ref Task task,
         int iprint,
         ref Task csave,
-        bool[] lsave, int _lsave_offset,
-        int[] isave, int _isave_offset,
-        double[] dsave, int _dsave_offset)
+        bool[] lsave, int lsaveOffset,
+        int[] isave, int isaveOffset,
+        double[] dsave, int dsaveOffset)
         {
 
             int lws = 0;
@@ -4940,49 +4585,49 @@ namespace BioIK.Helpers {
 
             if (task == Task.Start)
             {
-                isave[1 - 1 + _isave_offset] = m * n;
-                isave[2 - 1 + _isave_offset] = (int)System.Math.Pow(m, 2);
-                isave[3 - 1 + _isave_offset] = 4 * (int)System.Math.Pow(m, 2);
-                isave[4 - 1 + _isave_offset] = 1;
-                isave[5 - 1 + _isave_offset] = isave[4 - 1 + _isave_offset] + isave[1 - 1 + _isave_offset];
-                isave[6 - 1 + _isave_offset] = isave[5 - 1 + _isave_offset] + isave[1 - 1 + _isave_offset];
-                isave[7 - 1 + _isave_offset] = isave[6 - 1 + _isave_offset] + isave[2 - 1 + _isave_offset];
-                isave[8 - 1 + _isave_offset] = isave[7 - 1 + _isave_offset] + isave[2 - 1 + _isave_offset];
-                isave[9 - 1 + _isave_offset] = isave[8 - 1 + _isave_offset] + isave[2 - 1 + _isave_offset];
-                isave[10 - 1 + _isave_offset] = isave[9 - 1 + _isave_offset] + isave[3 - 1 + _isave_offset];
-                isave[11 - 1 + _isave_offset] = isave[10 - 1 + _isave_offset] + isave[3 - 1 + _isave_offset];
-                isave[12 - 1 + _isave_offset] = isave[11 - 1 + _isave_offset] + n;
-                isave[13 - 1 + _isave_offset] = isave[12 - 1 + _isave_offset] + n;
-                isave[14 - 1 + _isave_offset] = isave[13 - 1 + _isave_offset] + n;
-                isave[15 - 1 + _isave_offset] = isave[14 - 1 + _isave_offset] + n;
-                isave[16 - 1 + _isave_offset] = isave[15 - 1 + _isave_offset] + n;
+                isave[1 - 1 + isaveOffset] = m * n;
+                isave[2 - 1 + isaveOffset] = (int)System.Math.Pow(m, 2);
+                isave[3 - 1 + isaveOffset] = 4 * (int)System.Math.Pow(m, 2);
+                isave[4 - 1 + isaveOffset] = 1;
+                isave[5 - 1 + isaveOffset] = isave[4 - 1 + isaveOffset] + isave[1 - 1 + isaveOffset];
+                isave[6 - 1 + isaveOffset] = isave[5 - 1 + isaveOffset] + isave[1 - 1 + isaveOffset];
+                isave[7 - 1 + isaveOffset] = isave[6 - 1 + isaveOffset] + isave[2 - 1 + isaveOffset];
+                isave[8 - 1 + isaveOffset] = isave[7 - 1 + isaveOffset] + isave[2 - 1 + isaveOffset];
+                isave[9 - 1 + isaveOffset] = isave[8 - 1 + isaveOffset] + isave[2 - 1 + isaveOffset];
+                isave[10 - 1 + isaveOffset] = isave[9 - 1 + isaveOffset] + isave[3 - 1 + isaveOffset];
+                isave[11 - 1 + isaveOffset] = isave[10 - 1 + isaveOffset] + isave[3 - 1 + isaveOffset];
+                isave[12 - 1 + isaveOffset] = isave[11 - 1 + isaveOffset] + n;
+                isave[13 - 1 + isaveOffset] = isave[12 - 1 + isaveOffset] + n;
+                isave[14 - 1 + isaveOffset] = isave[13 - 1 + isaveOffset] + n;
+                isave[15 - 1 + isaveOffset] = isave[14 - 1 + isaveOffset] + n;
+                isave[16 - 1 + isaveOffset] = isave[15 - 1 + isaveOffset] + n;
             }
-            lws = isave[4 - 1 + _isave_offset];
-            lwy = isave[5 - 1 + _isave_offset];
-            lsy = isave[6 - 1 + _isave_offset];
-            lss = isave[7 - 1 + _isave_offset];
-            lwt = isave[8 - 1 + _isave_offset];
-            lwn = isave[9 - 1 + _isave_offset];
-            lsnd = isave[10 - 1 + _isave_offset];
-            lz = isave[11 - 1 + _isave_offset];
-            lr = isave[12 - 1 + _isave_offset];
-            ld = isave[13 - 1 + _isave_offset];
-            lt = isave[14 - 1 + _isave_offset];
-            lxp = isave[15 - 1 + _isave_offset];
-            lwa = isave[16 - 1 + _isave_offset];
+            lws = isave[4 - 1 + isaveOffset];
+            lwy = isave[5 - 1 + isaveOffset];
+            lsy = isave[6 - 1 + isaveOffset];
+            lss = isave[7 - 1 + isaveOffset];
+            lwt = isave[8 - 1 + isaveOffset];
+            lwn = isave[9 - 1 + isaveOffset];
+            lsnd = isave[10 - 1 + isaveOffset];
+            lz = isave[11 - 1 + isaveOffset];
+            lr = isave[12 - 1 + isaveOffset];
+            ld = isave[13 - 1 + isaveOffset];
+            lt = isave[14 - 1 + isaveOffset];
+            lxp = isave[15 - 1 + isaveOffset];
+            lwa = isave[16 - 1 + isaveOffset];
             // 
-            mainlb(n, m, x, _x_offset, l, _l_offset, u, _u_offset, nbd,
-                _nbd_offset, ref f, g, _g_offset, factr, pgtol, wa, lws - 1 + _wa_offset,
-                wa, lwy - 1 + _wa_offset, wa, lsy - 1 + _wa_offset, wa,
-                lss - 1 + _wa_offset, wa, lwt - 1 + _wa_offset, wa,
-                lwn - 1 + _wa_offset, wa, lsnd - 1 + _wa_offset, wa,
-                lz - 1 + _wa_offset, wa, lr - 1 + _wa_offset, wa,
-                ld - 1 + _wa_offset, wa, lt - 1 + _wa_offset, wa,
-                lxp - 1 + _wa_offset, wa, lwa - 1 + _wa_offset, iwa,
-                1 - 1 + _iwa_offset, iwa, n + 1 - 1 + _iwa_offset,
-                iwa, 2 * n + 1 - 1 + _iwa_offset, ref task, iprint, ref csave,
-                lsave, _lsave_offset, isave, 22 - 1 + _isave_offset, dsave,
-                _dsave_offset);
+            Mainlb(n, m, x, xOffset, l, lOffset, u, uOffset, nbd,
+                nbdOffset, ref f, g, gOffset, factr, pgtol, wa, lws - 1 + waOffset,
+                wa, lwy - 1 + waOffset, wa, lsy - 1 + waOffset, wa,
+                lss - 1 + waOffset, wa, lwt - 1 + waOffset, wa,
+                lwn - 1 + waOffset, wa, lsnd - 1 + waOffset, wa,
+                lz - 1 + waOffset, wa, lr - 1 + waOffset, wa,
+                ld - 1 + waOffset, wa, lt - 1 + waOffset, wa,
+                lxp - 1 + waOffset, wa, lwa - 1 + waOffset, iwa,
+                1 - 1 + iwaOffset, iwa, n + 1 - 1 + iwaOffset,
+                iwa, 2 * n + 1 - 1 + iwaOffset, ref task, iprint, ref csave,
+                lsave, lsaveOffset, isave, 22 - 1 + isaveOffset, dsave,
+                dsaveOffset);
         }
 
         // 
@@ -5173,15 +4818,15 @@ namespace BioIK.Helpers {
         // 
         // c
         // 
-        internal static void subsm(int n,
-        int m, int nsub, int[] ind, int _ind_offset,
-        double[] l, int _l_offset, double[] u, int _u_offset,
-        int[] nbd, int _nbd_offset, double[] x, int _x_offset,
-        double[] d, int _d_offset, double[] xp, int _xp_offset,
-        double[] ws, int _ws_offset, double[] wy, int _wy_offset,
-        double theta, double[] xx, int _xx_offset, double[] gg, int _gg_offset,
+        internal static void Subsm(int n,
+        int m, int nsub, int[] ind, int indOffset,
+        double[] l, int lOffset, double[] u, int uOffset,
+        int[] nbd, int nbdOffset, double[] x, int xOffset,
+        double[] d, int dOffset, double[] xp, int xpOffset,
+        double[] ws, int wsOffset, double[] wy, int wyOffset,
+        double theta, double[] xx, int xxOffset, double[] gg, int ggOffset,
         int col, int head, ref int iword,
-        double[] wv, int _wv_offset, double[] wn, int _wn_offset, int iprint, ref int info)
+        double[] wv, int wvOffset, double[] wn, int wnOffset, int iprint, ref int info)
         {
             int pointr = 0;
             int m2 = 0;
@@ -5197,7 +4842,7 @@ namespace BioIK.Helpers {
             double dk = 0.0d;
             double temp1 = 0.0d;
             double temp2 = 0.0d;
-            double dd_p = 0.0d;
+            double ddP = 0.0d;
 
             if (nsub <= 0)
             {
@@ -5216,16 +4861,16 @@ namespace BioIK.Helpers {
                     {
                         for (j = 1; j <= nsub; j++)
                         {
-                            k = ind[j - 1 + _ind_offset];
-                            temp1 = temp1 + wy[k - 1 + (pointr - 1)
-                                * n + _wy_offset] * d[j - 1 + _d_offset];
-                            temp2 = temp2 + ws[k - 1 + (pointr - 1)
-                                * n + _ws_offset] * d[j - 1 + _d_offset];
+                            k = ind[j - 1 + indOffset];
+                            temp1 += wy[k - 1 + (pointr - 1)
+                                * n + wyOffset] * d[j - 1 + dOffset];
+                            temp2 += ws[k - 1 + (pointr - 1)
+                                * n + wsOffset] * d[j - 1 + dOffset];
                         }
                     }
 
-                    wv[i - 1 + _wv_offset] = temp1;
-                    wv[col + i - 1 + _wv_offset] = theta * temp2;
+                    wv[i - 1 + wvOffset] = temp1;
+                    wv[col + i - 1 + wvOffset] = theta * temp2;
                     pointr = pointr % m + 1;
                 }
             }
@@ -5236,16 +4881,16 @@ namespace BioIK.Helpers {
             m2 = 2 * m;
             col2 = 2 * col;
 
-            dtrsl(wn, _wn_offset, m2, col2, wv, _wv_offset, 11, ref info);
+            Dtrsl(wn, wnOffset, m2, col2, wv, wvOffset, 11, out info);
 
             {
                 for (i = 1; i <= col; i++)
                 {
-                    wv[i - 1 + _wv_offset] = -wv[i - 1 + _wv_offset];
+                    wv[i - 1 + wvOffset] = -wv[i - 1 + wvOffset];
                 }
             }
 
-            dtrsl(wn, _wn_offset, m2, col2, wv, _wv_offset, 1, ref info);
+            Dtrsl(wn, wnOffset, m2, col2, wv, wvOffset, 1, out info);
 
             // 
             // Compute d = (1/theta)d + (1/theta**2)Z'W wv.
@@ -5258,11 +4903,11 @@ namespace BioIK.Helpers {
                     {
                         for (i = 1; i <= nsub; i++)
                         {
-                            k = ind[i - 1 + _ind_offset];
-                            d[i - 1 + _d_offset] = d[i - 1 + _d_offset]
-                                                   + wy[k - 1 + (pointr - 1) * n + _wy_offset] * wv[jy - 1
-                                                       + _wv_offset] / theta + ws[k - 1
-                                                       + (pointr - 1) * n + _ws_offset] * wv[js - 1 + _wv_offset];
+                            k = ind[i - 1 + indOffset];
+                            d[i - 1 + dOffset] = d[i - 1 + dOffset]
+                                                   + wy[k - 1 + (pointr - 1) * n + wyOffset] * wv[jy - 1
+                                                       + wvOffset] / theta + ws[k - 1
+                                                       + (pointr - 1) * n + wsOffset] * wv[js - 1 + wvOffset];
                         }
                     }
 
@@ -5271,7 +4916,7 @@ namespace BioIK.Helpers {
             }
 
 
-            dscal(nsub, 1.0 / theta, d, _d_offset, 1);
+            Dscal(nsub, 1.0 / theta, d, dOffset, 1);
 
             //  
             // ----------------------------------------------------
@@ -5279,43 +4924,43 @@ namespace BioIK.Helpers {
             // 
             iword = 0;
 
-            dcopy(n, x, _x_offset, 1, xp, _xp_offset, 1);
+            Dcopy(n, x, xOffset, 1, xp, xpOffset, 1);
 
             // c
             {
                 for (i = 1; i <= nsub; i++)
                 {
-                    k = ind[i - 1 + _ind_offset];
-                    dk = d[i - 1 + _d_offset];
-                    xk = x[k - 1 + _x_offset];
-                    if (nbd[k - 1 + _nbd_offset] != 0)
+                    k = ind[i - 1 + indOffset];
+                    dk = d[i - 1 + dOffset];
+                    xk = x[k - 1 + xOffset];
+                    if (nbd[k - 1 + nbdOffset] != 0)
                     {
-                        if (nbd[k - 1 + _nbd_offset] == 1)
+                        if (nbd[k - 1 + nbdOffset] == 1)
                         {
-                            x[k - 1 + _x_offset] = System.Math.Max(l[k - 1 + _l_offset], xk + dk);
-                            if (x[k - 1 + _x_offset] == l[k - 1 + _l_offset])
+                            x[k - 1 + xOffset] = System.Math.Max(l[k - 1 + lOffset], xk + dk);
+                            if (x[k - 1 + xOffset] == l[k - 1 + lOffset])
                             {
                                 iword = 1;
                             }
                         }
                         else
                         {
-                            if (nbd[k - 1 + _nbd_offset] == 2)
+                            if (nbd[k - 1 + nbdOffset] == 2)
                             {
-                                xk = System.Math.Max(l[k - 1 + _l_offset], xk + dk);
-                                x[k - 1 + _x_offset] = System.Math.Min(u[k - 1 + _u_offset], xk);
-                                if (x[k - 1 + _x_offset] == l[k - 1
-                                                              + _l_offset] || x[k - 1 + _x_offset] == u[k - 1 + _u_offset])
+                                xk = System.Math.Max(l[k - 1 + lOffset], xk + dk);
+                                x[k - 1 + xOffset] = System.Math.Min(u[k - 1 + uOffset], xk);
+                                if (x[k - 1 + xOffset] == l[k - 1
+                                                              + lOffset] || x[k - 1 + xOffset] == u[k - 1 + uOffset])
                                 {
                                     iword = 1;
                                 }
                             }
                             else
                             {
-                                if (nbd[k - 1 + _nbd_offset] == 3)
+                                if (nbd[k - 1 + nbdOffset] == 3)
                                 {
-                                    x[k - 1 + _x_offset] = System.Math.Min(u[k - 1 + _u_offset], xk + dk);
-                                    if (x[k - 1 + _x_offset] == u[k - 1 + _u_offset])
+                                    x[k - 1 + xOffset] = System.Math.Min(u[k - 1 + uOffset], xk + dk);
+                                    if (x[k - 1 + xOffset] == u[k - 1 + uOffset])
                                     {
                                         iword = 1;
                                     }
@@ -5325,7 +4970,7 @@ namespace BioIK.Helpers {
                     }
                     else
                     {
-                        x[k - 1 + _x_offset] = xk + dk;
+                        x[k - 1 + xOffset] = xk + dk;
                     }
                 }
             }
@@ -5339,18 +4984,18 @@ namespace BioIK.Helpers {
             // 
             // check sign of the directional derivative
             // 
-            dd_p = 0.0;
+            ddP = 0.0;
             {
                 for (i = 1; i <= n; i++)
                 {
-                    dd_p = dd_p + (x[i - 1 + _x_offset]
-                                   - xx[i - 1 + _xx_offset]) * gg[i - 1 + _gg_offset];
+                    ddP += (x[i - 1 + xOffset]
+                            - xx[i - 1 + xxOffset]) * gg[i - 1 + ggOffset];
                 }
             }
 
-            if (dd_p > 0.0)
+            if (ddP > 0.0)
             {
-                dcopy(n, xp, _xp_offset, 1, x, _x_offset, 1);
+                Dcopy(n, xp, xpOffset, 1, x, xOffset, 1);
 
                 // DISPLAY: " Positive dir derivative in projection "
                 // DISPLAY: " Using the backtracking step "
@@ -5369,13 +5014,13 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= nsub; i++)
                 {
-                    k = ind[i - 1 + _ind_offset];
-                    dk = d[i - 1 + _d_offset];
-                    if (nbd[k - 1 + _nbd_offset] != 0)
+                    k = ind[i - 1 + indOffset];
+                    dk = d[i - 1 + dOffset];
+                    if (nbd[k - 1 + nbdOffset] != 0)
                     {
-                        if (dk < 0.0 && nbd[k - 1 + _nbd_offset] <= 2)
+                        if (dk < 0.0 && nbd[k - 1 + nbdOffset] <= 2)
                         {
-                            temp2 = l[k - 1 + _l_offset] - x[k - 1 + _x_offset];
+                            temp2 = l[k - 1 + lOffset] - x[k - 1 + xOffset];
                             if (temp2 >= 0.0)
                             {
                                 temp1 = 0.0;
@@ -5385,9 +5030,9 @@ namespace BioIK.Helpers {
                                 temp1 = temp2 / dk;
                             }
                         }
-                        else if (dk > 0.0 && nbd[k - 1 + _nbd_offset] >= 2)
+                        else if (dk > 0.0 && nbd[k - 1 + nbdOffset] >= 2)
                         {
-                            temp2 = u[k - 1 + _u_offset] - x[k - 1 + _x_offset];
+                            temp2 = u[k - 1 + uOffset] - x[k - 1 + xOffset];
                             if (temp2 <= 0.0)
                             {
                                 temp1 = 0.0;
@@ -5409,24 +5054,24 @@ namespace BioIK.Helpers {
 
             if (alpha < 1.0)
             {
-                dk = d[ibd - 1 + _d_offset];
-                k = ind[ibd - 1 + _ind_offset];
+                dk = d[ibd - 1 + dOffset];
+                k = ind[ibd - 1 + indOffset];
                 if (dk > 0.0)
                 {
-                    x[k - 1 + _x_offset] = u[k - 1 + _u_offset];
-                    d[ibd - 1 + _d_offset] = 0.0;
+                    x[k - 1 + xOffset] = u[k - 1 + uOffset];
+                    d[ibd - 1 + dOffset] = 0.0;
                 }
                 else if (dk < 0.0)
                 {
-                    x[k - 1 + _x_offset] = l[k - 1 + _l_offset];
-                    d[ibd - 1 + _d_offset] = 0.0;
+                    x[k - 1 + xOffset] = l[k - 1 + lOffset];
+                    d[ibd - 1 + dOffset] = 0.0;
                 }
             }
             {
                 for (i = 1; i <= nsub; i++)
                 {
-                    k = ind[i - 1 + _ind_offset];
-                    x[k - 1 + _x_offset] = x[k - 1 + _x_offset] + alpha * d[i - 1 + _d_offset];
+                    k = ind[i - 1 + indOffset];
+                    x[k - 1 + xOffset] += alpha * d[i - 1 + dOffset];
                 }
             }
 
@@ -5492,7 +5137,7 @@ namespace BioIK.Helpers {
         // c     begin block with ...exits to 40
         // c
         // c
-        private static void dpofa(double[] a, int _a_offset, int lda, int n, ref int info)
+        private static void Dpofa(double[] a, int aOffset, int lda, int n, ref int info)
         {
             double t = 0.0d;
             double s = 0.0d;
@@ -5513,25 +5158,25 @@ namespace BioIK.Helpers {
                     {
                         for (k = 1; k <= jm1; k++)
                         {
-                            t = a[k - 1 + (j - 1) * lda + _a_offset]
-                                - ddot(k - 1, a, 1 - 1 + (k - 1) * lda
-                                                       + _a_offset, 1, a, 1 - 1 + (j - 1) * lda + _a_offset, 1);
+                            t = a[k - 1 + (j - 1) * lda + aOffset]
+                                - Ddot(k - 1, a, 1 - 1 + (k - 1) * lda
+                                                       + aOffset, 1, a, 1 - 1 + (j - 1) * lda + aOffset, 1);
 
-                            t = t / a[k - 1 + (k - 1) * lda + _a_offset];
-                            a[k - 1 + (j - 1) * lda + _a_offset] = t;
-                            s = s + t * t;
+                            t /= a[k - 1 + (k - 1) * lda + aOffset];
+                            a[k - 1 + (j - 1) * lda + aOffset] = t;
+                            s += t * t;
                         }
                     }
 
                 L20:
-                    s = a[j - 1 + (j - 1) * lda + _a_offset] - s;
+                    s = a[j - 1 + (j - 1) * lda + aOffset] - s;
                     // c     ......exit
                     if (s <= 0.0e0)
                     {
                         goto L40;
                     }
 
-                    a[j - 1 + (j - 1) * lda + _a_offset] = System.Math.Sqrt(s);
+                    a[j - 1 + (j - 1) * lda + aOffset] = System.Math.Sqrt(s);
                 }
             }
 
@@ -5560,7 +5205,7 @@ namespace BioIK.Helpers {
         // *     ..
         // *     .. Intrinsic Functions ..
         // *     ..
-        private static void dscal(int n, double da, double[] dx, int _dx_offset, int incx)
+        private static void Dscal(int n, double da, double[] dx, int dxOffset, int incx)
         {
 
             int i = 0;
@@ -5583,10 +5228,10 @@ namespace BioIK.Helpers {
             // *
             nincx = n * incx;
             {
-                int _i_inc = incx;
-                for (i = 1; _i_inc < 0 ? i >= nincx : i <= nincx; i += _i_inc)
+                int iInc = incx;
+                for (i = 1; iInc < 0 ? i >= nincx : i <= nincx; i += iInc)
                 {
-                    dx[i - 1 + _dx_offset] = da * dx[i - 1 + _dx_offset];
+                    dx[i - 1 + dxOffset] = da * dx[i - 1 + dxOffset];
                 }
             }
             return;
@@ -5606,7 +5251,7 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= m; i++)
                 {
-                    dx[i - 1 + _dx_offset] = da * dx[i - 1 + _dx_offset];
+                    dx[i - 1 + dxOffset] = da * dx[i - 1 + dxOffset];
                 }
             }
 
@@ -5618,14 +5263,14 @@ namespace BioIK.Helpers {
         L40:
             mp1 = m + 1;
             {
-                int _i_inc = 5;
-                for (i = mp1; i <= n; i += _i_inc)
+                int iInc = 5;
+                for (i = mp1; i <= n; i += iInc)
                 {
-                    dx[i - 1 + _dx_offset] = da * dx[i - 1 + _dx_offset];
-                    dx[i + 1 - 1 + _dx_offset] = da * dx[i + 1 - 1 + _dx_offset];
-                    dx[i + 2 - 1 + _dx_offset] = da * dx[i + 2 - 1 + _dx_offset];
-                    dx[i + 3 - 1 + _dx_offset] = da * dx[i + 3 - 1 + _dx_offset];
-                    dx[i + 4 - 1 + _dx_offset] = da * dx[i + 4 - 1 + _dx_offset];
+                    dx[i - 1 + dxOffset] = da * dx[i - 1 + dxOffset];
+                    dx[i + 1 - 1 + dxOffset] = da * dx[i + 1 - 1 + dxOffset];
+                    dx[i + 2 - 1 + dxOffset] = da * dx[i + 2 - 1 + dxOffset];
+                    dx[i + 3 - 1 + dxOffset] = da * dx[i + 3 - 1 + dxOffset];
+                    dx[i + 4 - 1 + dxOffset] = da * dx[i + 4 - 1 + dxOffset];
                 }
             }
 
@@ -5650,8 +5295,8 @@ namespace BioIK.Helpers {
         // *     ..
         // *     .. Intrinsic Functions ..
         // *     ..
-        private static double ddot(int n, double[] dx, int _dx_offset,
-           int incx, double[] dy, int _dy_offset, int incy)
+        private static double Ddot(int n, double[] dx, int dxOffset,
+           int incx, double[] dy, int dyOffset, int incy)
         {
             double dtemp = 0.0d;
             int i = 0;
@@ -5689,9 +5334,9 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    dtemp = dtemp + dx[ix - 1 + _dx_offset] * dy[iy - 1 + _dy_offset];
-                    ix = ix + incx;
-                    iy = iy + incy;
+                    dtemp += dx[ix - 1 + dxOffset] * dy[iy - 1 + dyOffset];
+                    ix += incx;
+                    iy += incy;
                 }
             }
             ddot = dtemp;
@@ -5714,7 +5359,7 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= m; i++)
                 {
-                    dtemp = dtemp + dx[i - 1 + _dx_offset] * dy[i - 1 + _dy_offset];
+                    dtemp += dx[i - 1 + dxOffset] * dy[i - 1 + dyOffset];
                 }
             }
 
@@ -5726,14 +5371,14 @@ namespace BioIK.Helpers {
         L40:
             mp1 = m + 1;
             {
-                int _i_inc = 5;
-                for (i = mp1; i <= n; i += _i_inc)
+                int iInc = 5;
+                for (i = mp1; i <= n; i += iInc)
                 {
-                    dtemp = dtemp + dx[i - 1 + _dx_offset] * dy[i - 1
-                                                                + _dy_offset] + dx[i + 1 - 1 + _dx_offset] * dy[i + 1 - 1
-                        + _dy_offset] + dx[i + 2 - 1 + _dx_offset] * dy[i + 2 - 1
-                                                                        + _dy_offset] + dx[i + 3 - 1 + _dx_offset] * dy[i + 3 - 1
-                        + _dy_offset] + dx[i + 4 - 1 + _dx_offset] * dy[i + 4 - 1 + _dy_offset];
+                    dtemp = dtemp + dx[i - 1 + dxOffset] * dy[i - 1
+                                                                + dyOffset] + dx[i + 1 - 1 + dxOffset] * dy[i + 1 - 1
+                        + dyOffset] + dx[i + 2 - 1 + dxOffset] * dy[i + 2 - 1
+                                                                        + dyOffset] + dx[i + 3 - 1 + dxOffset] * dy[i + 3 - 1
+                        + dyOffset] + dx[i + 4 - 1 + dxOffset] * dy[i + 4 - 1 + dyOffset];
                 }
             }
         L60:
@@ -5741,8 +5386,8 @@ namespace BioIK.Helpers {
             return ddot;
         }
 
-        private static void dcopy(int n, double[] dx, int _dx_offset, int incx,
-           double[] dy, int _dy_offset, int incy)
+        private static void Dcopy(int n, double[] dx, int dxOffset, int incx,
+           double[] dy, int dyOffset, int incy)
         {
 
             int i = 0;
@@ -5776,9 +5421,9 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    dy[iy - 1 + _dy_offset] = dx[ix - 1 + _dx_offset];
-                    ix = ix + incx;
-                    iy = iy + incy;
+                    dy[iy - 1 + dyOffset] = dx[ix - 1 + dxOffset];
+                    ix += incx;
+                    iy += incy;
                 }
             }
             return;
@@ -5797,7 +5442,7 @@ namespace BioIK.Helpers {
             {
                 for (i = 1; i <= m; i++)
                 {
-                    dy[i - 1 + _dy_offset] = dx[i - 1 + _dx_offset];
+                    dy[i - 1 + dyOffset] = dx[i - 1 + dxOffset];
                 }
             }
             if (n < 7)
@@ -5808,16 +5453,16 @@ namespace BioIK.Helpers {
         L40:
             mp1 = m + 1;
             {
-                int _i_inc = 7;
-                for (i = mp1; i <= n; i += _i_inc)
+                int iInc = 7;
+                for (i = mp1; i <= n; i += iInc)
                 {
-                    dy[i - 1 + _dy_offset] = dx[i - 1 + _dx_offset];
-                    dy[i + 1 - 1 + _dy_offset] = dx[i + 1 - 1 + _dx_offset];
-                    dy[i + 2 - 1 + _dy_offset] = dx[i + 2 - 1 + _dx_offset];
-                    dy[i + 3 - 1 + _dy_offset] = dx[i + 3 - 1 + _dx_offset];
-                    dy[i + 4 - 1 + _dy_offset] = dx[i + 4 - 1 + _dx_offset];
-                    dy[i + 5 - 1 + _dy_offset] = dx[i + 5 - 1 + _dx_offset];
-                    dy[i + 6 - 1 + _dy_offset] = dx[i + 6 - 1 + _dx_offset];
+                    dy[i - 1 + dyOffset] = dx[i - 1 + dxOffset];
+                    dy[i + 1 - 1 + dyOffset] = dx[i + 1 - 1 + dxOffset];
+                    dy[i + 2 - 1 + dyOffset] = dx[i + 2 - 1 + dxOffset];
+                    dy[i + 3 - 1 + dyOffset] = dx[i + 3 - 1 + dxOffset];
+                    dy[i + 4 - 1 + dyOffset] = dx[i + 4 - 1 + dxOffset];
+                    dy[i + 5 - 1 + dyOffset] = dx[i + 5 - 1 + dxOffset];
+                    dy[i + 6 - 1 + dyOffset] = dx[i + 6 - 1 + dxOffset];
                 }
             }
         }
@@ -5845,8 +5490,8 @@ namespace BioIK.Helpers {
         // *     ..
         // *     .. Intrinsic Functions ..
         // *     ..
-        private static void daxpy(int n, double da,
-             double[] dx, int _dx_offset, int incx, double[] dy, int _dy_offset, int incy)
+        private static void Daxpy(int n, double da,
+             double[] dx, int dxOffset, int incx, double[] dy, int dyOffset, int incy)
         {
 
             int i = 0;
@@ -5878,8 +5523,7 @@ namespace BioIK.Helpers {
                     {
                         for (i = 1; i <= m; i++)
                         {
-                            dy[i - 1 + _dy_offset] = dy[i - 1 + _dy_offset]
-                                                     + da * dx[i - 1 + _dx_offset];
+                            dy[i - 1 + dyOffset] += da * dx[i - 1 + dxOffset];
                         }
                     }
                 }
@@ -5891,17 +5535,13 @@ namespace BioIK.Helpers {
 
                 mp1 = m + 1;
                 {
-                    int _i_inc = 4;
-                    for (i = mp1; i <= n; i += _i_inc)
+                    int iInc = 4;
+                    for (i = mp1; i <= n; i += iInc)
                     {
-                        dy[i - 1 + _dy_offset] = dy[i - 1 + _dy_offset]
-                                                 + da * dx[i - 1 + _dx_offset];
-                        dy[i + 1 - 1 + _dy_offset] = dy[i + 1 - 1 + _dy_offset]
-                                                     + da * dx[i + 1 - 1 + _dx_offset];
-                        dy[i + 2 - 1 + _dy_offset] = dy[i + 2 - 1 + _dy_offset]
-                                                     + da * dx[i + 2 - 1 + _dx_offset];
-                        dy[i + 3 - 1 + _dy_offset] = dy[i + 3 - 1 + _dy_offset]
-                                                     + da * dx[i + 3 - 1 + _dx_offset];
+                        dy[i - 1 + dyOffset] += da * dx[i - 1 + dxOffset];
+                        dy[i + 1 - 1 + dyOffset] += da * dx[i + 1 - 1 + dxOffset];
+                        dy[i + 2 - 1 + dyOffset] += da * dx[i + 2 - 1 + dxOffset];
+                        dy[i + 3 - 1 + dyOffset] += da * dx[i + 3 - 1 + dxOffset];
                     }
                 }
             }
@@ -5924,10 +5564,9 @@ namespace BioIK.Helpers {
                 {
                     for (i = 1; i <= n; i++)
                     {
-                        dy[iy - 1 + _dy_offset] = dy[iy - 1 + _dy_offset]
-                                                  + da * dx[ix - 1 + _dx_offset];
-                        ix = ix + incx;
-                        iy = iy + incy;
+                        dy[iy - 1 + dyOffset] += da * dx[ix - 1 + dxOffset];
+                        ix += incx;
+                        iy += incy;
                     }
                 }
             }
