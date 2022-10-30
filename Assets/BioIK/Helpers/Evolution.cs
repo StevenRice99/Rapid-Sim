@@ -1595,31 +1595,27 @@ namespace BioIK.Helpers {
         int col, int head, int nfree, bool cnstnd, ref int info)
         {
 
-            int i = 0;
-            int j = 0;
-            int k = 0;
-            int pointr = 0;
-            double a1 = 0.0d;
-            double a2 = 0.0d;
+            int i;
+            int j;
+            int k;
+            int pointr;
+            double a1;
+            double a2;
 
             if (!cnstnd && col > 0)
             {
+                for (i = 1; i <= n; i++)
                 {
-                    for (i = 1; i <= n; i++)
-                    {
-                        r[i - 1 + rOffset] = -g[i - 1 + gOffset];
-                    }
+                    r[i - 1 + rOffset] = -g[i - 1 + gOffset];
                 }
             }
             else
             {
+                for (i = 1; i <= nfree; i++)
                 {
-                    for (i = 1; i <= nfree; i++)
-                    {
-                        k = index[i - 1 + indexOffset];
-                        r[i - 1 + rOffset] = -(theta * (z[k - 1
-                                                            + zOffset] - x[k - 1 + xOffset])) - g[k - 1 + gOffset];
-                    }
+                    k = index[i - 1 + indexOffset];
+                    r[i - 1 + rOffset] = -(theta * (z[k - 1
+                                                      + zOffset] - x[k - 1 + xOffset])) - g[k - 1 + gOffset];
                 }
 
                 Bmv(m, sy, syOffset, wt, wtOffset, col, wa,
@@ -1632,14 +1628,12 @@ namespace BioIK.Helpers {
                     {
                         a1 = wa[j - 1 + waOffset];
                         a2 = theta * wa[col + j - 1 + waOffset];
+                        for (i = 1; i <= nfree; i++)
                         {
-                            for (i = 1; i <= nfree; i++)
-                            {
-                                k = index[i - 1 + indexOffset];
-                                r[i - 1 + rOffset] = r[i - 1 + rOffset]
-                                                       + wy[k - 1 + (pointr - 1) * n + wyOffset] * a1
-                                                       + ws[k - 1 + (pointr - 1) * n + wsOffset] * a2;
-                            }
+                            k = index[i - 1 + indexOffset];
+                            r[i - 1 + rOffset] = r[i - 1 + rOffset]
+                                                 + wy[k - 1 + (pointr - 1) * n + wyOffset] * a1
+                                                 + ws[k - 1 + (pointr - 1) * n + wsOffset] * a2;
                         }
 
                         pointr = pointr % m + 1;
@@ -1790,28 +1784,21 @@ namespace BioIK.Helpers {
         double gtol, double xtol, double stpmin, double stpmax, ref Task task,
         int[] isave, int isaveOffset, double[] dsave, int dsaveOffset)
         {
-            bool brackt = false;
-            int stage = 0;
-            double finit = 0.0d;
-            double ftest = 0.0d;
-            double fm = 0.0d;
-            double fx = 0.0d;
-            double fxm = 0.0d;
-            double fy = 0.0d;
-            double fym = 0.0d;
-            double ginit = 0.0d;
-            double gtest = 0.0d;
-            double gm = 0.0d;
-            double gx = 0.0d;
-            double gxm = 0.0d;
-            double gy = 0.0d;
-            double gym = 0.0d;
-            double stx = 0.0d;
-            double sty = 0.0d;
-            double stmin = 0.0d;
-            double stmax = 0.0d;
-            double width = 0.0d;
-            double width1 = 0.0d;
+            bool brackt;
+            int stage;
+            double finit;
+            double fx;
+            double fy;
+            double ginit;
+            double gtest;
+            double gx;
+            double gy;
+            double stx;
+            double sty;
+            double stmin;
+            double stmax;
+            double width;
+            double width1;
 
             if (task == Task.Start)
             {
@@ -1847,14 +1834,7 @@ namespace BioIK.Helpers {
             }
 
             // Restore local variables.
-            if (isave[1 - 1 + isaveOffset] == 1)
-            {
-                brackt = true;
-            }
-            else
-            {
-                brackt = false;
-            }
+            brackt = isave[1 - 1 + isaveOffset] == 1;
             stage = isave[2 - 1 + isaveOffset];
             ginit = dsave[1 - 1 + dsaveOffset];
             gtest = dsave[2 - 1 + dsaveOffset];
@@ -1874,7 +1854,7 @@ namespace BioIK.Helpers {
             // c     If psi(stp) <= 0 and f'(stp) >= 0 for some step, then the
             // c     algorithm enters the second stage.
             // 
-            ftest = finit + stp * gtest;
+            double ftest = finit + stp * gtest;
             if (stage == 1 && f <= ftest && g >= 0.0)
             {
                 stage = 2;
@@ -1910,7 +1890,7 @@ namespace BioIK.Helpers {
             // 
             // c     Test for termination.
             // 
-            if (task == Task.Warning || task == Task.Convergence)
+            if (task is Task.Warning or Task.Convergence)
             {
                 goto L1000;
             }
@@ -1925,12 +1905,12 @@ namespace BioIK.Helpers {
                 // 
                 // c        Define the modified function and derivative values.
                 // 
-                fm = f - stp * gtest;
-                fxm = fx - stx * gtest;
-                fym = fy - sty * gtest;
-                gm = g - gtest;
-                gxm = gx - gtest;
-                gym = gy - gtest;
+                double fm = f - stp * gtest;
+                double fxm = fx - stx * gtest;
+                double fym = fy - sty * gtest;
+                double gm = g - gtest;
+                double gxm = gx - gtest;
+                double gym = gy - gtest;
 
                 // 
                 // Call dcstep to update stx, sty, and to compute the new step.
@@ -2133,16 +2113,16 @@ namespace BioIK.Helpers {
             ref double sty, ref double fy, ref double dy, ref double stp,
             double fp, double dp, ref bool brackt, double stpmin, double stpmax)
         {
-            double gamma = 0.0d;
-            double p = 0.0d;
-            double q = 0.0d;
-            double r = 0.0d;
-            double s = 0.0d;
-            double sgnd = 0.0d;
-            double stpc = 0.0d;
-            double stpf = 0.0d;
-            double stpq = 0.0d;
-            double theta = 0.0d;
+            double gamma;
+            double p;
+            double q;
+            double r;
+            double s;
+            double sgnd;
+            double stpc;
+            double stpf;
+            double stpq;
+            double theta;
             sgnd = dp * (dx / System.Math.Abs(dx));
 
             // c     First case: A higher function value. The minimum is bracketed. 
@@ -2203,14 +2183,7 @@ namespace BioIK.Helpers {
                 stpc = stp + r * (stx - stp);
                 stpq = stp + dp / (dp - dx) * (stx - stp);
 
-                if (System.Math.Abs(stpc - stp) > System.Math.Abs(stpq - stp))
-                {
-                    stpf = stpc;
-                }
-                else
-                {
-                    stpf = stpq;
-                }
+                stpf = System.Math.Abs(stpc - stp) > System.Math.Abs(stpq - stp) ? stpc : stpq;
 
                 brackt = true;
                 // 
@@ -2268,14 +2241,7 @@ namespace BioIK.Helpers {
                     // c           closer to stp than the secant step, the cubic step is 
                     // c           taken, otherwise the secant step is taken.
                     // 
-                    if (System.Math.Abs(stpc - stp) < System.Math.Abs(stpq - stp))
-                    {
-                        stpf = stpc;
-                    }
-                    else
-                    {
-                        stpf = stpq;
-                    }
+                    stpf = System.Math.Abs(stpc - stp) < System.Math.Abs(stpq - stp) ? stpc : stpq;
                     if (stp > stx)
                     {
                         stpf = System.Math.Min(stp +
@@ -2294,14 +2260,7 @@ namespace BioIK.Helpers {
                     // c           farther from stp than the secant step, the cubic step is 
                     // c           taken, otherwise the secant step is taken.
                     // 
-                    if (System.Math.Abs(stpc - stp) > System.Math.Abs(stpq - stp))
-                    {
-                        stpf = stpc;
-                    }
-                    else
-                    {
-                        stpf = stpq;
-                    }
+                    stpf = System.Math.Abs(stpc - stp) > System.Math.Abs(stpq - stp) ? stpc : stpq;
                     stpf = System.Math.Min(stpmax, stpf);
                     stpf = System.Math.Max(stpmin, stpf);
                 }
@@ -2401,8 +2360,6 @@ namespace BioIK.Helpers {
             double[] l, int lOffset, double[] u, int uOffset,
             int[] nbd, int nbdOffset, ref Task task, ref int info, ref int k)
         {
-
-            int i = 0;
             if (n <= 0)
             {
                 task = Task.Error;
@@ -2419,26 +2376,23 @@ namespace BioIK.Helpers {
             // 
             // c     Check the validity of the arrays nbd(i), u(i), and l(i).
             // 
+            int i;
+            for (i = 1; i <= n; i++)
             {
-                for (i = 1; i <= n; i++)
+                if (nbd[i - 1 + nbdOffset] < 0 || nbd[i - 1 + nbdOffset] > 3)
                 {
-                    if (nbd[i - 1 + nbdOffset] < 0 || nbd[i - 1 + nbdOffset] > 3)
-                    {
-                        // c                                                   return
-                        task = Task.Error;
-                        info = -6;
-                        k = i;
-                    }
-                    if (nbd[i - 1 + nbdOffset] == 2)
-                    {
-                        if (l[i - 1 + lOffset] > u[i - 1 + uOffset])
-                        {
-                            // c                                    return
-                            task = Task.Error;
-                            info = -7;
-                            k = i;
-                        }
-                    }
+                    // c                                                   return
+                    task = Task.Error;
+                    info = -6;
+                    k = i;
+                }
+
+                if (nbd[i - 1 + nbdOffset] == 2 && l[i - 1 + lOffset] > u[i - 1 + uOffset])
+                {
+                    // c                                    return
+                    task = Task.Error;
+                    info = -7;
+                    k = i;
                 }
             }
 
@@ -2589,55 +2543,40 @@ namespace BioIK.Helpers {
             double[] sy, int syOffset, double theta, int col, int head,
             ref int info)
         {
-
-            int m2 = 0;
-            int ipntr = 0;
-            int jpntr = 0;
-            int iy = 0;
-            int is2 = 0;
-            int jy = 0;
-            int js = 0;
-            int is1 = 0;
-            int js1 = 0;
-            int k1 = 0;
-            int i = 0;
-            int k = 0;
-            int col2 = 0;
-            int pbegin = 0;
-            int pend = 0;
-            int dbegin = 0;
-            int dend = 0;
-            int upcl = 0;
-            double temp1 = 0.0d;
-            double temp2 = 0.0d;
-            double temp3 = 0.0d;
-            double temp4 = 0.0d;
+            int ipntr;
+            int jpntr;
+            int iy;
+            int is2;
+            int jy;
+            int js;
+            int k1;
+            int k;
+            int upcl;
+            double temp1;
+            double temp2;
+            double temp3;
 
             if (updatd)
             {
                 if (iupdat > m)
                 {
                     // c                                 shift old part of WN1.
+                    for (jy = 1; jy <= m - 1; jy++)
                     {
-                        for (jy = 1; jy <= m - 1; jy++)
-                        {
-                            js = m + jy;
-                            Dcopy(m - jy, wn1, jy + 1 - 1 + (jy + 1 - 1) * 2 * m
-                                                          + wn1Offset, 1, wn1, jy - 1 + (jy - 1) * 2 * m + wn1Offset, 1);
-                            Dcopy(m - jy, wn1, js + 1 - 1 + (js + 1 - 1) * 2 * m
-                                                          + wn1Offset, 1, wn1, js - 1 + (js - 1) * 2 * m + wn1Offset, 1);
-                            Dcopy(m - 1, wn1, m + 2 - 1 + (jy + 1 - 1) * 2 * m
-                                                        + wn1Offset, 1, wn1, m + 1 - 1 + (jy - 1) * 2 * m + wn1Offset, 1);
-                        }
+                        js = m + jy;
+                        Dcopy(m - jy, wn1, jy + 1 - 1 + (jy + 1 - 1) * 2 * m
+                                                      + wn1Offset, 1, wn1, jy - 1 + (jy - 1) * 2 * m + wn1Offset, 1);
+                        Dcopy(m - jy, wn1, js + 1 - 1 + (js + 1 - 1) * 2 * m
+                                                      + wn1Offset, 1, wn1, js - 1 + (js - 1) * 2 * m + wn1Offset, 1);
+                        Dcopy(m - 1, wn1, m + 2 - 1 + (jy + 1 - 1) * 2 * m
+                                                    + wn1Offset, 1, wn1, m + 1 - 1 + (jy - 1) * 2 * m + wn1Offset, 1);
                     }
                 }
 
                 // 
                 // c          put new rows in blocks (1,1), (2,1) and (2,2).
-                pbegin = 1;
-                pend = nsub;
-                dbegin = nsub + 1;
-                dend = n;
+                const int pbegin = 1;
+                int dbegin = nsub + 1;
                 iy = col;
                 is2 = m + col;
                 ipntr = head + col - 1;
@@ -2646,40 +2585,35 @@ namespace BioIK.Helpers {
                     ipntr -= m;
                 }
                 jpntr = head;
+                for (jy = 1; jy <= col; jy++)
                 {
-                    for (jy = 1; jy <= col; jy++)
+                    js = m + jy;
+                    temp1 = 0.0;
+                    temp2 = 0.0;
+                    temp3 = 0.0;
+
+                    // c             compute element jy of row 'col' of Y'ZZ'Y
+                    for (k = pbegin; k <= nsub; k++)
                     {
-                        js = m + jy;
-                        temp1 = 0.0;
-                        temp2 = 0.0;
-                        temp3 = 0.0;
-
-                        // c             compute element jy of row 'col' of Y'ZZ'Y
-                        {
-                            for (k = pbegin; k <= pend; k++)
-                            {
-                                k1 = ind[k - 1 + indOffset];
-                                temp1 += wy[k1 - 1 + (ipntr - 1)
-                                    * n + wyOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
-                            }
-                        }
-                        // c             compute elements jy of row 'col' of L_a and S'AA'S
-                        {
-                            for (k = dbegin; k <= dend; k++)
-                            {
-                                k1 = ind[k - 1 + indOffset];
-                                temp2 += ws[k1 - 1 + (ipntr - 1)
-                                    * n + wsOffset] * ws[k1 - 1 + (jpntr - 1) * n + wsOffset];
-                                temp3 += ws[k1 - 1 + (ipntr - 1)
-                                    * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
-                            }
-                        }
-
-                        wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] = temp1;
-                        wn1[is2 - 1 + (js - 1) * 2 * m + wn1Offset] = temp2;
-                        wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] = temp3;
-                        jpntr = jpntr % m + 1;
+                        k1 = ind[k - 1 + indOffset];
+                        temp1 += wy[k1 - 1 + (ipntr - 1)
+                            * n + wyOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
                     }
+
+                    // c             compute elements jy of row 'col' of L_a and S'AA'S
+                    for (k = dbegin; k <= n; k++)
+                    {
+                        k1 = ind[k - 1 + indOffset];
+                        temp2 += ws[k1 - 1 + (ipntr - 1)
+                            * n + wsOffset] * ws[k1 - 1 + (jpntr - 1) * n + wsOffset];
+                        temp3 += ws[k1 - 1 + (ipntr - 1)
+                            * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
+                    }
+
+                    wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] = temp1;
+                    wn1[is2 - 1 + (js - 1) * 2 * m + wn1Offset] = temp2;
+                    wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] = temp3;
+                    jpntr = jpntr % m + 1;
                 }
 
                 // 
@@ -2691,24 +2625,23 @@ namespace BioIK.Helpers {
                     jpntr -= m;
                 }
                 ipntr = head;
+                int i;
+                for (i = 1; i <= col; i++)
                 {
-                    for (i = 1; i <= col; i++)
+                    is2 = m + i;
+                    temp3 = 0.0;
+                    // c             compute element i of column 'col' of R_z
+                    for (k = pbegin; k <= nsub; k++)
                     {
-                        is2 = m + i;
-                        temp3 = 0.0;
-                        // c             compute element i of column 'col' of R_z
-                        {
-                            for (k = pbegin; k <= pend; k++)
-                            {
-                                k1 = ind[k - 1 + indOffset];
-                                temp3 += ws[k1 - 1 + (ipntr - 1)
-                                    * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
-                            }
-                        }
-                        ipntr = ipntr % m + 1;
-                        wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] = temp3;
+                        k1 = ind[k - 1 + indOffset];
+                        temp3 += ws[k1 - 1 + (ipntr - 1)
+                            * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
                     }
+
+                    ipntr = ipntr % m + 1;
+                    wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] = temp3;
                 }
+
                 upcl = col - 1;
             }
             else
@@ -2721,136 +2654,118 @@ namespace BioIK.Helpers {
             // c       in the set of free variables.
 
             ipntr = head;
+            for (iy = 1; iy <= upcl; iy++)
             {
-                for (iy = 1; iy <= upcl; iy++)
+                is2 = m + iy;
+                jpntr = head;
+                for (jy = 1; jy <= iy; jy++)
                 {
-                    is2 = m + iy;
-                    jpntr = head;
+                    js = m + jy;
+                    temp1 = 0.0;
+                    temp2 = 0.0;
+                    temp3 = 0.0;
+                    double temp4 = 0.0;
+                    for (k = 1; k <= nenter; k++)
                     {
-                        for (jy = 1; jy <= iy; jy++)
-                        {
-                            js = m + jy;
-                            temp1 = 0.0;
-                            temp2 = 0.0;
-                            temp3 = 0.0;
-                            temp4 = 0.0;
-                            {
-                                for (k = 1; k <= nenter; k++)
-                                {
-                                    k1 = indx2[k - 1 + indx2Offset];
-                                    temp1 += wy[k1 - 1 + (ipntr - 1)
-                                        * n + wyOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
-                                    temp2 += ws[k1 - 1 + (ipntr - 1)
-                                        * n + wsOffset] * ws[k1 - 1 + (jpntr - 1) * n + wsOffset];
-                                }
-                            }
-                            {
-                                for (k = ileave; k <= n; k++)
-                                {
-                                    k1 = indx2[k - 1 + indx2Offset];
-                                    temp3 += wy[k1 - 1 + (ipntr
-                                                          - 1) * n + wyOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
-                                    temp4 += ws[k1 - 1 + (ipntr
-                                                          - 1) * n + wsOffset] * ws[k1 - 1 + (jpntr - 1) * n + wsOffset];
-                                }
-                            }
-
-                            wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] =
-                                wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] + temp1 - temp3;
-                            wn1[is2 - 1 + (js - 1) * 2 * m + wn1Offset] =
-                                wn1[is2 - 1 + (js - 1) * 2 * m + wn1Offset] - temp2 + temp4;
-                            jpntr = jpntr % m + 1;
-                        }
+                        k1 = indx2[k - 1 + indx2Offset];
+                        temp1 += wy[k1 - 1 + (ipntr - 1)
+                            * n + wyOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
+                        temp2 += ws[k1 - 1 + (ipntr - 1)
+                            * n + wsOffset] * ws[k1 - 1 + (jpntr - 1) * n + wsOffset];
                     }
 
-                    ipntr = ipntr % m + 1;
+                    for (k = ileave; k <= n; k++)
+                    {
+                        k1 = indx2[k - 1 + indx2Offset];
+                        temp3 += wy[k1 - 1 + (ipntr
+                                              - 1) * n + wyOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
+                        temp4 += ws[k1 - 1 + (ipntr
+                                              - 1) * n + wsOffset] * ws[k1 - 1 + (jpntr - 1) * n + wsOffset];
+                    }
+
+                    wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] =
+                        wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] + temp1 - temp3;
+                    wn1[is2 - 1 + (js - 1) * 2 * m + wn1Offset] =
+                        wn1[is2 - 1 + (js - 1) * 2 * m + wn1Offset] - temp2 + temp4;
+                    jpntr = jpntr % m + 1;
                 }
+
+                ipntr = ipntr % m + 1;
             }
 
             // 
             // c       modify the old parts in block (2,1).
             ipntr = head;
+            for (is2 = m + 1; is2 <= m + upcl; is2++)
             {
-                for (is2 = m + 1; is2 <= m + upcl; is2++)
+                jpntr = head;
+                for (jy = 1; jy <= upcl; jy++)
                 {
-                    jpntr = head;
+                    temp1 = 0.0;
+                    temp3 = 0.0;
+                    for (k = 1; k <= nenter; k++)
                     {
-                        for (jy = 1; jy <= upcl; jy++)
-                        {
-                            temp1 = 0.0;
-                            temp3 = 0.0;
-                            {
-                                for (k = 1; k <= nenter; k++)
-                                {
-                                    k1 = indx2[k - 1 + indx2Offset];
-                                    temp1 += ws[k1 - 1 + (ipntr
-                                                          - 1) * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
-                                }
-                            }
-                            {
-                                for (k = ileave; k <= n; k++)
-                                {
-                                    k1 = indx2[k - 1 + indx2Offset];
-                                    temp3 += ws[k1 - 1 + (ipntr - 1)
-                                        * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
-                                }
-                            }
-
-                            if (is2 <= jy + m)
-                            {
-                                wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] =
-                                    wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] + temp1 - temp3;
-                            }
-                            else
-                            {
-                                wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] =
-                                    wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] - temp1 + temp3;
-                            }
-                            jpntr = jpntr % m + 1;
-                        }
+                        k1 = indx2[k - 1 + indx2Offset];
+                        temp1 += ws[k1 - 1 + (ipntr
+                                              - 1) * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
                     }
-                    ipntr = ipntr % m + 1;
+
+                    for (k = ileave; k <= n; k++)
+                    {
+                        k1 = indx2[k - 1 + indx2Offset];
+                        temp3 += ws[k1 - 1 + (ipntr - 1)
+                            * n + wsOffset] * wy[k1 - 1 + (jpntr - 1) * n + wyOffset];
+                    }
+
+                    if (is2 <= jy + m)
+                    {
+                        wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] =
+                            wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] + temp1 - temp3;
+                    }
+                    else
+                    {
+                        wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] =
+                            wn1[is2 - 1 + (jy - 1) * 2 * m + wn1Offset] - temp1 + temp3;
+                    }
+
+                    jpntr = jpntr % m + 1;
                 }
+
+                ipntr = ipntr % m + 1;
             }
 
             // 
             // c     Form the upper triangle of WN = [D+Y' ZZ'Y/theta   -L_a'+R_z' ] 
             // c                                     [-L_a +R_z        S'AA'S*theta]
             // 
-            m2 = 2 * m;
+            int m2 = 2 * m;
+            for (iy = 1; iy <= col; iy++)
             {
-                for (iy = 1; iy <= col; iy++)
+                is2 = col + iy;
+                int is1 = m + iy;
+                for (jy = 1; jy <= iy; jy++)
                 {
-                    is2 = col + iy;
-                    is1 = m + iy;
-                    {
-                        for (jy = 1; jy <= iy; jy++)
-                        {
-                            js = col + jy;
-                            js1 = m + jy;
-                            wn[jy - 1 + (iy - 1) * 2 * m + wnOffset] =
-                                wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] / theta;
-                            wn[js - 1 + (is2 - 1) * 2 * m + wnOffset] =
-                                wn1[is1 - 1 + (js1 - 1) * 2 * m + wn1Offset] * theta;
-                        }
-                    }
-                    {
-                        for (jy = 1; jy <= iy - 1; jy++)
-                        {
-                            wn[jy - 1 + (is2 - 1) * 2 * m + wnOffset] =
-                                -wn1[is1 - 1 + (jy - 1) * 2 * m + wn1Offset];
-                        }
-                    }
-                    {
-                        for (jy = iy; jy <= col; jy++)
-                        {
-                            wn[jy - 1 + (is2 - 1) * 2 * m + wnOffset] =
-                                wn1[is1 - 1 + (jy - 1) * 2 * m + wn1Offset];
-                        }
-                    }
-
-                    wn[iy - 1 + (iy - 1) * 2 * m + wnOffset] += sy[iy - 1 + (iy - 1) * m + syOffset];
+                    js = col + jy;
+                    int js1 = m + jy;
+                    wn[jy - 1 + (iy - 1) * 2 * m + wnOffset] =
+                        wn1[iy - 1 + (jy - 1) * 2 * m + wn1Offset] / theta;
+                    wn[js - 1 + (is2 - 1) * 2 * m + wnOffset] =
+                        wn1[is1 - 1 + (js1 - 1) * 2 * m + wn1Offset] * theta;
                 }
+
+                for (jy = 1; jy <= iy - 1; jy++)
+                {
+                    wn[jy - 1 + (is2 - 1) * 2 * m + wnOffset] =
+                        -wn1[is1 - 1 + (jy - 1) * 2 * m + wn1Offset];
+                }
+
+                for (jy = iy; jy <= col; jy++)
+                {
+                    wn[jy - 1 + (is2 - 1) * 2 * m + wnOffset] =
+                        wn1[is1 - 1 + (jy - 1) * 2 * m + wn1Offset];
+                }
+
+                wn[iy - 1 + (iy - 1) * 2 * m + wnOffset] += sy[iy - 1 + (iy - 1) * m + syOffset];
             }
 
             // 
@@ -2862,13 +2777,11 @@ namespace BioIK.Helpers {
             Dpofa(wn, wnOffset, m2, col, ref info);
 
             // c        then form L^-1(-L_a'+R_z') in the (1,2) block.
-            col2 = 2 * col;
+            int col2 = 2 * col;
+            for (js = col + 1; js <= col2; js++)
             {
-                for (js = col + 1; js <= col2; js++)
-                {
-                    Dtrsl(wn, wnOffset, m2, col, wn, 1 - 1
-                        + (js - 1) * 2 * m + wnOffset, 11, out info);
-                }
+                Dtrsl(wn, wnOffset, m2, col, wn, 1 - 1
+                                                 + (js - 1) * 2 * m + wnOffset, 11, out info);
             }
 
             // 
@@ -2876,16 +2789,12 @@ namespace BioIK.Helpers {
             // c        upper triangle of (2,2) block of wn.
             // 
             // 
+            for (is2 = col + 1; is2 <= col2; is2++)
             {
-                for (is2 = col + 1; is2 <= col2; is2++)
+                for (js = is2; js <= col2; js++)
                 {
-                    {
-                        for (js = is2; js <= col2; js++)
-                        {
-                            wn[is2 - 1 + (js - 1) * 2 * m + wnOffset] += Ddot(col, wn, 1 - 1 + (is2 - 1) * 2 * m
-                                + wnOffset, 1, wn, 1 - 1 + (js - 1) * 2 * m + wnOffset, 1);
-                        }
-                    }
+                    wn[is2 - 1 + (js - 1) * 2 * m + wnOffset] += Ddot(col, wn, 1 - 1 + (is2 - 1) * 2 * m
+                        + wnOffset, 1, wn, 1 - 1 + (js - 1) * 2 * m + wnOffset, 1);
                 }
             }
 
@@ -2940,43 +2849,33 @@ namespace BioIK.Helpers {
             double[] ss, int ssOffset,
             int col, double theta, ref int info)
         {
+            int j;
 
-            int i = 0;
-            int j = 0;
-            int k = 0;
-            int k1 = 0;
-
-            double ddum = 0.0d;
+            for (j = 1; j <= col; j++)
             {
-                for (j = 1; j <= col; j++)
-                {
-                    wt[1 - 1 + (j - 1) * m + wtOffset] = theta * ss[1 - 1
-                                                                      + (j - 1) * m + ssOffset];
-                }
+                wt[1 - 1 + (j - 1) * m + wtOffset] = theta * ss[1 - 1
+                                                                + (j - 1) * m + ssOffset];
             }
 
+            int i;
+            for (i = 2; i <= col; i++)
             {
-                for (i = 2; i <= col; i++)
+                for (j = i; j <= col; j++)
                 {
+                    int k1 = System.Math.Min(i, j) - 1;
+
+                    double ddum = 0.0;
+                    int k;
+                    for (k = 1; k <= k1; k++)
                     {
-                        for (j = i; j <= col; j++)
-                        {
-                            k1 = System.Math.Min(i, j) - 1;
-
-                            ddum = 0.0;
-                            {
-                                for (k = 1; k <= k1; k++)
-                                {
-                                    ddum += sy[i - 1 + (k - 1) * m
-                                                     + syOffset] * sy[j - 1 + (k - 1) * m
-                                                                            + syOffset] / sy[k - 1 + (k - 1) * m + syOffset];
-                                }
-                            }
-
-                            wt[i - 1 + (j - 1) * m + wtOffset] = ddum
-                                                                   + theta * ss[i - 1 + (j - 1) * m + ssOffset];
-                        }
+                        ddum += sy[i - 1 + (k - 1) * m
+                                         + syOffset] * sy[j - 1 + (k - 1) * m
+                                                                + syOffset] /
+                                sy[k - 1 + (k - 1) * m + syOffset];
                     }
+
+                    wt[i - 1 + (j - 1) * m + wtOffset] = ddum
+                                                         + theta * ss[i - 1 + (j - 1) * m + ssOffset];
                 }
             }
 
@@ -3032,14 +2931,11 @@ namespace BioIK.Helpers {
         // 
         // 
         private static void Freev(int n, ref int nfree,
-            int[] index, int indexOffset, ref int nenter, ref int ileave,
+            int[] index, int indexOffset, out int nenter, out int ileave,
             int[] indx2, int indx2Offset, int[] iwhere, int iwhereOffset,
-            ref bool wrk, bool updatd, bool cnstnd, int iprint, int iter)
+            out bool wrk, bool updatd, bool cnstnd, int iter)
         {
-
-            int iact = 0;
-            int i = 0;
-            int k = 0;
+            int i;
 
             nenter = 0;
             ileave = n + 1;
@@ -3047,49 +2943,30 @@ namespace BioIK.Helpers {
             if (iter > 0 && cnstnd)
             {
                 // c                           count the entering and leaving variables.
+                int k;
+                for (i = 1; i <= nfree; i++)
                 {
-                    for (i = 1; i <= nfree; i++)
+                    k = index[i - 1 + indexOffset];
+
+                    // 
+                    // c            write(6,*) ' k  = index(i) ', k
+                    // c            write(6,*) ' index = ', i
+                    // 
+                    if (iwhere[k - 1 + iwhereOffset] > 0)
                     {
-                        k = index[i - 1 + indexOffset];
-
-                        // 
-                        // c            write(6,*) ' k  = index(i) ', k
-                        // c            write(6,*) ' index = ', i
-                        // 
-                        if (iwhere[k - 1 + iwhereOffset] > 0)
-                        {
-                            ileave -= 1;
-                            indx2[ileave - 1 + indx2Offset] = k;
-
-                            if (iprint >= 100)
-                            {
-                                // DISPLAY: "Variable " + k + " leaves the set of free variables"
-                            }
-                        }
+                        ileave -= 1;
+                        indx2[ileave - 1 + indx2Offset] = k;
                     }
                 }
-                {
-                    for (i = 1 + nfree; i <= n; i++)
-                    {
-                        k = index[i - 1 + indexOffset];
-                        if (iwhere[k - 1 + iwhereOffset] <= 0)
-                        {
-                            nenter += 1;
-                            indx2[nenter - 1 + indx2Offset] = k;
 
-                            
-                            if (iprint >= 100)
-                            {
-                                // DISPLAY: "Variable " + k + " enters the set of free variables"
-                            }
-                        }
-                    }
-                }
-                
-                if (iprint >= 99)
+                for (i = 1 + nfree; i <= n; i++)
                 {
-                    // DISPLAY: ((n + 1) - ileave)) + " variables leave; "
-                    //           nenter + " variables enter"
+                    k = index[i - 1 + indexOffset];
+                    if (iwhere[k - 1 + iwhereOffset] <= 0)
+                    {
+                        nenter += 1;
+                        indx2[nenter - 1 + indx2Offset] = k;
+                    }
                 }
             }
 
@@ -3099,26 +2976,19 @@ namespace BioIK.Helpers {
             // c     Find the index set of free and active variables at the GCP.
             // 
             nfree = 0;
-            iact = n + 1;
+            int iact = n + 1;
+            for (i = 1; i <= n; i++)
             {
-                for (i = 1; i <= n; i++)
+                if (iwhere[i - 1 + iwhereOffset] <= 0)
                 {
-                    if (iwhere[i - 1 + iwhereOffset] <= 0)
-                    {
-                        nfree += 1;
-                        index[nfree - 1 + indexOffset] = i;
-                    }
-                    else
-                    {
-                        iact -= 1;
-                        index[iact - 1 + indexOffset] = i;
-                    }
+                    nfree += 1;
+                    index[nfree - 1 + indexOffset] = i;
                 }
-            }
-
-            if (iprint >= 99)
-            {
-                // DISPLAY: nfree + " variables are free at GCP " + (iter + 1))
+                else
+                {
+                    iact -= 1;
+                    index[iact - 1 + indexOffset] = i;
+                }
             }
         }
 
@@ -3900,8 +3770,8 @@ namespace BioIK.Helpers {
             nintol += nseg;
             // Count the entering and leaving variables for iter > 0; 
             // find the index set of free and active variables at the GCP.
-            Freev(n, ref nfree, index, indexOffset, ref nenter, ref ileave, indx2, indx2Offset,
-                iwhere, iwhereOffset, ref wrk, updatd, cnstnd, iprint, iter);
+            Freev(n, ref nfree, index, indexOffset, out nenter, out ileave, indx2, indx2Offset,
+                iwhere, iwhereOffset, out wrk, updatd, cnstnd, iter);
             nact = n - nfree;
             // If there are no free variables or B=theta*I, 
             // then skip the subspace minimization.
