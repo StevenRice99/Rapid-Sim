@@ -312,7 +312,6 @@ namespace RapidSim
                 bioJoint.jointType = RobotController.Joints[i].Type == ArticulationJointType.PrismaticJoint ? JointType.Translational : JointType.Rotational;
                 bioJoint.SetOrientation(Vector3.zero);
 
-                bioJoint.y.constrained = true;
                 if (RobotController.Joints[i].XMotion)
                 {
                     motions.Add(bioJoint.y);
@@ -333,7 +332,6 @@ namespace RapidSim
                     bioJoint.y.SetEnabled(false);
                 }
 
-                bioJoint.z.constrained = true;
                 if (RobotController.Joints[i].YMotion)
                 {
                     motions.Add(bioJoint.z);
@@ -354,7 +352,6 @@ namespace RapidSim
                     bioJoint.z.SetEnabled(false);
                 }
                 
-                bioJoint.x.constrained = true;
                 if (RobotController.Joints[i].ZMotion)
                 {
                     motions.Add(bioJoint.x);

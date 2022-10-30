@@ -1,23 +1,20 @@
 ﻿using BioIK.Helpers;
+using Unity.Mathematics;
 using UnityEngine;
 
-namespace BioIK.Setup {
-
+namespace BioIK.Setup
+{
 	[AddComponentMenu("")]
-	public class BioJoint : MonoBehaviour {
+	public class BioJoint : MonoBehaviour
+	{
 		public BioSegment segment;
 		public Motion x,y,z;
-		public JointType jointType = JointType.Rotational;							//Type of the joint
+		public JointType jointType = JointType.Rotational;
 
-		[SerializeField] private Vector3 orientation = Vector3.zero;				//Joint orientation		
-		[SerializeField] private float dpx, dpy, dpz, drx, dry, drz, drw;			//Default frame
+		[SerializeField] private Vector3 orientation = Vector3.zero;
+		[SerializeField] private float dpx, dpy, dpz, drx, dry, drz, drw;
 
-		private Vector3 _animatedDefaultPosition;
-		private Quaternion _animatedDefaultRotation;
-		private double _r1, _r2, _r3, _r4, _r5, _r6, _r7, _r8, _r9;							//Precomputed rotation information
-		private Vector3 _lsa;														//LocalScaledAnchor
-		private Vector3 _adpadrsa;													//AnimatedDefaultPosition + AnimatedDefaultRotation * LocalScaledAnchor
-		private Vector3 _scale;
+		private double _r1, _r2, _r3, _r4, _r5, _r6, _r7, _r8, _r9;
 
 		private void OnEnable()
 		{
@@ -32,10 +29,10 @@ namespace BioIK.Setup {
 			segment.controller.Refresh();
 		}
 
-		public BioJoint Create(BioSegment segment)
+		public BioJoint Create(BioSegment value)
 		{
-			this.segment = segment;
-			this.segment.transform.hideFlags = HideFlags.NotEditable;
+			segment = value;
+			segment.transform.hideFlags = HideFlags.NotEditable;
 			hideFlags = HideFlags.HideInInspector;
 
 			x = new(this, Vector3.right);
@@ -46,13 +43,13 @@ namespace BioIK.Setup {
 			SetDefaultFrame(t.localPosition, t.localRotation);
 
 			Vector3 forward = Vector3.zero;
-			if (this.segment.children.Length == 1)
+			if (segment.children.Length == 1)
 			{
-				forward = this.segment.children[0].transform.localPosition;
+				forward = segment.children[0].transform.localPosition;
 			}
-			else if(this.segment.parent != null)
+			else if(segment.parent != null)
 			{
-				forward = Quaternion.Inverse(this.segment.transform.localRotation) * this.segment.transform.localPosition;
+				forward = Quaternion.Inverse(segment.transform.localRotation) * segment.transform.localPosition;
 			}
 
 			SetOrientation(forward.magnitude != 0f
@@ -84,20 +81,17 @@ namespace BioIK.Setup {
 			Utility.Destroy(this);
 		}
 
-		public void UpdateData() {
-			_animatedDefaultPosition = new(dpx, dpy, dpz);
-			_animatedDefaultRotation = new(drx, dry, drz, drw);
-			_r1 = 1.0 - 2.0 * (_animatedDefaultRotation.y * _animatedDefaultRotation.y + _animatedDefaultRotation.z * _animatedDefaultRotation.z);
-			_r2 = 2.0 * (_animatedDefaultRotation.x * _animatedDefaultRotation.y + _animatedDefaultRotation.w * _animatedDefaultRotation.z);
-			_r3 = 2.0 * (_animatedDefaultRotation.x * _animatedDefaultRotation.z - _animatedDefaultRotation.w * _animatedDefaultRotation.y);
-			_r4 = 2.0 * (_animatedDefaultRotation.x * _animatedDefaultRotation.y - _animatedDefaultRotation.w * _animatedDefaultRotation.z);
-			_r5 = 1.0 - 2.0 * (_animatedDefaultRotation.x * _animatedDefaultRotation.x + _animatedDefaultRotation.z * _animatedDefaultRotation.z);
-			_r6 = 2.0 * (_animatedDefaultRotation.y * _animatedDefaultRotation.z + _animatedDefaultRotation.w * _animatedDefaultRotation.x);
-			_r7 = 2.0 * (_animatedDefaultRotation.x * _animatedDefaultRotation.z + _animatedDefaultRotation.w * _animatedDefaultRotation.y);
-			_r8 = 2.0 * (_animatedDefaultRotation.y * _animatedDefaultRotation.z - _animatedDefaultRotation.w * _animatedDefaultRotation.x);
-			_r9 = 1.0 - 2.0 * (_animatedDefaultRotation.x * _animatedDefaultRotation.x + _animatedDefaultRotation.y * _animatedDefaultRotation.y);
-			_adpadrsa = _animatedDefaultPosition;
-			_scale = transform.lossyScale;
+		public void UpdateData()
+		{
+			_r1 = 1.0 - 2.0 * (dry * dry + drz * drz);
+			_r2 = 2.0 * (drx * dry + drw * drz);
+			_r3 = 2.0 * (drx * drz - drw * dry);
+			_r4 = 2.0 * (drx * dry - drw * drz);
+			_r5 = 1.0 - 2.0 * (drx * drx + drz * drz);
+			_r6 = 2.0 * (dry * drz + drw * drx);
+			_r7 = 2.0 * (drx * drz + drw * dry);
+			_r8 = 2.0 * (dry * drz - drw * drx);
+			_r9 = 1.0 - 2.0 * (drx * drx + dry * dry);
 		}
 
 		public void ProcessMotion()
@@ -132,18 +126,19 @@ namespace BioIK.Setup {
 		{
 			if(jointType == JointType.Translational)
 			{
-				valueX /= _scale.x;
-				valueY /= _scale.y;
-				valueZ /= _scale.z;
+				Vector3 scale = transform.lossyScale;
+				valueX /= scale.x;
+				valueY /= scale.y;
+				valueZ /= scale.z;
 				double axisX = valueX * x.axis.x + valueY * y.axis.x + valueZ * z.axis.x;
 				double axisY = valueX * x.axis.y + valueY * y.axis.y + valueZ * z.axis.y;
 				double axisZ = valueX * x.axis.z + valueY * y.axis.z + valueZ * z.axis.z;
 				//Local position for translational motion
-				lpX = _animatedDefaultPosition.x + _r1 * axisX + _r4 * axisY + _r7 * axisZ;
-				lpY = _animatedDefaultPosition.y + _r2 * axisX + _r5 * axisY + _r8 * axisZ;
-				lpZ = _animatedDefaultPosition.z + _r3 * axisX + _r6 * axisY + _r9 * axisZ;
+				lpX = dpx + _r1 * axisX + _r4 * axisY + _r7 * axisZ;
+				lpY = dpy + _r2 * axisX + _r5 * axisY + _r8 * axisZ;
+				lpZ = dpz + _r3 * axisX + _r6 * axisY + _r9 * axisZ;
 				//Local rotation for translational motion
-				lrX = _animatedDefaultRotation.x; lrY = _animatedDefaultRotation.y; lrZ = _animatedDefaultRotation.z; lrW = _animatedDefaultRotation.w;
+				lrX = drx; lrY = dry; lrZ = drz; lrW = drw;
 			}
 			else
 			{
@@ -226,38 +221,27 @@ namespace BioIK.Setup {
 				}
 				else
 				{
-					lpX = _animatedDefaultPosition.x;
-					lpY = _animatedDefaultPosition.y;
-					lpZ = _animatedDefaultPosition.z;
-					lrX = _animatedDefaultRotation.x;
-					lrY = _animatedDefaultRotation.y;
-					lrZ = _animatedDefaultRotation.z;
-					lrW = _animatedDefaultRotation.w;
+					lpX = dpx;
+					lpY = dpy;
+					lpZ = dpz;
+					lrX = drx;
+					lrY = dry;
+					lrZ = drz;
+					lrW = drw;
 					return;
 				}
 
 				//Local Rotation
 				//R' = R*Q
-				lrX = _animatedDefaultRotation.x * qw + _animatedDefaultRotation.y * qz - _animatedDefaultRotation.z * qy + _animatedDefaultRotation.w * qx;
-				lrY = -_animatedDefaultRotation.x * qz + _animatedDefaultRotation.y * qw + _animatedDefaultRotation.z * qx + _animatedDefaultRotation.w * qy;
-				lrZ = _animatedDefaultRotation.x * qy - _animatedDefaultRotation.y * qx + _animatedDefaultRotation.z * qw + _animatedDefaultRotation.w * qz;
-				lrW = -_animatedDefaultRotation.x * qx - _animatedDefaultRotation.y * qy - _animatedDefaultRotation.z * qz + _animatedDefaultRotation.w * qw;
+				lrX = drx * qw + dry * qz - drz * qy + drw * qx;
+				lrY = -drx * qz + dry * qw + drz * qx + drw * qy;
+				lrZ = drx * qy - dry * qx + drz * qw + drw * qz;
+				lrW = -drx * qx - dry * qy - drz * qz + drw * qw;
 
 				//Local Position
-				if (_lsa.x == 0.0 && _lsa.y == 0.0 && _lsa.z == 0.0)
-				{
-					//P' = Pz
-					lpX = _animatedDefaultPosition.x;
-					lpY = _animatedDefaultPosition.y;
-					lpZ = _animatedDefaultPosition.z;
-				}
-				else
-				{
-					//P' = P + RA + R*Q*(-A)
-					lpX = _adpadrsa.x + 2.0 * ((0.5 - lrY * lrY - lrZ * lrZ) * -_lsa.x + (lrX * lrY - lrW * lrZ) * -_lsa.y + (lrX * lrZ + lrW * lrY) * -_lsa.z);
-					lpY = _adpadrsa.y + 2.0 * ((lrX * lrY + lrW * lrZ) * -_lsa.x + (0.5 - lrX * lrX - lrZ * lrZ) * -_lsa.y + (lrY * lrZ - lrW * lrX) * -_lsa.z);
-					lpZ = _adpadrsa.z + 2.0 * ((lrX * lrZ - lrW * lrY) * -_lsa.x + (lrY * lrZ + lrW * lrX) * -_lsa.y + (0.5 - lrX * lrX - lrY * lrY) * -_lsa.z);
-				}
+				lpX = dpx;
+				lpY = dpy;
+				lpZ = dpz;
 			}
 		}
 
@@ -266,10 +250,10 @@ namespace BioIK.Setup {
 			return transform.position;
 		}
 
-		public void SetOrientation(Vector3 orientation)
+		public void SetOrientation(Vector3 value)
 		{
-			this.orientation = orientation;
-			Quaternion o = Quaternion.Euler(this.orientation);
+			orientation = value;
+			Quaternion o = Quaternion.Euler(orientation);
 			x.axis = o * Vector3.right;
 			y.axis = o * Vector3.up;
 			z.axis = o * Vector3.forward;
@@ -332,12 +316,9 @@ namespace BioIK.Setup {
 			public BioJoint joint;
 
 			public bool enabled;
-			public bool constrained = true;
 			public double lowerLimit;
 			public double upperLimit;
 			public double targetValue;
-			public double currentValue;
-			public double currentError;
 			public Vector3 axis;
 
 			public Motion(BioJoint joint, Vector3 axis)
@@ -349,25 +330,17 @@ namespace BioIK.Setup {
 			//Runs one motion control cycle
 			public double ProcessMotion()
 			{
-				if (!enabled)
-				{
-					return 0.0;
-				}
-
-				currentValue = targetValue;
-				currentError = 0f;
-
-				return currentValue;
+				return !enabled ? 0.0 : targetValue;
 			}
 
-			public void SetEnabled(bool enabled)
+			public void SetEnabled(bool value)
 			{
-				if (this.enabled == enabled)
+				if (enabled == value)
 				{
 					return;
 				}
 
-				this.enabled = enabled;
+				enabled = value;
 				joint.segment.controller.Refresh();
 			}
 
@@ -383,11 +356,6 @@ namespace BioIK.Setup {
 
 			public double GetLowerLimit(bool normalised = false)
 			{
-				if (!constrained)
-				{
-					return double.MinValue;
-				}
-
 				if (normalised && joint.jointType == JointType.Rotational)
 				{
 					return Utility.Deg2Rad * lowerLimit;
@@ -404,11 +372,6 @@ namespace BioIK.Setup {
 
 			public double GetUpperLimit(bool normalised = false)
 			{
-				if (!constrained)
-				{
-					return double.MaxValue;
-				}
-
 				if (normalised && joint.jointType == JointType.Rotational)
 				{
 					return Utility.Deg2Rad * upperLimit;
@@ -424,18 +387,8 @@ namespace BioIK.Setup {
 				{
 					value *= Utility.Rad2Deg;
 				}
-				if (constrained)
-				{
-					if (targetValue > upperLimit)
-					{
-						value = upperLimit;
-					}
-					if(targetValue < lowerLimit)
-					{
-						value = lowerLimit;
-					}
-				}
-				targetValue = value;
+
+				targetValue = math.clamp(value, lowerLimit, upperLimit);
 			}
 
 			public double GetTargetValue(bool normalised = false)
@@ -446,16 +399,6 @@ namespace BioIK.Setup {
 				}
 
 				return targetValue;
-			}
-
-			public double GetCurrentValue()
-			{
-				return currentValue;
-			}
-
-			public double GetCurrentError()
-			{
-				return currentError;
 			}
 		}
 	}

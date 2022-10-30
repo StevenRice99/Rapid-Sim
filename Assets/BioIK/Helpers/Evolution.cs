@@ -26,7 +26,6 @@ namespace BioIK.Helpers {
 		private double[] Probabilities;							//Current probabilities for selection
 		private double Gene;									//Simple storage variable #1
 		private double Weight;									//Simple storage variable #2
-		private bool[] Constrained;
 
         //Variables for elitism exploitation
         private bool Evolving;
@@ -62,7 +61,6 @@ namespace BioIK.Helpers {
 
 			LowerBounds = new double[Dimensionality];
 			UpperBounds = new double[Dimensionality];
-			Constrained = new bool[Dimensionality];
 			Probabilities = new double[PopulationSize];
 			Solution = new double[Dimensionality];
 
@@ -94,7 +92,6 @@ namespace BioIK.Helpers {
 			for(int i=0; i<Dimensionality; i++) {
 				LowerBounds[i] = Model.MotionPtrs[i].Motion.GetLowerLimit(true);
 				UpperBounds[i] = Model.MotionPtrs[i].Motion.GetUpperLimit(true);
-                Constrained[i] = Model.MotionPtrs[i].Motion.constrained;
 				Solution[i] = seed[i];
 			}
 			Fitness = Model.ComputeLoss(Solution);
@@ -289,10 +286,8 @@ namespace BioIK.Helpers {
 				Gene = offspring.Genes[i];
 
 				//Mutation
-                if(Constrained[i]) {
-                    if(Random.value < mutationProbability) {
-                        offspring.Genes[i] += (Random.value * (UpperBounds[i] - LowerBounds[i]) + LowerBounds[i]) * mutationStrength;
-                    }
+                if(Random.value < mutationProbability) {
+                    offspring.Genes[i] += (Random.value * (UpperBounds[i] - LowerBounds[i]) + LowerBounds[i]) * mutationStrength;
                 }
 
 				//Adoption
@@ -302,13 +297,11 @@ namespace BioIK.Helpers {
 					+ (1.0-Weight) * Random.value * (prototype.Genes[i] - offspring.Genes[i]);
 
 				//Project
-                if(Constrained[i]) {
-                    if(offspring.Genes[i] < LowerBounds[i]) {
-                        offspring.Genes[i] = LowerBounds[i];
-                    }
-                    if(offspring.Genes[i] > UpperBounds[i]) {
-                        offspring.Genes[i] = UpperBounds[i];
-                    }
+                if(offspring.Genes[i] < LowerBounds[i]) {
+                    offspring.Genes[i] = LowerBounds[i];
+                }
+                if(offspring.Genes[i] > UpperBounds[i]) {
+                    offspring.Genes[i] = UpperBounds[i];
                 }
 
 				//Momentum
@@ -322,13 +315,8 @@ namespace BioIK.Helpers {
 		//Generates a random individual
 		private void Reroll(Individual individual) {
 			for(int i=0; i<Dimensionality; i++) {
-				if(Constrained[i]) {
-					individual.Genes[i] = (double)Random.Range((float)LowerBounds[i], (float)UpperBounds[i]);
-					individual.Momentum[i] = 0.0;
-				} else {
-					individual.Genes[i] = Solution[i];
-					individual.Momentum[i] = 0.0;
-				}
+                individual.Genes[i] = Random.Range((float)LowerBounds[i], (float)UpperBounds[i]);
+                individual.Momentum[i] = 0.0;
 			}
 			individual.Fitness = Model.ComputeLoss(individual.Genes);
 		}

@@ -333,18 +333,12 @@ namespace BioIK.Editor {
 
 				if(motion.IsEnabled()) {
 					SetGUIColor(Color1);
-					motion.constrained = EditorGUILayout.Toggle("Constrained", motion.constrained);
-					if(motion.constrained) {
-						SetGUIColor(Color1);
-						motion.SetLowerLimit(EditorGUILayout.DoubleField("Lower Limit", motion.GetLowerLimit()));
-						SetGUIColor(Color1);
-						motion.SetUpperLimit(EditorGUILayout.DoubleField("Upper Limit", motion.GetUpperLimit()));
-						SetGUIColor(Color1);
-						motion.SetTargetValue(EditorGUILayout.Slider("Target Value", (float)motion.GetTargetValue(), (float)motion.GetLowerLimit(), (float)motion.GetUpperLimit()));
-					} else {
-						SetGUIColor(Color1);
-						motion.SetTargetValue(EditorGUILayout.DoubleField("Target Value", motion.GetTargetValue()));
-					}
+					SetGUIColor(Color1);
+					motion.SetLowerLimit(EditorGUILayout.DoubleField("Lower Limit", motion.GetLowerLimit()));
+					SetGUIColor(Color1);
+					motion.SetUpperLimit(EditorGUILayout.DoubleField("Upper Limit", motion.GetUpperLimit()));
+					SetGUIColor(Color1);
+					motion.SetTargetValue(EditorGUILayout.Slider("Target Value", (float)motion.GetTargetValue(), (float)motion.GetLowerLimit(), (float)motion.GetUpperLimit()));
 					
 					GUI.skin.button.alignment = TextAnchor.MiddleCenter;
 					SetGUIColor(Color1);
@@ -498,7 +492,7 @@ namespace BioIK.Editor {
 			if(Target.selectedSegment == motion.joint.segment && final) {
 				DrawArrow(motion.joint.GetAnchorInWorldSpace(), motion.joint.segment.transform.rotation * Quaternion.LookRotation(motion.axis), 0.125f, motion.IsEnabled() ? color : Color.grey);
 				
-				if(!motion.IsEnabled() || !motion.constrained) {
+				if(!motion.IsEnabled()) {
 					return;
 				}
 
