@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 
 namespace BioIK.Helpers {
@@ -10,115 +9,99 @@ namespace BioIK.Helpers {
 	//====================================================================================================
 	//----------------------------------------------------------------------------------------------------
 	public class Evolution {		
-		private Model Model;                 		    		//Reference to the kinematic model
-		private int PopulationSize;                 			//Number of individuals (population size)
-		private int Elites;                     				//Number of elite individuals
-		private int Dimensionality;                  			//Search space dimensionality
+		private readonly Model _model;          //Reference to the kinematic model
+		private readonly int _populationSize;   //Number of individuals (population size)
+		private readonly int _elites;           //Number of elite individuals
+		private readonly int _dimensionality;   //Search space dimensionality
 
-		private double[] LowerBounds;               			//Constraints for the lower bounds
-		private double[] UpperBounds; 		                    //Constraints for the upper bounds
+		private readonly double[] _lowerBounds; //Constraints for the lower bounds
+		private readonly double[] _upperBounds; //Constraints for the upper bounds
 
-		private Individual[] Population;                    	//Array for current individuals
-		private Individual[] Offspring;							//Array for offspring individuals
+		private Individual[] _population;   //Array for current individuals
+		private Individual[] _offspring;    //Array for offspring individuals
 
-		private List<Individual> Pool = new();	//Selection pool for recombination
-		private int PoolCount;									//Current size of the selection pool
-		private double[] Probabilities;							//Current probabilities for selection
-		private double Gene;									//Simple storage variable #1
-		private double Weight;									//Simple storage variable #2
+		private readonly List<Individual> _pool = new();    //Selection pool for recombination
+		private int _poolCount;                             //Current size of the selection pool
+		private readonly double[] _probabilities;           //Current probabilities for selection
+		private double _gene;                               //Simple storage variable #1
+		private double _weight;                             //Simple storage variable #2
 
         //Variables for elitism exploitation
-        private bool Evolving;
-        private bool[] Improved;
-        private Model[] Models;
-        private BFGS[] Optimisers;
+        private bool _evolving;
+        private readonly bool[] _improved;
+        private readonly Model[] _models;
+        private readonly BFGS[] _optimisers;
 
-        //Threading
-        private ManualResetEvent[] Handles;
-        private Thread[] Threads;
-	    private bool[] Work;
-        
         //Variables for optimisation queries
-		private double[] Solution;                       		//Evolutionary solution
-		private double Fitness;                  				//Evolutionary fitness
-
-        private bool Killed;
+		private readonly double[] _solution;    //Evolutionary solution
+		private double _fitness;                //Evolutionary fitness
 
 		//Initialises the algorithm
 		public Evolution(Model model, int populationSize, int elites)
         {
-			Model = model;
-			PopulationSize = populationSize;
-			Elites = elites;
-			Dimensionality = model.GetDoF();
+			_model = model;
+			_populationSize = populationSize;
+			_elites = elites;
+			_dimensionality = model.GetDoF();
 
-			Population = new Individual[PopulationSize];
-			Offspring = new Individual[PopulationSize];
-			for(int i=0; i<PopulationSize; i++) {
-				Population[i] = new(Dimensionality);
-				Offspring[i] = new(Dimensionality);
+			_population = new Individual[_populationSize];
+			_offspring = new Individual[_populationSize];
+			for (int i = 0; i<_populationSize; i++)
+            {
+				_population[i] = new(_dimensionality);
+				_offspring[i] = new(_dimensionality);
 			}
 
-			LowerBounds = new double[Dimensionality];
-			UpperBounds = new double[Dimensionality];
-			Probabilities = new double[PopulationSize];
-			Solution = new double[Dimensionality];
+			_lowerBounds = new double[_dimensionality];
+			_upperBounds = new double[_dimensionality];
+			_probabilities = new double[_populationSize];
+			_solution = new double[_dimensionality];
 
-            Models = new Model[Elites];
-            Optimisers = new BFGS[Elites];
-            Improved = new bool[Elites];
-            for(int i=0; i<Elites; i++) {
+            _models = new Model[_elites];
+            _optimisers = new BFGS[_elites];
+            _improved = new bool[_elites];
+            for (int i = 0; i < _elites; i++)
+            {
                 int index = i;
-                Models[index] = new(Model.GetCharacter());
-                Optimisers[index] = new(Dimensionality, x => Models[index].ComputeLoss(x), y => Models[index].ComputeGradient(y, 1e-5));
+                _models[index] = new(_model.GetCharacter());
+                _optimisers[index] = new(_dimensionality, x => _models[index].ComputeLoss(x), y => _models[index].ComputeGradient(y, 1e-5));
             }
-        }
-
-        ~Evolution() {
-            Kill();
-        }
-
-        public void Kill() {
-            if(Killed) {
-                return;
-            }
-            Killed = true;
         }
 
 		public double[] Optimise(int generations, double[] seed)
         {
-            Model.Refresh();
+            _model.Refresh();
             
-			for(int i=0; i<Dimensionality; i++) {
-				LowerBounds[i] = Model.MotionPointers[i].Motion.GetLowerLimit(true);
-				UpperBounds[i] = Model.MotionPointers[i].Motion.GetUpperLimit(true);
-				Solution[i] = seed[i];
+			for(int i=0; i<_dimensionality; i++) {
+				_lowerBounds[i] = _model.MotionPointers[i].Motion.GetLowerLimit(true);
+				_upperBounds[i] = _model.MotionPointers[i].Motion.GetUpperLimit(true);
+				_solution[i] = seed[i];
 			}
-			Fitness = Model.ComputeLoss(Solution);
+			_fitness = _model.ComputeLoss(_solution);
 
             Initialise(seed);
-            for(int i=0; i<Elites; i++) {
-                Models[i].CopyFrom(Model);
-                Optimisers[i].LowerBounds = LowerBounds;
-                Optimisers[i].UpperBounds = UpperBounds;
+            for(int i=0; i<_elites; i++) {
+                _models[i].CopyFrom(_model);
+                _optimisers[i].LowerBounds = _lowerBounds;
+                _optimisers[i].UpperBounds = _upperBounds;
             }
             for(int i=0; i<generations; i++) {
                 Evolve();
             }
 
-			return Solution;
+			return _solution;
 		}
 
 		//Initialises the population with the seed
 		private void Initialise(double[] seed) {
-			for(int i=0; i<Dimensionality; i++) {
-				Population[0].Genes[i] = seed[i];
-				Population[0].Momentum[i] = 0.0;
+			for(int i=0; i<_dimensionality; i++) {
+				_population[0].Genes[i] = seed[i];
+				_population[0].Momentum[i] = 0.0;
 			}
-			Population[0].Fitness = Model.ComputeLoss(Population[0].Genes);
+			_population[0].Fitness = _model.ComputeLoss(_population[0].Genes);
 
-			for(int i=1; i<PopulationSize; i++) {
-				Reroll(Population[i]);
+			for(int i=1; i<_populationSize; i++) {
+				Reroll(_population[i]);
 			}
 
 			SortByFitness();
@@ -131,58 +114,58 @@ namespace BioIK.Helpers {
 		//One evolutionary cycle
 		private void Evolve() {
 			//Create mating pool
-			Pool.Clear();
-			Pool.AddRange(Population);
-			PoolCount = PopulationSize;
+			_pool.Clear();
+			_pool.AddRange(_population);
+			_poolCount = _populationSize;
             
             //Evolve offspring
             System.DateTime timestamp = Utility.GetTimestamp();
-            for(int i=Elites; i<PopulationSize; i++) {
-                if(PoolCount > 0) {
-                    Individual parentA = Select(Pool);
-                    Individual parentB = Select(Pool);
-                    Individual prototype = Select(Pool);
+            for(int i=_elites; i<_populationSize; i++) {
+                if(_poolCount > 0) {
+                    Individual parentA = Select(_pool);
+                    Individual parentB = Select(_pool);
+                    Individual prototype = Select(_pool);
 
                     //Recombination and Adoption
-                    Reproduce(Offspring[i], parentA, parentB, prototype);
+                    Reproduce(_offspring[i], parentA, parentB, prototype);
 
                     //Pre-Selection Niching
-                    if(Offspring[i].Fitness < parentA.Fitness) {
-                        Pool.Remove(parentA);
-                        PoolCount -= 1;
+                    if(_offspring[i].Fitness < parentA.Fitness) {
+                        _pool.Remove(parentA);
+                        _poolCount -= 1;
                     }
-                    if(Offspring[i].Fitness < parentB.Fitness) {
-                        Pool.Remove(parentB);
-                        PoolCount -= 1;
+                    if(_offspring[i].Fitness < parentB.Fitness) {
+                        _pool.Remove(parentB);
+                        _poolCount -= 1;
                     }
                 } else {
                     //Fill the population
-                    Reroll(Offspring[i]);
+                    Reroll(_offspring[i]);
                 }
             }
             double duration = Utility.GetElapsedTime(timestamp);
 
             //Exploit elites sequentially
-            for(int i=0; i<Elites; i++) {
+            for(int i=0; i<_elites; i++) {
                 SurviveSequential(i, duration);
             }
 
 			//Reroll elite if exploitation was not successful
-			for(int i=0; i<Elites; i++) {
-				if(!Improved[i]) {
-					Reroll(Offspring[i]);
+			for(int i=0; i<_elites; i++) {
+				if(!_improved[i]) {
+					Reroll(_offspring[i]);
 				}
 			}
 
 			//Swap population and offspring
-			Swap(ref Population, ref Offspring);
+			Swap(ref _population, ref _offspring);
 
 			//Finalise
 			SortByFitness();
 
 			//Check improvement and wipeout criterion
 			if(!TryUpdateSolution() && !HasAnyEliteImproved()) {
-				Initialise(Solution);
+				Initialise(_solution);
 			} else {
                 ComputeExtinctions();
             }
@@ -191,7 +174,7 @@ namespace BioIK.Helpers {
 		//Returns the mutation probability from two parents
 		private double GetMutationProbability(Individual parentA, Individual parentB) {
 			double extinction = 0.5 * (parentA.Extinction + parentB.Extinction);
-			double inverse = 1.0/Dimensionality;
+			double inverse = 1.0/_dimensionality;
 			return extinction * (1.0-inverse) + inverse;
 		}
 
@@ -202,27 +185,18 @@ namespace BioIK.Helpers {
 
 		//Computes the extinction factors for all individuals
 		private void ComputeExtinctions() {
-			double min = Population[0].Fitness;
-			double max = Population[PopulationSize-1].Fitness;
-			for(int i=0; i<PopulationSize; i++) {
-				double grading = i/((double)PopulationSize-1);
-				Population[i].Extinction = (Population[i].Fitness + min*(grading-1.0)) / max;
+			double min = _population[0].Fitness;
+			double max = _population[_populationSize-1].Fitness;
+			for(int i=0; i<_populationSize; i++) {
+				double grading = i/((double)_populationSize-1);
+				_population[i].Extinction = (_population[i].Fitness + min*(grading-1.0)) / max;
 			}
 		}
 
-        private bool HasWork() {
-            for(int i=0; i<Elites; i++) {
-                if(Work[i]) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
 		//Returns whether any elite could be improved by the exploitation
 		private bool HasAnyEliteImproved() {
-			for(int i=0; i<Elites; i++) {
-				if(Improved[i]){
+			for(int i=0; i<_elites; i++) {
+				if(_improved[i]){
 					return true;
 				}
 			}
@@ -231,12 +205,12 @@ namespace BioIK.Helpers {
 
 		//Tries to improve the evolutionary solution by the population, and returns whether it was successful
 		private bool TryUpdateSolution() {
-			double candidateFitness = Population[0].Fitness;
-			if(candidateFitness < Fitness) {
-				for(int i=0; i<Dimensionality; i++) {
-					Solution[i] = Population[0].Genes[i];
+			double candidateFitness = _population[0].Fitness;
+			if(candidateFitness < _fitness) {
+				for(int i=0; i<_dimensionality; i++) {
+					_solution[i] = _population[0].Genes[i];
 				}
-				Fitness = candidateFitness;
+				_fitness = candidateFitness;
 				return true;
 			}
 
@@ -245,26 +219,26 @@ namespace BioIK.Helpers {
 
 		private void SurviveSequential(int index, double timeout) {
             //Copy elitist survivor
-            Individual survivor = Population[index];
-            Individual elite = Offspring[index];
-            for(int i=0; i<Dimensionality; i++) {
+            Individual survivor = _population[index];
+            Individual elite = _offspring[index];
+            for(int i=0; i<_dimensionality; i++) {
                 elite.Genes[i] = survivor.Genes[i];
                 elite.Momentum[i] = survivor.Momentum[i];
             }
 
             //Exploit
-            double fitness = Models[index].ComputeLoss(elite.Genes);
-            Optimisers[index].Minimise(elite.Genes, timeout);
-            if(Optimisers[index].Value < fitness) {
-                for(int i=0; i<Dimensionality; i++) {
-                    elite.Momentum[i] = Optimisers[index].Solution[i] - elite.Genes[i];
-                    elite.Genes[i] = Optimisers[index].Solution[i];
+            double fitness = _models[index].ComputeLoss(elite.Genes);
+            _optimisers[index].Minimise(elite.Genes, timeout);
+            if(_optimisers[index].Value < fitness) {
+                for(int i=0; i<_dimensionality; i++) {
+                    elite.Momentum[i] = _optimisers[index].Solution[i] - elite.Genes[i];
+                    elite.Genes[i] = _optimisers[index].Solution[i];
                 }
-                elite.Fitness = Optimisers[index].Value;        
-                Improved[index] = true;
+                elite.Fitness = _optimisers[index].Value;        
+                _improved[index] = true;
             } else {
                 elite.Fitness = fitness;
-                Improved[index] = false;
+                _improved[index] = false;
             }
 		}
 
@@ -273,58 +247,58 @@ namespace BioIK.Helpers {
             double mutationProbability = GetMutationProbability(parentA, parentB);
 			double mutationStrength = GetMutationStrength(parentA, parentB);
 
-			for(int i=0; i<Dimensionality; i++) {
+			for(int i=0; i<_dimensionality; i++) {
 				//Recombination
-				Weight = Random.value;
+				_weight = Random.value;
 				double momentum = Random.value * parentA.Momentum[i] + Random.value * parentB.Momentum[i];
-				offspring.Genes[i] = Weight*parentA.Genes[i] + (1.0-Weight)*parentB.Genes[i] + momentum;
+				offspring.Genes[i] = _weight*parentA.Genes[i] + (1.0-_weight)*parentB.Genes[i] + momentum;
 
 				//Store
-				Gene = offspring.Genes[i];
+				_gene = offspring.Genes[i];
 
 				//Mutation
                 if(Random.value < mutationProbability) {
-                    offspring.Genes[i] += (Random.value * (UpperBounds[i] - LowerBounds[i]) + LowerBounds[i]) * mutationStrength;
+                    offspring.Genes[i] += (Random.value * (_upperBounds[i] - _lowerBounds[i]) + _lowerBounds[i]) * mutationStrength;
                 }
 
 				//Adoption
-				Weight = Random.value;
+				_weight = Random.value;
 				offspring.Genes[i] += 
-					Weight * Random.value * (0.5 * (parentA.Genes[i] + parentB.Genes[i]) - offspring.Genes[i])
-					+ (1.0-Weight) * Random.value * (prototype.Genes[i] - offspring.Genes[i]);
+					_weight * Random.value * (0.5 * (parentA.Genes[i] + parentB.Genes[i]) - offspring.Genes[i])
+					+ (1.0-_weight) * Random.value * (prototype.Genes[i] - offspring.Genes[i]);
 
 				//Project
-                if(offspring.Genes[i] < LowerBounds[i]) {
-                    offspring.Genes[i] = LowerBounds[i];
+                if(offspring.Genes[i] < _lowerBounds[i]) {
+                    offspring.Genes[i] = _lowerBounds[i];
                 }
-                if(offspring.Genes[i] > UpperBounds[i]) {
-                    offspring.Genes[i] = UpperBounds[i];
+                if(offspring.Genes[i] > _upperBounds[i]) {
+                    offspring.Genes[i] = _upperBounds[i];
                 }
 
 				//Momentum
-				offspring.Momentum[i] = Random.value * momentum + (offspring.Genes[i] - Gene);
+				offspring.Momentum[i] = Random.value * momentum + (offspring.Genes[i] - _gene);
 			}
 
 			//Fitness
-			offspring.Fitness = Model.ComputeLoss(offspring.Genes);
+			offspring.Fitness = _model.ComputeLoss(offspring.Genes);
 		}
 
 		//Generates a random individual
 		private void Reroll(Individual individual) {
-			for(int i=0; i<Dimensionality; i++) {
-                individual.Genes[i] = Random.Range((float)LowerBounds[i], (float)UpperBounds[i]);
+			for(int i=0; i<_dimensionality; i++) {
+                individual.Genes[i] = Random.Range((float)_lowerBounds[i], (float)_upperBounds[i]);
                 individual.Momentum[i] = 0.0;
 			}
-			individual.Fitness = Model.ComputeLoss(individual.Genes);
+			individual.Fitness = _model.ComputeLoss(individual.Genes);
 		}
 
 		//Rank-based selection of an individual
 		private Individual Select(List<Individual> pool) {
-			double rankSum = PoolCount*(PoolCount+1) / 2.0;
-			for(int i=0; i<PoolCount; i++) {
-				Probabilities[i] = (PoolCount-i)/rankSum;
+			double rankSum = _poolCount*(_poolCount+1) / 2.0;
+			for(int i=0; i<_poolCount; i++) {
+				_probabilities[i] = (_poolCount-i)/rankSum;
 			}
-			return pool[GetRandomWeightedIndex(Probabilities, PoolCount)];
+			return pool[GetRandomWeightedIndex(_probabilities, _poolCount)];
 		}
 		
 		//Returns a random index with respect to the probability weights
@@ -380,7 +354,7 @@ namespace BioIK.Helpers {
 
 		//Sorts the population by their fitness values (descending)
 		private void SortByFitness() {
-			System.Array.Sort(Population,
+			System.Array.Sort(_population,
 				delegate(Individual a, Individual b) {
 					return a.Fitness.CompareTo(b.Fitness);
 				}
@@ -395,39 +369,39 @@ namespace BioIK.Helpers {
 		}
 
         public Model GetModel() {
-            return Model;
+            return _model;
         }
 
         public double[] GetSolution() {
-            return Solution;
+            return _solution;
         }
 
         public double GetFitness() {
-            return Fitness;
+            return _fitness;
         }
 
         public double[] GetLowerBounds() {
-            return LowerBounds;
+            return _lowerBounds;
         }
 
         public double[] GetUpperBounds() {
-            return UpperBounds;
+            return _upperBounds;
         }
 
 		public double[,] GetGeneLandscape() {
-			double[,] values = new double[PopulationSize, Dimensionality];
-			for(int i=0; i<PopulationSize; i++) {
-				for(int j=0; j<Dimensionality; j++) {
-					values[i,j] = Population[i].Genes[j];
+			double[,] values = new double[_populationSize, _dimensionality];
+			for(int i=0; i<_populationSize; i++) {
+				for(int j=0; j<_dimensionality; j++) {
+					values[i,j] = _population[i].Genes[j];
 				}
 			}
 			return values;
 		}
 
 		public double[] GetFitnessLandscape() {
-			double[] values = new double[PopulationSize];
-			for(int i=0; i<PopulationSize; i++) {
-				values[i] = Population[i].Fitness;
+			double[] values = new double[_populationSize];
+			for(int i=0; i<_populationSize; i++) {
+				values[i] = _population[i].Fitness;
 			}
 			return values;
 		}

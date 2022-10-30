@@ -56,12 +56,6 @@ namespace BioIK
 
 		public void DeInitialise()
 		{
-			if (Evolution == null)
-			{
-				return;
-			}
-
-			Evolution.Kill();
 			Evolution = null;
 		}
 
