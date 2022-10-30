@@ -1,75 +1,76 @@
-﻿using UnityEngine;
+﻿using System;
+using BioIK.Helpers;
+using UnityEngine;
 
-namespace BioIK {
-
+namespace BioIK.Setup
+{
 	[AddComponentMenu("")]
-	public class BioSegment : MonoBehaviour {
-		public BioIK Character;
-		public Transform Transform;
-		public BioSegment Parent;
-		public BioSegment[] Childs = new BioSegment[0];
-		public BioJoint Joint;
-		public BioObjective[] Objectives = new BioObjective[0];
+	public class BioSegment : MonoBehaviour
+	{
+		public BioIK controller;
+		public BioSegment parent;
+		public BioSegment[] children = Array.Empty<BioSegment>();
+		public BioJoint joint;
+		public BioObjective[] objectives = Array.Empty<BioObjective>();
 
-		private void Awake() {
-
-		}
-
-		private void Start() {
-
-		}
-
-		private void OnDestroy() {
-
-		}
-
-		public BioSegment Create(BioIK character) {
-			Character = character;
-			Transform = transform;
+		public BioSegment Create(BioIK bioIk)
+		{
+			controller = bioIk;
 			hideFlags = HideFlags.HideInInspector;
 			return this;
 		}
 
-		public Vector3 GetAnchoredPosition() {
-			return Joint == null ? Transform.position : Joint.GetAnchorInWorldSpace();
+		public Vector3 GetAnchoredPosition()
+		{
+			return joint == null ? transform.position : joint.GetAnchorInWorldSpace();
 		}
 
-		public void AddChild(BioSegment child) {
-			System.Array.Resize(ref Childs, Childs.Length+1);
-			Childs[Childs.Length-1] = child;
+		public void AddChild(BioSegment child)
+		{
+			Array.Resize(ref children, children.Length+1);
+			children[^1] = child;
 		}
 
-		public void RenewRelations() {
-			Parent = null;
-			System.Array.Resize(ref Childs, 0);
-			if(Transform != Character.transform) {
-				Parent = Character.FindSegment(Transform.parent);
-				Parent.AddChild(this);
+		public void RenewRelations()
+		{
+			parent = null;
+			Array.Resize(ref children, 0);
+			if (transform == controller.transform)
+			{
+				return;
 			}
+
+			parent = controller.FindSegment(transform.parent);
+			parent.AddChild(this);
 		}
 
-		public BioJoint AddJoint() {
-			if(Joint != null) {
+		public BioJoint AddJoint()
+		{
+			if(joint != null)
+			{
 				Debug.Log("The segment already has a joint.");
-			} else {
-				Joint = Utility.AddBioJoint(this);
-				Character.Refresh();
 			}
-			return Joint;
+			else
+			{
+				joint = Utility.AddBioJoint(this);
+				controller.Refresh();
+			}
+			return joint;
 		}
 
-		public BioObjective AddObjective(ObjectiveType type) {
+		public BioObjective AddObjective(ObjectiveType type)
+		{
 			BioObjective objective = Utility.AddObjective(this, type);
-			if(objective == null) {
+			if(objective == null)
+			{
 				Debug.Log("The objective could not be found.");
 				return null;
-			} else {
-				System.Array.Resize(ref Objectives, Objectives.Length+1);
-				Objectives[Objectives.Length-1] = objective;
-				Character.Refresh();
-				return Objectives[Objectives.Length-1];
 			}
+
+			Array.Resize(ref objectives, objectives.Length+1);
+			objectives[^1] = objective;
+			controller.Refresh();
+			return objectives[^1];
 		}
 	}
-
 }

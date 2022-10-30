@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using BioIK.Helpers;
+using BioIK.Setup;
 using Unity.Mathematics;
 
 namespace BioIK
@@ -96,7 +98,7 @@ namespace BioIK
 		{
 			for (int i = 0; i < segments.Count; i++)
 			{
-				if (segments[i].Transform == t)
+				if (segments[i].transform == t)
 				{
 					return segments[i];
 				}
@@ -108,13 +110,15 @@ namespace BioIK
 		{
 			List<BioSegment> chain = new();
 			BioSegment segment = end;
-			while(true) {
+			while(true)
+			{
 				chain.Add(segment);
-				if(segment.Transform == transform || segment.Parent == null) {
+				if(segment.transform == transform || segment.parent == null)
+				{
 					break;
-				} else {
-					segment = segment.Parent;
 				}
+
+				segment = segment.parent;
 			}
 			chain.Reverse();
 			return chain;
@@ -122,20 +126,22 @@ namespace BioIK
 
 		public static void UpdateData(BioSegment segment)
 		{
-			if (segment.Joint != null && segment.Joint.enabled)
+			if (segment.joint != null && segment.joint.enabled)
 			{
-				segment.Joint.UpdateData();
+				segment.joint.UpdateData();
 			}
-			for (int i = 0; i < segment.Objectives.Length; i++)
+			
+			for (int i = 0; i < segment.objectives.Length; i++)
 			{
-				if (segment.Objectives[i].enabled)
+				if (segment.objectives[i].enabled)
 				{
-					segment.Objectives[i].UpdateData();
+					segment.objectives[i].UpdateData();
 				}
 			}
-			for (int i = 0; i<segment.Childs.Length; i++)
+			
+			for (int i = 0; i<segment.children.Length; i++)
 			{
-				UpdateData(segment.Childs[i]);
+				UpdateData(segment.children[i]);
 			}
 		}
 
@@ -179,7 +185,7 @@ namespace BioIK
 				segments.Add(segment);
 			}
 			
-			segment.Character = this;
+			segment.controller = this;
 			segment.RenewRelations();
 			
 			for (int i = 0; i < t.childCount; i++)
@@ -190,14 +196,14 @@ namespace BioIK
 
 		public static void ProcessMotion(BioSegment segment)
 		{
-			if (segment.Joint != null && segment.Joint.enabled)
+			if (segment.joint != null && segment.joint.enabled)
 			{
-				segment.Joint.ProcessMotion();
+				segment.joint.ProcessMotion();
 			}
 			
-			for (int i = 0; i < segment.Childs.Length; i++)
+			for (int i = 0; i < segment.children.Length; i++)
 			{
-				ProcessMotion(segment.Childs[i]);
+				ProcessMotion(segment.children[i]);
 			}
 		}
 

@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using BioIK.Helpers;
+using UnityEngine;
 
-namespace BioIK {
+namespace BioIK.Setup.Objectives {
 
 	//This objective aims to minimise the rotational distance between the transform and the target.
 	[AddComponentMenu("")]
@@ -15,7 +16,7 @@ namespace BioIK {
 		}
 
 		public override void UpdateData() {
-			if(Segment.Character.Evolution == null) {
+			if(Segment.controller.Evolution == null) {
 				return;
 			}
 			if(Target != null) {

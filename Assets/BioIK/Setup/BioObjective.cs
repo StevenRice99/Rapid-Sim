@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using BioIK.Helpers;
+using UnityEngine;
 
-namespace BioIK {
+namespace BioIK.Setup {
 
 	[AddComponentMenu("")]
 	public abstract class BioObjective : MonoBehaviour {
@@ -17,13 +18,13 @@ namespace BioIK {
 
 		private void OnEnable() {
 			if(Segment != null) {
-				Segment.Character.Refresh();
+				Segment.controller.Refresh();
 			}
 		}
 
 		private void OnDisable() {
 			if(Segment != null) {
-				Segment.Character.Refresh();
+				Segment.controller.Refresh();
 			}
 		}
 
@@ -38,18 +39,18 @@ namespace BioIK {
 		}
 
 		public void Remove() {
-			for(int i=0; i<Segment.Objectives.Length; i++) {
-				if(Segment.Objectives[i] == this) {
-					for(int j=i; j<Segment.Objectives.Length-1; j++) {
-						Segment.Objectives[j] = Segment.Objectives[j+1];
+			for(int i=0; i<Segment.objectives.Length; i++) {
+				if(Segment.objectives[i] == this) {
+					for(int j=i; j<Segment.objectives.Length-1; j++) {
+						Segment.objectives[j] = Segment.objectives[j+1];
 					}
-					System.Array.Resize(ref Segment.Objectives, Segment.Objectives.Length-1);
+					System.Array.Resize(ref Segment.objectives, Segment.objectives.Length-1);
 					break;
 				}
 			}
 			if(Segment != null) {
-				if(Segment.Character != null) {
-					Segment.Character.Refresh();
+				if(Segment.controller != null) {
+					Segment.controller.Refresh();
 				}
 			}
 			Utility.Destroy(this);

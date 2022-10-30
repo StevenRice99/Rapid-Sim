@@ -1,5 +1,5 @@
-﻿namespace BioIK {
-	public enum ObjectiveType {Position, Orientation, LookAt, Distance, Displacement, JointValue, Projection}
-	public enum JointType {Rotational, Translational};
-	public enum MotionType {Instantaneous, Realistic};
+﻿namespace BioIK.Helpers
+{
+	public enum ObjectiveType { Position, Orientation }
+	public enum JointType { Rotational, Translational }
 }

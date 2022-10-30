@@ -1,8 +1,8 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
 using System.Threading;
-using System.Collections.Generic;
+using UnityEngine;
 
-namespace BioIK {
+namespace BioIK.Helpers {
 
 	//----------------------------------------------------------------------------------------------------
 	//====================================================================================================
@@ -94,7 +94,7 @@ namespace BioIK {
 			for(int i=0; i<Dimensionality; i++) {
 				LowerBounds[i] = Model.MotionPtrs[i].Motion.GetLowerLimit(true);
 				UpperBounds[i] = Model.MotionPtrs[i].Motion.GetUpperLimit(true);
-                Constrained[i] = Model.MotionPtrs[i].Motion.Constrained;
+                Constrained[i] = Model.MotionPtrs[i].Motion.constrained;
 				Solution[i] = seed[i];
 			}
 			Fitness = Model.ComputeLoss(Solution);
@@ -244,10 +244,10 @@ namespace BioIK {
 				}
 				Fitness = candidateFitness;
 				return true;
-			} else {
-				return false;
 			}
-		}
+
+            return false;
+        }
 
 		private void SurviveSequential(int index, double timeout) {
             //Copy elitist survivor
@@ -836,27 +836,27 @@ namespace BioIK {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    if ((nbd[(i - (1)) + _nbd_offset] > 0))
+                    if (nbd[i - 1 + _nbd_offset] > 0)
                     {
-                        if (((nbd[(i - (1)) + _nbd_offset] <= 2)
-                            && (x[(i - (1)) + _x_offset] <= l[(i - (1)) + _l_offset])))
+                        if (nbd[i - 1 + _nbd_offset] <= 2
+                            && x[i - 1 + _x_offset] <= l[i - 1 + _l_offset])
                         {
-                            if ((x[(i - (1)) + _x_offset] < l[(i - (1)) + _l_offset]))
+                            if (x[i - 1 + _x_offset] < l[i - 1 + _l_offset])
                             {
                                 prjctd = true;
-                                x[(i - (1)) + _x_offset] = l[(i - (1)) + _l_offset];
+                                x[i - 1 + _x_offset] = l[i - 1 + _l_offset];
                             }
-                            nbdd = (nbdd + 1);
+                            nbdd = nbdd + 1;
                         }
-                        else if (((nbd[(i - (1)) + _nbd_offset] >= 2)
-                            && (x[(i - (1)) + _x_offset] >= u[(i - (1)) + _u_offset])))
+                        else if (nbd[i - 1 + _nbd_offset] >= 2
+                                 && x[i - 1 + _x_offset] >= u[i - 1 + _u_offset])
                         {
-                            if ((x[(i - (1)) + _x_offset] > u[(i - (1)) + _u_offset]))
+                            if (x[i - 1 + _x_offset] > u[i - 1 + _u_offset])
                             {
                                 prjctd = true;
-                                x[(i - (1)) + _x_offset] = u[(i - (1)) + _u_offset];
+                                x[i - 1 + _x_offset] = u[i - 1 + _u_offset];
                             }
-                            nbdd = (nbdd + 1);
+                            nbdd = nbdd + 1;
                         }
                     }
                 }
@@ -867,48 +867,48 @@ namespace BioIK {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    if ((nbd[(i - (1)) + _nbd_offset] != 2))
+                    if (nbd[i - 1 + _nbd_offset] != 2)
                     {
                         boxed = false;
                     }
-                    if ((nbd[(i - (1)) + _nbd_offset] == 0))
+                    if (nbd[i - 1 + _nbd_offset] == 0)
                     {
                         // this variable is always free
-                        iwhere[(i - (1)) + _iwhere_offset] = -1;
+                        iwhere[i - 1 + _iwhere_offset] = -1;
                         // 
                         // otherwise set x(i)=mid(x(i), u(i), l(i)).
                     }
                     else
                     {
                         cnstnd = true;
-                        if (((nbd[(i - (1)) + _nbd_offset] == 2) &&
-                            ((u[(i - (1)) + _u_offset] - l[(i - (1)) + _l_offset]) <= 0.0)))
+                        if (nbd[i - 1 + _nbd_offset] == 2 &&
+                            u[i - 1 + _u_offset] - l[i - 1 + _l_offset] <= 0.0)
                         {
                             // this variable is always fixed
-                            iwhere[(i - (1)) + _iwhere_offset] = 3;
+                            iwhere[i - 1 + _iwhere_offset] = 3;
                         }
                         else
                         {
-                            iwhere[(i - (1)) + _iwhere_offset] = 0;
+                            iwhere[i - 1 + _iwhere_offset] = 0;
                         }
                     }
                 }
             }
 
             // 
-            if ((iprint >= 0))
+            if (iprint >= 0)
             {
                 if (prjctd)
                 {
                     // DISPLAY: The initial X is infeasible.  Restart with its projection.";
                 }
-                if ((!cnstnd))
+                if (!cnstnd)
                 {
                     // DISPLAY: "This problem is unconstrained."
                 }
             }
 
-            if ((iprint > 0))
+            if (iprint > 0)
             {
                 // DISPLAY: 'At X0 ',i9,' variables are exactly at the bounds'" (nbdd)
             }
@@ -993,7 +993,7 @@ namespace BioIK {
                 for (info = 1; info <= n; info++)
                 {
                     // ......exit
-                    if ((t[(info - (1)) + (info - (1)) * (ldt) + _t_offset] == 0.0e0))
+                    if (t[info - 1 + (info - 1) * ldt + _t_offset] == 0.0e0)
                     {
                         return;
                     }
@@ -1007,14 +1007,14 @@ namespace BioIK {
             // 
             Case = 1;
 
-            if (((job) % (10) != 0))
+            if (job % 10 != 0)
             {
                 Case = 2;
             }
 
-            if ((((job) % (100) / 10) != 0))
+            if (job % 100 / 10 != 0)
             {
-                Case = (Case + 2);
+                Case = Case + 2;
             }
 
             {
@@ -1034,10 +1034,10 @@ namespace BioIK {
         //
         L20:
 
-            b[(1 - (1)) + _b_offset] = (b[(1 - (1)) + _b_offset]
-                / t[(1 - (1)) + (1 - (1)) * (ldt) + _t_offset]);
+            b[1 - 1 + _b_offset] = b[1 - 1 + _b_offset]
+                                   / t[1 - 1 + (1 - 1) * ldt + _t_offset];
 
-            if ((n < 2))
+            if (n < 2)
             {
                 return;
             }
@@ -1045,11 +1045,11 @@ namespace BioIK {
             {
                 for (j = 2; j <= n; j++)
                 {
-                    temp = (-(b[((j - 1) - (1)) + _b_offset]));
-                    daxpy(((n - j) + 1), temp, t, (j - (1)) + ((j - 1)
-                        - (1)) * (ldt) + _t_offset, 1, b, (j - (1)) + _b_offset, 1);
-                    b[(j - (1)) + _b_offset] = (b[(j - (1)) + _b_offset] / t[(j - (1))
-                        + (j - (1)) * (ldt) + _t_offset]);
+                    temp = -b[j - 1 - 1 + _b_offset];
+                    daxpy(n - j + 1, temp, t, j - 1 + (j - 1
+                                                         - 1) * ldt + _t_offset, 1, b, j - 1 + _b_offset, 1);
+                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset] / t[j - 1
+                                                                    + (j - 1) * ldt + _t_offset];
                 }
             }
             return;
@@ -1059,10 +1059,10 @@ namespace BioIK {
         // 
         L50:
 
-            b[(n - (1)) + _b_offset] = (b[(n - (1)) + _b_offset]
-                / t[(n - (1)) + (n - (1)) * (ldt) + _t_offset]);
+            b[n - 1 + _b_offset] = b[n - 1 + _b_offset]
+                                   / t[n - 1 + (n - 1) * ldt + _t_offset];
 
-            if ((n < 2))
+            if (n < 2)
             {
                 return;
             }
@@ -1070,14 +1070,14 @@ namespace BioIK {
             {
                 for (jj = 2; jj <= n; jj++)
                 {
-                    j = ((n - jj) + 1);
-                    temp = (-(b[((j + 1) - (1)) + _b_offset]));
+                    j = n - jj + 1;
+                    temp = -b[j + 1 - 1 + _b_offset];
                     daxpy(j, temp,
-                        t, (1 - (1)) + ((j + 1) - (1)) * (ldt) + _t_offset, 1,
-                        b, (1 - (1)) + _b_offset, 1);
+                        t, 1 - 1 + (j + 1 - 1) * ldt + _t_offset, 1,
+                        b, 1 - 1 + _b_offset, 1);
 
-                    b[(j - (1)) + _b_offset] = (b[(j - (1)) + _b_offset]
-                        / t[(j - (1)) + (j - (1)) * (ldt) + _t_offset]);
+                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset]
+                                           / t[j - 1 + (j - 1) * ldt + _t_offset];
                 }
             }
 
@@ -1086,10 +1086,10 @@ namespace BioIK {
         // solve trans(t)*x=b for t lower triangular.
         // 
         L80:
-            b[(n - (1)) + _b_offset] = (b[(n - (1)) + _b_offset]
-                / t[(n - (1)) + (n - (1)) * (ldt) + _t_offset]);
+            b[n - 1 + _b_offset] = b[n - 1 + _b_offset]
+                                   / t[n - 1 + (n - 1) * ldt + _t_offset];
 
-            if ((n < 2))
+            if (n < 2)
             {
                 return;
             }
@@ -1097,13 +1097,13 @@ namespace BioIK {
             {
                 for (jj = 2; jj <= n; jj++)
                 {
-                    j = ((n - jj) + 1);
-                    b[(j - (1)) + _b_offset] = (b[(j - (1)) + _b_offset]
-                        - ddot((jj - 1), t, ((j + 1) - (1)) + (j - (1)) * (ldt) + _t_offset,
-                        1, b, ((j + 1) - (1)) + _b_offset, 1));
+                    j = n - jj + 1;
+                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset]
+                                           - ddot(jj - 1, t, j + 1 - 1 + (j - 1) * ldt + _t_offset,
+                                               1, b, j + 1 - 1 + _b_offset, 1);
 
-                    b[(j - (1)) + _b_offset] = (b[(j - (1)) + _b_offset] / t[(j - (1))
-                        + (j - (1)) * (ldt) + _t_offset]);
+                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset] / t[j - 1
+                                                                    + (j - 1) * ldt + _t_offset];
                 }
             }
             return;
@@ -1112,10 +1112,10 @@ namespace BioIK {
         // solve trans(t)*x=b for t upper triangular.
         // 
         L110:
-            b[(1 - (1)) + _b_offset] = (b[(1 - (1)) + _b_offset]
-                / t[(1 - (1)) + (1 - (1)) * (ldt) + _t_offset]);
+            b[1 - 1 + _b_offset] = b[1 - 1 + _b_offset]
+                                   / t[1 - 1 + (1 - 1) * ldt + _t_offset];
 
-            if ((n < 2))
+            if (n < 2)
             {
                 return;
             }
@@ -1123,12 +1123,12 @@ namespace BioIK {
             {
                 for (j = 2; j <= n; j++)
                 {
-                    b[(j - (1)) + _b_offset] = (b[(j - (1)) + _b_offset]
-                        - ddot((j - 1), t, (1 - (1)) + (j - (1)) * (ldt) + _t_offset,
-                        1, b, (1 - (1)) + _b_offset, 1));
+                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset]
+                                           - ddot(j - 1, t, 1 - 1 + (j - 1) * ldt + _t_offset,
+                                               1, b, 1 - 1 + _b_offset, 1);
 
-                    b[(j - (1)) + _b_offset] = (b[(j - (1)) + _b_offset]
-                        / t[(j - (1)) + (j - (1)) * (ldt) + _t_offset]);
+                    b[j - 1 + _b_offset] = b[j - 1 + _b_offset]
+                                           / t[j - 1 + (j - 1) * ldt + _t_offset];
                 }
             }
         }
@@ -1207,7 +1207,7 @@ namespace BioIK {
             int i2 = 0;
             double sum = 0.0d;
 
-            if ((col == 0))
+            if (col == 0)
                 return;
 
             // 
@@ -1216,36 +1216,36 @@ namespace BioIK {
             // 
             //  solve Jp2=v2+LD^(-1)v1.
             //
-            p[((col + 1) - (1)) + _p_offset] = v[((col + 1) - (1)) + _v_offset];
+            p[col + 1 - 1 + _p_offset] = v[col + 1 - 1 + _v_offset];
             {
                 for (i = 2; i <= col; i++)
                 {
-                    i2 = (col + i);
+                    i2 = col + i;
                     sum = 0.0e0;
                     {
-                        for (k = 1; k <= (i - 1); k++)
+                        for (k = 1; k <= i - 1; k++)
                         {
-                            sum = (sum + ((sy[(i - (1)) + (k - (1)) * (m)
-                                + _sy_offset] * v[(k - (1)) + _v_offset]) / sy[(k - (1))
-                                + (k - (1)) * (m) + _sy_offset]));
+                            sum = sum + sy[i - 1 + (k - 1) * m
+                                                 + _sy_offset] * v[k - 1 + _v_offset] / sy[k - 1
+                                + (k - 1) * m + _sy_offset];
                         }
                     }
 
-                    p[(i2 - (1)) + _p_offset] = (v[(i2 - (1)) + _v_offset] + sum);
+                    p[i2 - 1 + _p_offset] = v[i2 - 1 + _v_offset] + sum;
                 }
             }
 
             // Solve the triangular system
             dtrsl(wt, _wt_offset, m, col, p,
-                ((col + 1) - (1)) + _p_offset, 11, ref info);
+                col + 1 - 1 + _p_offset, 11, ref info);
 
             // 
             // solve D^(1/2)p1=v1.
             {
                 for (i = 1; i <= col; i++)
                 {
-                    p[(i - (1)) + _p_offset] = (v[(i - (1)) + _v_offset]
-                        / System.Math.Sqrt(sy[(i - (1)) + (i - (1)) * (m) + _sy_offset]));
+                    p[i - 1 + _p_offset] = v[i - 1 + _v_offset]
+                                           / System.Math.Sqrt(sy[i - 1 + (i - 1) * m + _sy_offset]);
                 }
             }
 
@@ -1256,7 +1256,7 @@ namespace BioIK {
             //    solve J^Tp2=p2. 
             //
             dtrsl(wt, _wt_offset, m, col,
-                p, ((col + 1) - (1)) + _p_offset, 01, ref info);
+                p, col + 1 - 1 + _p_offset, 01, ref info);
 
             // 
             // compute p1 = -D^(-1/2)(p1-D^(-1/2)L'p2)
@@ -1264,8 +1264,8 @@ namespace BioIK {
             {
                 for (i = 1; i <= col; i++)
                 {
-                    p[(i - (1)) + _p_offset] = (-((p[(i - (1)) + _p_offset]
-                        / System.Math.Sqrt(sy[(i - (1)) + (i - (1)) * (m) + _sy_offset]))));
+                    p[i - 1 + _p_offset] = -(p[i - 1 + _p_offset]
+                                             / System.Math.Sqrt(sy[i - 1 + (i - 1) * m + _sy_offset]));
                 }
             }
 
@@ -1274,13 +1274,13 @@ namespace BioIK {
                 {
                     sum = 0.0e0;
                     {
-                        for (k = (i + 1); k <= col; k++)
+                        for (k = i + 1; k <= col; k++)
                         {
-                            sum = (sum + ((sy[(k - (1)) + (i - (1)) * (m) + _sy_offset]
-                                * p[((col + k) - (1)) + _p_offset]) / sy[(i - (1)) + (i - (1)) * (m) + _sy_offset]));
+                            sum = sum + sy[k - 1 + (i - 1) * m + _sy_offset]
+                                * p[col + k - 1 + _p_offset] / sy[i - 1 + (i - 1) * m + _sy_offset];
                         }
                     }
-                    p[(i - (1)) + _p_offset] = (p[(i - (1)) + _p_offset] + sum);
+                    p[i - 1 + _p_offset] = p[i - 1 + _p_offset] + sum;
                 }
             }
         }
@@ -1519,9 +1519,9 @@ namespace BioIK {
             double neggi = 0.0d;
             double f2_org = 0.0d;
 
-            if ((sbgnrm <= 0.0))
+            if (sbgnrm <= 0.0)
             {
-                if ((iprint >= 0))
+                if (iprint >= 0)
                 {
                     // DISPLAY: Subgnorm = 0.  GCP = X.
                 }
@@ -1531,13 +1531,13 @@ namespace BioIK {
             }
 
             bnded = true;
-            nfree = (n + 1);
+            nfree = n + 1;
             nbreak = 0;
             ibkmin = 0;
             bkmin = 0.0;
-            col2 = (2 * col);
+            col2 = 2 * col;
             f1 = 0.0;
-            if ((iprint >= 99))
+            if (iprint >= 99)
             {
                 // DISPLAY: '---------------- CAUCHY entered-------------------'
             }
@@ -1547,7 +1547,7 @@ namespace BioIK {
             {
                 for (i = 1; i <= col2; i++)
                 {
-                    p[(i - (1)) + _p_offset] = 0.0;
+                    p[i - 1 + _p_offset] = 0.0;
                 }
             }
             // 
@@ -1558,105 +1558,105 @@ namespace BioIK {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    neggi = (-(g[(i - (1)) + _g_offset]));
+                    neggi = -g[i - 1 + _g_offset];
 
-                    if (((iwhere[(i - (1)) + _iwhere_offset] != 3)
-                        && (iwhere[(i - (1)) + _iwhere_offset] != -1)))
+                    if (iwhere[i - 1 + _iwhere_offset] != 3
+                        && iwhere[i - 1 + _iwhere_offset] != -1)
                     {
                         // c             if x(i) is not a constant and has bounds,
                         // c             compute the difference between x(i) and its bounds.
-                        if ((nbd[(i - (1)) + _nbd_offset] <= 2))
+                        if (nbd[i - 1 + _nbd_offset] <= 2)
                         {
-                            tl = (x[(i - (1)) + _x_offset] - l[(i - (1)) + _l_offset]);
+                            tl = x[i - 1 + _x_offset] - l[i - 1 + _l_offset];
                         }
-                        if ((nbd[(i - (1)) + _nbd_offset] >= 2))
+                        if (nbd[i - 1 + _nbd_offset] >= 2)
                         {
-                            tu = (u[(i - (1)) + _u_offset] - x[(i - (1)) + _x_offset]);
+                            tu = u[i - 1 + _u_offset] - x[i - 1 + _x_offset];
                         }
                         // 
                         // c           If a variable is close enough to a bound
                         // c             we treat it as at bound.
-                        xlower = ((nbd[(i - (1)) + _nbd_offset] <= 2) && (tl <= 0.0));
-                        xupper = ((nbd[(i - (1)) + _nbd_offset] >= 2) && (tu <= 0.0));
+                        xlower = nbd[i - 1 + _nbd_offset] <= 2 && tl <= 0.0;
+                        xupper = nbd[i - 1 + _nbd_offset] >= 2 && tu <= 0.0;
                         // 
                         // c              reset iwhere(i).
-                        iwhere[(i - (1)) + _iwhere_offset] = 0;
+                        iwhere[i - 1 + _iwhere_offset] = 0;
                         if (xlower)
                         {
-                            if ((neggi <= 0.0))
+                            if (neggi <= 0.0)
                             {
-                                iwhere[(i - (1)) + _iwhere_offset] = 1;
+                                iwhere[i - 1 + _iwhere_offset] = 1;
                             }
                         }
                         else if (xupper)
                         {
-                            if ((neggi >= 0.0))
+                            if (neggi >= 0.0)
                             {
-                                iwhere[(i - (1)) + _iwhere_offset] = 2;
+                                iwhere[i - 1 + _iwhere_offset] = 2;
                             }
                         }
                         else
                         {
-                            if ((System.Math.Abs(neggi) <= 0.0))
+                            if (System.Math.Abs(neggi) <= 0.0)
                             {
-                                iwhere[(i - (1)) + _iwhere_offset] = -3;
+                                iwhere[i - 1 + _iwhere_offset] = -3;
                             }
                         }
                     }
                     pointr = head;
-                    if (((iwhere[(i - (1)) + _iwhere_offset] != 0) && (iwhere[(i - (1)) + _iwhere_offset] != -1)))
+                    if (iwhere[i - 1 + _iwhere_offset] != 0 && iwhere[i - 1 + _iwhere_offset] != -1)
                     {
-                        d[(i - (1)) + _d_offset] = 0.0;
+                        d[i - 1 + _d_offset] = 0.0;
                     }
                     else
                     {
-                        d[(i - (1)) + _d_offset] = neggi;
-                        f1 = (f1 - (neggi * neggi));
+                        d[i - 1 + _d_offset] = neggi;
+                        f1 = f1 - neggi * neggi;
 
                         // calculate p := p - W'e_i* (g_i).
                         {
                             for (j = 1; j <= col; j++)
                             {
-                                p[(j - (1)) + _p_offset] = (p[(j - (1))
-                                    + _p_offset] + (wy[(i - (1)) + (pointr - (1)) * (n) + _wy_offset] * neggi));
-                                p[((col + j) - (1)) + _p_offset] = (p[((col + j) - (1))
-                                    + _p_offset] + (ws[(i - (1)) + (pointr - (1)) * (n) + _ws_offset] * neggi));
-                                pointr = ((pointr) % (m) + 1);
+                                p[j - 1 + _p_offset] = p[j - 1
+                                                         + _p_offset] + wy[i - 1 + (pointr - 1) * n + _wy_offset] * neggi;
+                                p[col + j - 1 + _p_offset] = p[col + j - 1
+                                                               + _p_offset] + ws[i - 1 + (pointr - 1) * n + _ws_offset] * neggi;
+                                pointr = pointr % m + 1;
                             }
                         }
-                        if ((((nbd[(i - (1)) + _nbd_offset] <= 2)
-                            && (nbd[(i - (1)) + _nbd_offset] != 0)) && (neggi < 0.0)))
+                        if (nbd[i - 1 + _nbd_offset] <= 2
+                            && nbd[i - 1 + _nbd_offset] != 0 && neggi < 0.0)
                         {
                             // x(i) + d(i) is bounded; compute t(i).
 
-                            nbreak = (nbreak + 1);
-                            iorder[(nbreak - (1)) + _iorder_offset] = i;
-                            t[(nbreak - (1)) + _t_offset] = (tl / ((-(neggi))));
-                            if (((nbreak == 1) || (t[(nbreak - (1)) + _t_offset] < bkmin)))
+                            nbreak = nbreak + 1;
+                            iorder[nbreak - 1 + _iorder_offset] = i;
+                            t[nbreak - 1 + _t_offset] = tl / -neggi;
+                            if (nbreak == 1 || t[nbreak - 1 + _t_offset] < bkmin)
                             {
-                                bkmin = t[(nbreak - (1)) + _t_offset];
+                                bkmin = t[nbreak - 1 + _t_offset];
                                 ibkmin = nbreak;
                             }
                         }
-                        else if (((nbd[(i - (1)) + _nbd_offset] >= 2) && (neggi > 0.0)))
+                        else if (nbd[i - 1 + _nbd_offset] >= 2 && neggi > 0.0)
                         {
                             // x(i) + d(i) is bounded; compute t(i).
 
-                            nbreak = (nbreak + 1);
-                            iorder[(nbreak - (1)) + _iorder_offset] = i;
-                            t[(nbreak - (1)) + _t_offset] = (tu / neggi);
-                            if (((nbreak == 1) || (t[(nbreak - (1)) + _t_offset] < bkmin)))
+                            nbreak = nbreak + 1;
+                            iorder[nbreak - 1 + _iorder_offset] = i;
+                            t[nbreak - 1 + _t_offset] = tu / neggi;
+                            if (nbreak == 1 || t[nbreak - 1 + _t_offset] < bkmin)
                             {
-                                bkmin = t[(nbreak - (1)) + _t_offset];
+                                bkmin = t[nbreak - 1 + _t_offset];
                                 ibkmin = nbreak;
                             }
                         }
                         else
                         {
                             // x(i) + d(i) is not bounded.
-                            nfree = (nfree - 1);
-                            iorder[(nfree - (1)) + _iorder_offset] = i;
-                            if ((System.Math.Abs(neggi) > 0.0))
+                            nfree = nfree - 1;
+                            iorder[nfree - 1 + _iorder_offset] = i;
+                            if (System.Math.Abs(neggi) > 0.0)
                             {
                                 bnded = false;
                             }
@@ -1669,10 +1669,10 @@ namespace BioIK {
             // in iorder(1),...,iorder(nbreak) and iorder(nfree),...,iorder(n).
             // The smallest of the nbreak breakpoints is in t(ibkmin)=bkmin.
             // 
-            if ((theta != 1.0))
+            if (theta != 1.0)
             {
                 // complete the initialization of p for theta not= one.
-                dscal(col, theta, p, ((col + 1) - (1)) + _p_offset, 1);
+                dscal(col, theta, p, col + 1 - 1 + _p_offset, 1);
             }
 
             // 
@@ -1680,7 +1680,7 @@ namespace BioIK {
             // 
             dcopy(n, x, _x_offset, 1, xcp, _xcp_offset, 1);
 
-            if (((nbreak == 0) && (nfree == (n + 1))))
+            if (nbreak == 0 && nfree == n + 1)
             {
                 // is a zero vector, return with the initial xcp as GCP.
                 return;
@@ -1692,28 +1692,28 @@ namespace BioIK {
             {
                 for (j = 1; j <= col2; j++)
                 {
-                    c[(j - (1)) + _c_offset] = 0.0;
+                    c[j - 1 + _c_offset] = 0.0;
                 }
             }
 
             // 
             // c     Initialize derivative f2.
             // 
-            f2 = (-((theta * f1)));
+            f2 = -(theta * f1);
             f2_org = f2;
-            if ((col > 0))
+            if (col > 0)
             {
                 bmv(m, sy, _sy_offset, wt, _wt_offset,
                     col, p, _p_offset, v, _v_offset, ref info);
 
-                f2 = (f2 - ddot(col2, v, _v_offset, 1, p, _p_offset, 1));
+                f2 = f2 - ddot(col2, v, _v_offset, 1, p, _p_offset, 1);
             }
 
-            dtm = (-((f1 / f2)));
+            dtm = -(f1 / f2);
             tsum = 0.0;
             nseg = 1;
 
-            if ((iprint >= 99))
+            if (iprint >= 99)
             {
                 // DISPLAY: "There are " + nbreak + "  breakpoints "
             }
@@ -1721,7 +1721,7 @@ namespace BioIK {
             // 
             // c     If there are no breakpoints, locate the GCP and return. 
             // 
-            if ((nbreak == 0))
+            if (nbreak == 0)
                 goto L888;
 
             nleft = nbreak;
@@ -1738,37 +1738,37 @@ namespace BioIK {
             // 
             tj0 = tj;
 
-            if ((iter == 1))
+            if (iter == 1)
             {
                 // Since we already have the smallest breakpoint we need not do
                 // heapsort yet. Often only one breakpoint is used and the
                 // cost of heapsort is avoided.
                 tj = bkmin;
-                ibp = iorder[(ibkmin - (1)) + _iorder_offset];
+                ibp = iorder[ibkmin - 1 + _iorder_offset];
             }
             else
             {
-                if ((iter == 2))
+                if (iter == 2)
                 {
                     // Replace the already used smallest breakpoint with the
                     // breakpoint numbered nbreak > nlast, before heapsort call.
 
-                    if ((ibkmin != nbreak))
+                    if (ibkmin != nbreak)
                     {
-                        t[(ibkmin - (1)) + _t_offset] = t[(nbreak - (1)) + _t_offset];
-                        iorder[(ibkmin - (1)) + _iorder_offset] = iorder[(nbreak - (1)) + _iorder_offset];
+                        t[ibkmin - 1 + _t_offset] = t[nbreak - 1 + _t_offset];
+                        iorder[ibkmin - 1 + _iorder_offset] = iorder[nbreak - 1 + _iorder_offset];
                     }
                     // Update heap structure of breakpoints
                     //   (if iter=2, initialize heap).
                 }
-                hpsolb(nleft, t, _t_offset, iorder, _iorder_offset, (iter - 2));
-                tj = t[(nleft - (1)) + _t_offset];
-                ibp = iorder[(nleft - (1)) + _iorder_offset];
+                hpsolb(nleft, t, _t_offset, iorder, _iorder_offset, iter - 2);
+                tj = t[nleft - 1 + _t_offset];
+                ibp = iorder[nleft - 1 + _iorder_offset];
             }
             // 
-            dt = (tj - tj0);
+            dt = tj - tj0;
             // 
-            if (((dt != 0.0) && (iprint >= 100)))
+            if (dt != 0.0 && iprint >= 100)
             {
                 // DISPLAY: nseg, f1, f2
                 //          "/,'Piece    ',i3,' --f1, f2 at start point ',1p,2(1x,d11.4)"
@@ -1783,38 +1783,38 @@ namespace BioIK {
             // 
             // If a minimizer is within this interval, locate the GCP and return.
             // 
-            if ((dtm < dt))
+            if (dtm < dt)
                 goto L888;
 
             // 
             // Otherwise fix one variable and
             //   reset the corresponding component of d to zero.
             // 
-            tsum = (tsum + dt);
-            nleft = (nleft - 1);
-            iter = (iter + 1);
-            dibp = d[(ibp - (1)) + _d_offset];
-            d[(ibp - (1)) + _d_offset] = 0.0;
+            tsum = tsum + dt;
+            nleft = nleft - 1;
+            iter = iter + 1;
+            dibp = d[ibp - 1 + _d_offset];
+            d[ibp - 1 + _d_offset] = 0.0;
 
-            if ((dibp > 0.0))
+            if (dibp > 0.0)
             {
-                zibp = (u[(ibp - (1)) + _u_offset] - x[(ibp - (1)) + _x_offset]);
-                xcp[(ibp - (1)) + _xcp_offset] = u[(ibp - (1)) + _u_offset];
-                iwhere[(ibp - (1)) + _iwhere_offset] = 2;
+                zibp = u[ibp - 1 + _u_offset] - x[ibp - 1 + _x_offset];
+                xcp[ibp - 1 + _xcp_offset] = u[ibp - 1 + _u_offset];
+                iwhere[ibp - 1 + _iwhere_offset] = 2;
             }
             else
             {
-                zibp = (l[(ibp - (1)) + _l_offset] - x[(ibp - (1)) + _x_offset]);
-                xcp[(ibp - (1)) + _xcp_offset] = l[(ibp - (1)) + _l_offset];
-                iwhere[(ibp - (1)) + _iwhere_offset] = 1;
+                zibp = l[ibp - 1 + _l_offset] - x[ibp - 1 + _x_offset];
+                xcp[ibp - 1 + _xcp_offset] = l[ibp - 1 + _l_offset];
+                iwhere[ibp - 1 + _iwhere_offset] = 1;
             }
 
-            if ((iprint >= 100))
+            if (iprint >= 100)
             {
                 // DISPLAY: "Variable  " + ibp + "  is fixed."
             }
 
-            if (((nleft == 0) && (nbreak == n)))
+            if (nleft == 0 && nbreak == n)
             {
                 // all n variables are fixed,
                 // return with xcp as GCP.
@@ -1825,18 +1825,18 @@ namespace BioIK {
             // 
             // Update the derivative information.
             // 
-            nseg = (nseg + 1);
-            dibp2 = (System.Math.Pow(dibp, 2));
+            nseg = nseg + 1;
+            dibp2 = System.Math.Pow(dibp, 2);
 
             // 
             // Update f1 and f2.
             // 
             // temporarily set f1 and f2 for col=0.
             //
-            f1 = (((f1 + (dt * f2)) + dibp2) - ((theta * dibp) * zibp));
-            f2 = (f2 - (theta * dibp2));
+            f1 = f1 + dt * f2 + dibp2 - theta * dibp * zibp;
+            f2 = f2 - theta * dibp2;
             // 
-            if ((col > 0))
+            if (col > 0)
             {
                 // update c = c + dt*p.
                 daxpy(col2, dt, p, _p_offset, 1, c, _c_offset, 1);
@@ -1847,13 +1847,13 @@ namespace BioIK {
                 {
                     for (j = 1; j <= col; j++)
                     {
-                        wbp[(j - (1)) + _wbp_offset] = wy[(ibp - (1))
-                            + (pointr - (1)) * (n) + _wy_offset];
+                        wbp[j - 1 + _wbp_offset] = wy[ibp - 1
+                                                      + (pointr - 1) * n + _wy_offset];
 
-                        wbp[((col + j) - (1)) + _wbp_offset] = (theta * ws[(ibp
-                            - (1)) + (pointr - (1)) * (n) + _ws_offset]);
+                        wbp[col + j - 1 + _wbp_offset] = theta * ws[ibp
+                            - 1 + (pointr - 1) * n + _ws_offset];
 
-                        pointr = ((pointr) % (m) + 1);
+                        pointr = pointr % m + 1;
                     }
                 }
 
@@ -1866,19 +1866,19 @@ namespace BioIK {
                 wmw = ddot(col2, wbp, _wbp_offset, 1, v, _v_offset, 1);
 
                 // update p = p - dibp*wbp. 
-                daxpy(col2, (-(dibp)), wbp, _wbp_offset, 1, p, _p_offset, 1);
+                daxpy(col2, -dibp, wbp, _wbp_offset, 1, p, _p_offset, 1);
 
                 // complete updating f1 and f2 while col > 0.
-                f1 = (f1 + (dibp * wmc));
-                f2 = ((f2 + ((2.0e0 * dibp) * wmp)) - (dibp2 * wmw));
+                f1 = f1 + dibp * wmc;
+                f2 = f2 + 2.0e0 * dibp * wmp - dibp2 * wmw;
             }
 
 
-            f2 = System.Math.Max((epsmch * f2_org), f2);
+            f2 = System.Math.Max(epsmch * f2_org, f2);
 
-            if ((nleft > 0))
+            if (nleft > 0)
             {
-                dtm = (-((f1 / f2)));
+                dtm = -(f1 / f2);
                 goto L777;
                 // to repeat the loop for unsearched intervals. 
             }
@@ -1890,7 +1890,7 @@ namespace BioIK {
             }
             else
             {
-                dtm = (-((f1 / f2)));
+                dtm = -(f1 / f2);
             }
 
         // 
@@ -1898,7 +1898,7 @@ namespace BioIK {
         // 
         L888:
 
-            if ((iprint >= 99))
+            if (iprint >= 99)
             {
                 // DISPLAY: "GCP found in this segment", 
                 //
@@ -1907,11 +1907,11 @@ namespace BioIK {
                 //          dtm
                 //          "'Distance to the stationary point =  ',1p,d11.4"
             }
-            if ((dtm <= 0.0))
+            if (dtm <= 0.0)
             {
                 dtm = 0.0;
             }
-            tsum = (tsum + dtm);
+            tsum = tsum + dtm;
 
             // 
             // Move free variables (i.e., the ones w/o breakpoints) and 
@@ -1924,13 +1924,13 @@ namespace BioIK {
             // Update c = c + dtm*p = W'(x^c - x) 
             //   which will be used in computing r = Z'(B(x^c - x) + g).
             // 
-            if ((col > 0))
+            if (col > 0)
             {
                 daxpy(col2, dtm, p, _p_offset, 1, c, _c_offset, 1);
             }
 
             
-            if ((iprint > 100))
+            if (iprint > 100)
             {
                 for (i = 1; i <= n; i++)
                 {
@@ -1939,7 +1939,7 @@ namespace BioIK {
                 // DISPLAY: "'Cauchy X =  ',/,(4x,1p,6(1x,d11.4))"
             }
 
-            if ((iprint >= 99))
+            if (iprint >= 99)
             {
                 // DISPLAY: '---------------- exit CAUCHY----------------------'
             }
@@ -1989,12 +1989,12 @@ namespace BioIK {
             double a1 = 0.0d;
             double a2 = 0.0d;
 
-            if (((!cnstnd) && (col > 0)))
+            if (!cnstnd && col > 0)
             {
                 {
                     for (i = 1; i <= n; i++)
                     {
-                        r[(i - (1)) + _r_offset] = (-(g[(i - (1)) + _g_offset]));
+                        r[i - 1 + _r_offset] = -g[i - 1 + _g_offset];
                     }
                 }
             }
@@ -2003,33 +2003,33 @@ namespace BioIK {
                 {
                     for (i = 1; i <= nfree; i++)
                     {
-                        k = index[(i - (1)) + _index_offset];
-                        r[(i - (1)) + _r_offset] = ((-((theta * ((z[(k - (1))
-                            + _z_offset] - x[(k - (1)) + _x_offset]))))) - g[(k - (1)) + _g_offset]);
+                        k = index[i - 1 + _index_offset];
+                        r[i - 1 + _r_offset] = -(theta * (z[k - 1
+                                                            + _z_offset] - x[k - 1 + _x_offset])) - g[k - 1 + _g_offset];
                     }
                 }
 
                 bmv(m, sy, _sy_offset, wt, _wt_offset, col, wa,
-                    (((2 * m) + 1) - (1)) + _wa_offset, wa, (1 - (1)) + _wa_offset, ref info);
+                    2 * m + 1 - 1 + _wa_offset, wa, 1 - 1 + _wa_offset, ref info);
 
                 pointr = head;
 
                 {
                     for (j = 1; j <= col; j++)
                     {
-                        a1 = wa[(j - (1)) + _wa_offset];
-                        a2 = (theta * wa[((col + j) - (1)) + _wa_offset]);
+                        a1 = wa[j - 1 + _wa_offset];
+                        a2 = theta * wa[col + j - 1 + _wa_offset];
                         {
                             for (i = 1; i <= nfree; i++)
                             {
-                                k = index[(i - (1)) + _index_offset];
-                                r[(i - (1)) + _r_offset] = ((r[(i - (1)) + _r_offset]
-                                    + (wy[(k - (1)) + (pointr - (1)) * (n) + _wy_offset] * a1))
-                                    + (ws[(k - (1)) + (pointr - (1)) * (n) + _ws_offset] * a2));
+                                k = index[i - 1 + _index_offset];
+                                r[i - 1 + _r_offset] = r[i - 1 + _r_offset]
+                                                       + wy[k - 1 + (pointr - 1) * n + _wy_offset] * a1
+                                                       + ws[k - 1 + (pointr - 1) * n + _ws_offset] * a2;
                             }
                         }
 
-                        pointr = ((pointr) % (m) + 1);
+                        pointr = pointr % m + 1;
                     }
                 }
             }
@@ -2209,9 +2209,9 @@ namespace BioIK {
                 stage = 1;
                 finit = f;
                 ginit = g;
-                gtest = (ftol * ginit);
-                width = (stpmax - stpmin);
-                width1 = (width / 0.5);
+                gtest = ftol * ginit;
+                width = stpmax - stpmin;
+                width1 = width / 0.5;
 
                 // 
                 // The variables stx, fx, gx contain the values of the step, 
@@ -2228,14 +2228,14 @@ namespace BioIK {
                 fy = finit;
                 gy = ginit;
                 stmin = 0.0;
-                stmax = (stp + (4.0 * stp));
+                stmax = stp + 4.0 * stp;
                 task = Task.FG;
                 goto L1000;
             }
             else
             {
                 // Restore local variables.
-                if ((isave[(1 - (1)) + _isave_offset] == 1))
+                if (isave[1 - 1 + _isave_offset] == 1)
                 {
                     brackt = true;
                 }
@@ -2243,28 +2243,28 @@ namespace BioIK {
                 {
                     brackt = false;
                 }
-                stage = isave[(2 - (1)) + _isave_offset];
-                ginit = dsave[(1 - (1)) + _dsave_offset];
-                gtest = dsave[(2 - (1)) + _dsave_offset];
-                gx = dsave[(3 - (1)) + _dsave_offset];
-                gy = dsave[(4 - (1)) + _dsave_offset];
-                finit = dsave[(5 - (1)) + _dsave_offset];
-                fx = dsave[(6 - (1)) + _dsave_offset];
-                fy = dsave[(7 - (1)) + _dsave_offset];
-                stx = dsave[(8 - (1)) + _dsave_offset];
-                sty = dsave[(9 - (1)) + _dsave_offset];
-                stmin = dsave[(10 - (1)) + _dsave_offset];
-                stmax = dsave[(11 - (1)) + _dsave_offset];
-                width = dsave[(12 - (1)) + _dsave_offset];
-                width1 = dsave[(13 - (1)) + _dsave_offset];
+                stage = isave[2 - 1 + _isave_offset];
+                ginit = dsave[1 - 1 + _dsave_offset];
+                gtest = dsave[2 - 1 + _dsave_offset];
+                gx = dsave[3 - 1 + _dsave_offset];
+                gy = dsave[4 - 1 + _dsave_offset];
+                finit = dsave[5 - 1 + _dsave_offset];
+                fx = dsave[6 - 1 + _dsave_offset];
+                fy = dsave[7 - 1 + _dsave_offset];
+                stx = dsave[8 - 1 + _dsave_offset];
+                sty = dsave[9 - 1 + _dsave_offset];
+                stmin = dsave[10 - 1 + _dsave_offset];
+                stmax = dsave[11 - 1 + _dsave_offset];
+                width = dsave[12 - 1 + _dsave_offset];
+                width1 = dsave[13 - 1 + _dsave_offset];
             }
 
             // 
             // c     If psi(stp) <= 0 and f'(stp) >= 0 for some step, then the
             // c     algorithm enters the second stage.
             // 
-            ftest = (finit + (stp * gtest));
-            if ((((stage == 1) && (f <= ftest)) && (g >= 0.0)))
+            ftest = finit + stp * gtest;
+            if (stage == 1 && f <= ftest && g >= 0.0)
             {
                 stage = 2;
             }
@@ -2272,19 +2272,19 @@ namespace BioIK {
             // 
             // c     Test for warnings.
             // 
-            if ((brackt && (((stp <= stmin) || (stp >= stmax)))))
+            if (brackt && (stp <= stmin || stp >= stmax))
             {
                 task = Task.Warning;
             }
-            if ((brackt && ((stmax - stmin) <= (xtol * stmax))))
+            if (brackt && stmax - stmin <= xtol * stmax)
             {
                 task = Task.Warning;
             }
-            if ((((stp == stpmax) && (f <= ftest)) && (g <= gtest)))
+            if (stp == stpmax && f <= ftest && g <= gtest)
             {
                 task = Task.Warning;
             }
-            if (((stp == stpmin) && (((f > ftest) || (g >= gtest)))))
+            if (stp == stpmin && (f > ftest || g >= gtest))
             {
                 task = Task.Warning;
             }
@@ -2292,7 +2292,7 @@ namespace BioIK {
             // 
             // c     Test for convergence.
             // 
-            if (((f <= ftest) && (System.Math.Abs(g) <= (gtol * ((-(ginit)))))))
+            if (f <= ftest && System.Math.Abs(g) <= gtol * -ginit)
             {
                 task = Task.Convergence;
             }
@@ -2309,17 +2309,17 @@ namespace BioIK {
             // c     first stage if a lower function value has been obtained but 
             // c     the decrease is not sufficient.
             // 
-            if ((((stage == 1) && (f <= fx)) && (f > ftest)))
+            if (stage == 1 && f <= fx && f > ftest)
             {
                 // 
                 // c        Define the modified function and derivative values.
                 // 
-                fm = (f - (stp * gtest));
-                fxm = (fx - (stx * gtest));
-                fym = (fy - (sty * gtest));
-                gm = (g - gtest);
-                gxm = (gx - gtest);
-                gym = (gy - gtest);
+                fm = f - stp * gtest;
+                fxm = fx - stx * gtest;
+                fym = fy - sty * gtest;
+                gm = g - gtest;
+                gxm = gx - gtest;
+                gym = gy - gtest;
 
                 // 
                 // Call dcstep to update stx, sty, and to compute the new step.
@@ -2330,10 +2330,10 @@ namespace BioIK {
                 // 
                 // Reset the function and derivative values for f.
                 // 
-                fx = (fxm + (stx * gtest));
-                fy = (fym + (sty * gtest));
-                gx = (gxm + gtest);
-                gy = (gym + gtest);
+                fx = fxm + stx * gtest;
+                fy = fym + sty * gtest;
+                gx = gxm + gtest;
+                gy = gym + gtest;
                 // 
             }
             else
@@ -2350,12 +2350,12 @@ namespace BioIK {
             // 
             if (brackt)
             {
-                if ((System.Math.Abs((sty - stx)) >= (0.6600000000000000310862446895043831318617 * width1)))
+                if (System.Math.Abs(sty - stx) >= 0.6600000000000000310862446895043831318617 * width1)
                 {
-                    stp = (stx + (0.5 * ((sty - stx))));
+                    stp = stx + 0.5 * (sty - stx);
                 }
                 width1 = width;
-                width = System.Math.Abs((sty - stx));
+                width = System.Math.Abs(sty - stx);
             }
             // 
             // c     Set the minimum and maximum steps allowed for stp.
@@ -2367,8 +2367,8 @@ namespace BioIK {
             }
             else
             {
-                stmin = (stp + (1.100000000000000088817841970012523233891 * ((stp - stx))));
-                stmax = (stp + (4.0 * ((stp - stx))));
+                stmin = stp + 1.100000000000000088817841970012523233891 * (stp - stx);
+                stmax = stp + 4.0 * (stp - stx);
             }
 
             // 
@@ -2380,7 +2380,7 @@ namespace BioIK {
             // c     If further progress is not possible, let stp be the best
             // c     point obtained during the search.
             // 
-            if (((brackt && (((stp <= stmin) || (stp >= stmax)))) || ((brackt && ((stmax - stmin) <= (xtol * stmax))))))
+            if ((brackt && (stp <= stmin || stp >= stmax)) || (brackt && stmax - stmin <= xtol * stmax))
             {
                 stp = stx;
             }
@@ -2397,27 +2397,27 @@ namespace BioIK {
             // 
             if (brackt)
             {
-                isave[(1 - (1)) + _isave_offset] = 1;
+                isave[1 - 1 + _isave_offset] = 1;
             }
             else
             {
-                isave[(1 - (1)) + _isave_offset] = 0;
+                isave[1 - 1 + _isave_offset] = 0;
             }
 
-            isave[(2 - (1)) + _isave_offset] = stage;
-            dsave[(1 - (1)) + _dsave_offset] = ginit;
-            dsave[(2 - (1)) + _dsave_offset] = gtest;
-            dsave[(3 - (1)) + _dsave_offset] = gx;
-            dsave[(4 - (1)) + _dsave_offset] = gy;
-            dsave[(5 - (1)) + _dsave_offset] = finit;
-            dsave[(6 - (1)) + _dsave_offset] = fx;
-            dsave[(7 - (1)) + _dsave_offset] = fy;
-            dsave[(8 - (1)) + _dsave_offset] = stx;
-            dsave[(9 - (1)) + _dsave_offset] = sty;
-            dsave[(10 - (1)) + _dsave_offset] = stmin;
-            dsave[(11 - (1)) + _dsave_offset] = stmax;
-            dsave[(12 - (1)) + _dsave_offset] = width;
-            dsave[(13 - (1)) + _dsave_offset] = width1;
+            isave[2 - 1 + _isave_offset] = stage;
+            dsave[1 - 1 + _dsave_offset] = ginit;
+            dsave[2 - 1 + _dsave_offset] = gtest;
+            dsave[3 - 1 + _dsave_offset] = gx;
+            dsave[4 - 1 + _dsave_offset] = gy;
+            dsave[5 - 1 + _dsave_offset] = finit;
+            dsave[6 - 1 + _dsave_offset] = fx;
+            dsave[7 - 1 + _dsave_offset] = fy;
+            dsave[8 - 1 + _dsave_offset] = stx;
+            dsave[9 - 1 + _dsave_offset] = sty;
+            dsave[10 - 1 + _dsave_offset] = stmin;
+            dsave[11 - 1 + _dsave_offset] = stmax;
+            dsave[12 - 1 + _dsave_offset] = width;
+            dsave[13 - 1 + _dsave_offset] = width1;
         }
 
         // 
@@ -2532,37 +2532,37 @@ namespace BioIK {
             double stpf = 0.0d;
             double stpq = 0.0d;
             double theta = 0.0d;
-            sgnd = (dp * ((dx / System.Math.Abs(dx))));
+            sgnd = dp * (dx / System.Math.Abs(dx));
 
             // c     First case: A higher function value. The minimum is bracketed. 
             // c     If the cubic step is closer to stx than the quadratic step, the 
             // c     cubic step is taken, otherwise the average of the cubic and 
             // c     quadratic steps is taken.
 
-            if ((fp > fx))
+            if (fp > fx)
             {
-                theta = ((((3.0 * ((fx - fp))) / ((stp - stx))) + dx) + dp);
+                theta = 3.0 * (fx - fp) / (stp - stx) + dx + dp;
 
                 s = System.Math.Max(System.Math.Abs(theta), System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dp)));
 
-                gamma = (s * System.Math.Sqrt(((System.Math.Pow(((theta / s)), 2)) - (((dx / s)) * ((dp / s))))));
-                if ((stp < stx))
+                gamma = s * System.Math.Sqrt(System.Math.Pow(theta / s, 2) - dx / s * (dp / s));
+                if (stp < stx)
                 {
-                    gamma = (-(gamma));
+                    gamma = -gamma;
                 }
-                p = (((gamma - dx)) + theta);
-                q = (((((gamma - dx)) + gamma)) + dp);
-                r = (p / q);
-                stpc = (stx + (r * ((stp - stx))));
-                stpq = (stx + (((((dx / (((((fx - fp)) / ((stp - stx))) + dx)))) / 2.0)) * ((stp - stx))));
+                p = gamma - dx + theta;
+                q = gamma - dx + gamma + dp;
+                r = p / q;
+                stpc = stx + r * (stp - stx);
+                stpq = stx + dx / ((fx - fp) / (stp - stx) + dx) / 2.0 * (stp - stx);
 
-                if ((System.Math.Abs((stpc - stx)) < System.Math.Abs((stpq - stx))))
+                if (System.Math.Abs(stpc - stx) < System.Math.Abs(stpq - stx))
                 {
                     stpf = stpc;
                 }
                 else
                 {
-                    stpf = (stpc + (((stpq - stpc)) / 2.0));
+                    stpf = stpc + (stpq - stpc) / 2.0;
                 }
 
                 brackt = true;
@@ -2575,24 +2575,24 @@ namespace BioIK {
                 // c     secant step is taken.
                 // 
             }
-            else if ((sgnd < 0.0))
+            else if (sgnd < 0.0)
             {
-                theta = ((((3.0 * ((fx - fp))) / ((stp - stx))) + dx) + dp);
+                theta = 3.0 * (fx - fp) / (stp - stx) + dx + dp;
                 s = System.Math.Max(System.Math.Abs(theta), System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dp)));
-                gamma = (s * System.Math.Sqrt(((System.Math.Pow(((theta / s)), 2)) - (((dx / s)) * ((dp / s))))));
+                gamma = s * System.Math.Sqrt(System.Math.Pow(theta / s, 2) - dx / s * (dp / s));
 
-                if ((stp > stx))
+                if (stp > stx)
                 {
-                    gamma = (-(gamma));
+                    gamma = -gamma;
                 }
 
-                p = (((gamma - dp)) + theta);
-                q = (((((gamma - dp)) + gamma)) + dx);
-                r = (p / q);
-                stpc = (stp + (r * ((stx - stp))));
-                stpq = (stp + (((dp / ((dp - dx)))) * ((stx - stp))));
+                p = gamma - dp + theta;
+                q = gamma - dp + gamma + dx;
+                r = p / q;
+                stpc = stp + r * (stx - stp);
+                stpq = stp + dp / (dp - dx) * (stx - stp);
 
-                if ((System.Math.Abs((stpc - stp)) > System.Math.Abs((stpq - stp))))
+                if (System.Math.Abs(stpc - stp) > System.Math.Abs(stpq - stp))
                 {
                     stpf = stpc;
                 }
@@ -2608,7 +2608,7 @@ namespace BioIK {
                 // c     and the magnitude of the derivative decreases.
                 // 
             }
-            else if ((System.Math.Abs(dp) < System.Math.Abs(dx)))
+            else if (System.Math.Abs(dp) < System.Math.Abs(dx))
             {
                 // 
                 // c        The cubic step is computed only if the cubic tends to infinity 
@@ -2616,30 +2616,30 @@ namespace BioIK {
                 // c        is beyond stp. Otherwise the cubic step is defined to be the 
                 // c        secant step.
                 // 
-                theta = ((((3.0 * ((fx - fp))) / ((stp - stx))) + dx) + dp);
+                theta = 3.0 * (fx - fp) / (stp - stx) + dx + dp;
                 s = System.Math.Max(System.Math.Abs(theta), System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dp)));
 
                 // 
                 // c        The case gamma = 0 only arises if the cubic does not tend
                 // c        to infinity in the direction of the step.
                 // 
-                gamma = (s * System.Math.Sqrt(System.Math.Max(0.0,
-                    ((System.Math.Pow(((theta / s)), 2)) - (((dx / s)) * ((dp / s)))))));
+                gamma = s * System.Math.Sqrt(System.Math.Max(0.0,
+                    System.Math.Pow(theta / s, 2) - dx / s * (dp / s)));
 
-                if ((stp > stx))
+                if (stp > stx)
                 {
-                    gamma = (-(gamma));
+                    gamma = -gamma;
                 }
 
-                p = (((gamma - dp)) + theta);
-                q = (((gamma + ((dx - dp)))) + gamma);
-                r = (p / q);
+                p = gamma - dp + theta;
+                q = gamma + (dx - dp) + gamma;
+                r = p / q;
 
-                if (((r < 0.0) && (gamma != 0.0)))
+                if (r < 0.0 && gamma != 0.0)
                 {
-                    stpc = (stp + (r * ((stx - stp))));
+                    stpc = stp + r * (stx - stp);
                 }
-                else if ((stp > stx))
+                else if (stp > stx)
                 {
                     stpc = stpmax;
                 }
@@ -2648,7 +2648,7 @@ namespace BioIK {
                     stpc = stpmin;
                 }
 
-                stpq = (stp + (((dp / ((dp - dx)))) * ((stx - stp))));
+                stpq = stp + dp / (dp - dx) * (stx - stp);
 
                 if (brackt)
                 {
@@ -2657,7 +2657,7 @@ namespace BioIK {
                     // c           closer to stp than the secant step, the cubic step is 
                     // c           taken, otherwise the secant step is taken.
                     // 
-                    if ((System.Math.Abs((stpc - stp)) < System.Math.Abs((stpq - stp))))
+                    if (System.Math.Abs(stpc - stp) < System.Math.Abs(stpq - stp))
                     {
                         stpf = stpc;
                     }
@@ -2665,15 +2665,15 @@ namespace BioIK {
                     {
                         stpf = stpq;
                     }
-                    if ((stp > stx))
+                    if (stp > stx)
                     {
-                        stpf = System.Math.Min((stp +
-                            (0.6600000000000000310862446895043831318617 * ((sty - stp)))), stpf);
+                        stpf = System.Math.Min(stp +
+                                               0.6600000000000000310862446895043831318617 * (sty - stp), stpf);
                     }
                     else
                     {
-                        stpf = System.Math.Max((stp +
-                            (0.6600000000000000310862446895043831318617 * ((sty - stp)))), stpf);
+                        stpf = System.Math.Max(stp +
+                                               0.6600000000000000310862446895043831318617 * (sty - stp), stpf);
                     }
                 }
                 else
@@ -2683,7 +2683,7 @@ namespace BioIK {
                     // c           farther from stp than the secant step, the cubic step is 
                     // c           taken, otherwise the secant step is taken.
                     // 
-                    if ((System.Math.Abs((stpc - stp)) > System.Math.Abs((stpq - stp))))
+                    if (System.Math.Abs(stpc - stp) > System.Math.Abs(stpq - stp))
                     {
                         stpf = stpc;
                     }
@@ -2706,22 +2706,22 @@ namespace BioIK {
             {
                 if (brackt)
                 {
-                    theta = ((((3.0 * ((fp - fy))) / ((sty - stp))) + dy) + dp);
+                    theta = 3.0 * (fp - fy) / (sty - stp) + dy + dp;
                     s = System.Math.Max(System.Math.Abs(theta), System.Math.Max(System.Math.Abs(dy), System.Math.Abs(dp)));
-                    gamma = (s * System.Math.Sqrt(((System.Math.Pow(((theta / s)), 2)) - (((dy / s)) * ((dp / s))))));
+                    gamma = s * System.Math.Sqrt(System.Math.Pow(theta / s, 2) - dy / s * (dp / s));
 
-                    if ((stp > sty))
+                    if (stp > sty)
                     {
-                        gamma = (-(gamma));
+                        gamma = -gamma;
                     }
 
-                    p = (((gamma - dp)) + theta);
-                    q = (((((gamma - dp)) + gamma)) + dy);
-                    r = (p / q);
-                    stpc = (stp + (r * ((sty - stp))));
+                    p = gamma - dp + theta;
+                    q = gamma - dp + gamma + dy;
+                    r = p / q;
+                    stpc = stp + r * (sty - stp);
                     stpf = stpc;
                 }
-                else if ((stp > stx))
+                else if (stp > stx)
                 {
                     stpf = stpmax;
                 }
@@ -2734,7 +2734,7 @@ namespace BioIK {
             // 
             // c     Update the interval which contains a minimizer.
             // 
-            if ((fp > fx))
+            if (fp > fx)
             {
                 sty = stp;
                 fy = fp;
@@ -2742,7 +2742,7 @@ namespace BioIK {
             }
             else
             {
-                if ((sgnd < 0.0))
+                if (sgnd < 0.0)
                 {
                     sty = stx;
                     fy = fx;
@@ -2792,15 +2792,15 @@ namespace BioIK {
         {
 
             int i = 0;
-            if ((n <= 0))
+            if (n <= 0)
             {
                 task = Task.Error;
             }
-            if ((m <= 0))
+            if (m <= 0)
             {
                 task = Task.Error;
             }
-            if ((factr < 0.0))
+            if (factr < 0.0)
             {
                 task = Task.Error;
             }
@@ -2811,16 +2811,16 @@ namespace BioIK {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    if (((nbd[(i - (1)) + _nbd_offset] < 0) || (nbd[(i - (1)) + _nbd_offset] > 3)))
+                    if (nbd[i - 1 + _nbd_offset] < 0 || nbd[i - 1 + _nbd_offset] > 3)
                     {
                         // c                                                   return
                         task = Task.Error;
                         info = -6;
                         k = i;
                     }
-                    if ((nbd[(i - (1)) + _nbd_offset] == 2))
+                    if (nbd[i - 1 + _nbd_offset] == 2)
                     {
-                        if ((l[(i - (1)) + _l_offset] > u[(i - (1)) + _u_offset]))
+                        if (l[i - 1 + _l_offset] > u[i - 1 + _u_offset])
                         {
                             // c                                    return
                             task = Task.Error;
@@ -3004,19 +3004,19 @@ namespace BioIK {
 
             if (updatd)
             {
-                if ((iupdat > m))
+                if (iupdat > m)
                 {
                     // c                                 shift old part of WN1.
                     {
-                        for (jy = 1; jy <= (m - 1); jy++)
+                        for (jy = 1; jy <= m - 1; jy++)
                         {
-                            js = (m + jy);
-                            dcopy((m - jy), wn1, ((jy + 1) - (1)) + ((jy + 1) - (1)) * ((2 * m))
-                                + _wn1_offset, 1, wn1, (jy - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset, 1);
-                            dcopy((m - jy), wn1, ((js + 1) - (1)) + ((js + 1) - (1)) * ((2 * m))
-                                + _wn1_offset, 1, wn1, (js - (1)) + (js - (1)) * ((2 * m)) + _wn1_offset, 1);
-                            dcopy((m - 1), wn1, ((m + 2) - (1)) + ((jy + 1) - (1)) * ((2 * m))
-                                + _wn1_offset, 1, wn1, ((m + 1) - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset, 1);
+                            js = m + jy;
+                            dcopy(m - jy, wn1, jy + 1 - 1 + (jy + 1 - 1) * 2 * m
+                                                          + _wn1_offset, 1, wn1, jy - 1 + (jy - 1) * 2 * m + _wn1_offset, 1);
+                            dcopy(m - jy, wn1, js + 1 - 1 + (js + 1 - 1) * 2 * m
+                                                          + _wn1_offset, 1, wn1, js - 1 + (js - 1) * 2 * m + _wn1_offset, 1);
+                            dcopy(m - 1, wn1, m + 2 - 1 + (jy + 1 - 1) * 2 * m
+                                                        + _wn1_offset, 1, wn1, m + 1 - 1 + (jy - 1) * 2 * m + _wn1_offset, 1);
                         }
                     }
                 }
@@ -3025,20 +3025,20 @@ namespace BioIK {
                 // c          put new rows in blocks (1,1), (2,1) and (2,2).
                 pbegin = 1;
                 pend = nsub;
-                dbegin = (nsub + 1);
+                dbegin = nsub + 1;
                 dend = n;
                 iy = col;
-                is2 = (m + col);
-                ipntr = ((head + col) - 1);
-                if ((ipntr > m))
+                is2 = m + col;
+                ipntr = head + col - 1;
+                if (ipntr > m)
                 {
-                    ipntr = (ipntr - m);
+                    ipntr = ipntr - m;
                 }
                 jpntr = head;
                 {
                     for (jy = 1; jy <= col; jy++)
                     {
-                        js = (m + jy);
+                        js = m + jy;
                         temp1 = 0.0;
                         temp2 = 0.0;
                         temp3 = 0.0;
@@ -3047,58 +3047,58 @@ namespace BioIK {
                         {
                             for (k = pbegin; k <= pend; k++)
                             {
-                                k1 = ind[(k - (1)) + _ind_offset];
-                                temp1 = (temp1 + (wy[(k1 - (1)) + (ipntr - (1))
-                                    * (n) + _wy_offset] * wy[(k1 - (1)) + (jpntr - (1)) * (n) + _wy_offset]));
+                                k1 = ind[k - 1 + _ind_offset];
+                                temp1 = temp1 + wy[k1 - 1 + (ipntr - 1)
+                                    * n + _wy_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
                             }
                         }
                         // c             compute elements jy of row 'col' of L_a and S'AA'S
                         {
                             for (k = dbegin; k <= dend; k++)
                             {
-                                k1 = ind[(k - (1)) + _ind_offset];
-                                temp2 = (temp2 + (ws[(k1 - (1)) + (ipntr - (1))
-                                    * (n) + _ws_offset] * ws[(k1 - (1)) + (jpntr - (1)) * (n) + _ws_offset]));
-                                temp3 = (temp3 + (ws[(k1 - (1)) + (ipntr - (1))
-                                    * (n) + _ws_offset] * wy[(k1 - (1)) + (jpntr - (1)) * (n) + _wy_offset]));
+                                k1 = ind[k - 1 + _ind_offset];
+                                temp2 = temp2 + ws[k1 - 1 + (ipntr - 1)
+                                    * n + _ws_offset] * ws[k1 - 1 + (jpntr - 1) * n + _ws_offset];
+                                temp3 = temp3 + ws[k1 - 1 + (ipntr - 1)
+                                    * n + _ws_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
                             }
                         }
 
-                        wn1[(iy - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] = temp1;
-                        wn1[(is2 - (1)) + (js - (1)) * ((2 * m)) + _wn1_offset] = temp2;
-                        wn1[(is2 - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] = temp3;
-                        jpntr = ((jpntr) % (m) + 1);
+                        wn1[iy - 1 + (jy - 1) * 2 * m + _wn1_offset] = temp1;
+                        wn1[is2 - 1 + (js - 1) * 2 * m + _wn1_offset] = temp2;
+                        wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] = temp3;
+                        jpntr = jpntr % m + 1;
                     }
                 }
 
                 // 
                 // c          put new column in block (2,1).
                 jy = col;
-                jpntr = ((head + col) - 1);
-                if ((jpntr > m))
+                jpntr = head + col - 1;
+                if (jpntr > m)
                 {
-                    jpntr = (jpntr - m);
+                    jpntr = jpntr - m;
                 }
                 ipntr = head;
                 {
                     for (i = 1; i <= col; i++)
                     {
-                        is2 = (m + i);
+                        is2 = m + i;
                         temp3 = 0.0;
                         // c             compute element i of column 'col' of R_z
                         {
                             for (k = pbegin; k <= pend; k++)
                             {
-                                k1 = ind[(k - (1)) + _ind_offset];
-                                temp3 = (temp3 + (ws[(k1 - (1)) + (ipntr - (1))
-                                    * (n) + _ws_offset] * wy[(k1 - (1)) + (jpntr - (1)) * (n) + _wy_offset]));
+                                k1 = ind[k - 1 + _ind_offset];
+                                temp3 = temp3 + ws[k1 - 1 + (ipntr - 1)
+                                    * n + _ws_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
                             }
                         }
-                        ipntr = ((ipntr) % (m) + 1);
-                        wn1[(is2 - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] = temp3;
+                        ipntr = ipntr % m + 1;
+                        wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] = temp3;
                     }
                 }
-                upcl = (col - 1);
+                upcl = col - 1;
             }
             else
             {
@@ -3113,12 +3113,12 @@ namespace BioIK {
             {
                 for (iy = 1; iy <= upcl; iy++)
                 {
-                    is2 = (m + iy);
+                    is2 = m + iy;
                     jpntr = head;
                     {
                         for (jy = 1; jy <= iy; jy++)
                         {
-                            js = (m + jy);
+                            js = m + jy;
                             temp1 = 0.0;
                             temp2 = 0.0;
                             temp3 = 0.0;
@@ -3126,33 +3126,33 @@ namespace BioIK {
                             {
                                 for (k = 1; k <= nenter; k++)
                                 {
-                                    k1 = indx2[(k - (1)) + _indx2_offset];
-                                    temp1 = (temp1 + (wy[(k1 - (1)) + (ipntr - (1))
-                                        * (n) + _wy_offset] * wy[(k1 - (1)) + (jpntr - (1)) * (n) + _wy_offset]));
-                                    temp2 = (temp2 + (ws[(k1 - (1)) + (ipntr - (1))
-                                        * (n) + _ws_offset] * ws[(k1 - (1)) + (jpntr - (1)) * (n) + _ws_offset]));
+                                    k1 = indx2[k - 1 + _indx2_offset];
+                                    temp1 = temp1 + wy[k1 - 1 + (ipntr - 1)
+                                        * n + _wy_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
+                                    temp2 = temp2 + ws[k1 - 1 + (ipntr - 1)
+                                        * n + _ws_offset] * ws[k1 - 1 + (jpntr - 1) * n + _ws_offset];
                                 }
                             }
                             {
                                 for (k = ileave; k <= n; k++)
                                 {
-                                    k1 = indx2[(k - (1)) + _indx2_offset];
-                                    temp3 = (temp3 + (wy[(k1 - (1)) + (ipntr
-                                        - (1)) * (n) + _wy_offset] * wy[(k1 - (1)) + (jpntr - (1)) * (n) + _wy_offset]));
-                                    temp4 = (temp4 + (ws[(k1 - (1)) + (ipntr
-                                        - (1)) * (n) + _ws_offset] * ws[(k1 - (1)) + (jpntr - (1)) * (n) + _ws_offset]));
+                                    k1 = indx2[k - 1 + _indx2_offset];
+                                    temp3 = temp3 + wy[k1 - 1 + (ipntr
+                                                                 - 1) * n + _wy_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
+                                    temp4 = temp4 + ws[k1 - 1 + (ipntr
+                                                                 - 1) * n + _ws_offset] * ws[k1 - 1 + (jpntr - 1) * n + _ws_offset];
                                 }
                             }
 
-                            wn1[(iy - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] =
-                                ((wn1[(iy - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] + temp1) - temp3);
-                            wn1[(is2 - (1)) + (js - (1)) * ((2 * m)) + _wn1_offset] =
-                                ((wn1[(is2 - (1)) + (js - (1)) * ((2 * m)) + _wn1_offset] - temp2) + temp4);
-                            jpntr = ((jpntr) % (m) + 1);
+                            wn1[iy - 1 + (jy - 1) * 2 * m + _wn1_offset] =
+                                wn1[iy - 1 + (jy - 1) * 2 * m + _wn1_offset] + temp1 - temp3;
+                            wn1[is2 - 1 + (js - 1) * 2 * m + _wn1_offset] =
+                                wn1[is2 - 1 + (js - 1) * 2 * m + _wn1_offset] - temp2 + temp4;
+                            jpntr = jpntr % m + 1;
                         }
                     }
 
-                    ipntr = ((ipntr) % (m) + 1);
+                    ipntr = ipntr % m + 1;
                 }
             }
 
@@ -3160,7 +3160,7 @@ namespace BioIK {
             // c       modify the old parts in block (2,1).
             ipntr = head;
             {
-                for (is2 = (m + 1); is2 <= (m + upcl); is2++)
+                for (is2 = m + 1; is2 <= m + upcl; is2++)
                 {
                     jpntr = head;
                     {
@@ -3171,34 +3171,34 @@ namespace BioIK {
                             {
                                 for (k = 1; k <= nenter; k++)
                                 {
-                                    k1 = indx2[(k - (1)) + _indx2_offset];
-                                    temp1 = (temp1 + (ws[(k1 - (1)) + (ipntr
-                                        - (1)) * (n) + _ws_offset] * wy[(k1 - (1)) + (jpntr - (1)) * (n) + _wy_offset]));
+                                    k1 = indx2[k - 1 + _indx2_offset];
+                                    temp1 = temp1 + ws[k1 - 1 + (ipntr
+                                                                 - 1) * n + _ws_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
                                 }
                             }
                             {
                                 for (k = ileave; k <= n; k++)
                                 {
-                                    k1 = indx2[(k - (1)) + _indx2_offset];
-                                    temp3 = (temp3 + (ws[(k1 - (1)) + (ipntr - (1))
-                                        * (n) + _ws_offset] * wy[(k1 - (1)) + (jpntr - (1)) * (n) + _wy_offset]));
+                                    k1 = indx2[k - 1 + _indx2_offset];
+                                    temp3 = temp3 + ws[k1 - 1 + (ipntr - 1)
+                                        * n + _ws_offset] * wy[k1 - 1 + (jpntr - 1) * n + _wy_offset];
                                 }
                             }
 
-                            if ((is2 <= (jy + m)))
+                            if (is2 <= jy + m)
                             {
-                                wn1[(is2 - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] =
-                                    ((wn1[(is2 - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] + temp1) - temp3);
+                                wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] =
+                                    wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] + temp1 - temp3;
                             }
                             else
                             {
-                                wn1[(is2 - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] =
-                                    ((wn1[(is2 - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] - temp1) + temp3);
+                                wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] =
+                                    wn1[is2 - 1 + (jy - 1) * 2 * m + _wn1_offset] - temp1 + temp3;
                             }
-                            jpntr = ((jpntr) % (m) + 1);
+                            jpntr = jpntr % m + 1;
                         }
                     }
-                    ipntr = ((ipntr) % (m) + 1);
+                    ipntr = ipntr % m + 1;
                 }
             }
 
@@ -3206,40 +3206,40 @@ namespace BioIK {
             // c     Form the upper triangle of WN = [D+Y' ZZ'Y/theta   -L_a'+R_z' ] 
             // c                                     [-L_a +R_z        S'AA'S*theta]
             // 
-            m2 = (2 * m);
+            m2 = 2 * m;
             {
                 for (iy = 1; iy <= col; iy++)
                 {
-                    is2 = (col + iy);
-                    is1 = (m + iy);
+                    is2 = col + iy;
+                    is1 = m + iy;
                     {
                         for (jy = 1; jy <= iy; jy++)
                         {
-                            js = (col + jy);
-                            js1 = (m + jy);
-                            wn[(jy - (1)) + (iy - (1)) * ((2 * m)) + _wn_offset] =
-                                (wn1[(iy - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset] / theta);
-                            wn[(js - (1)) + (is2 - (1)) * ((2 * m)) + _wn_offset] =
-                                (wn1[(is1 - (1)) + (js1 - (1)) * ((2 * m)) + _wn1_offset] * theta);
+                            js = col + jy;
+                            js1 = m + jy;
+                            wn[jy - 1 + (iy - 1) * 2 * m + _wn_offset] =
+                                wn1[iy - 1 + (jy - 1) * 2 * m + _wn1_offset] / theta;
+                            wn[js - 1 + (is2 - 1) * 2 * m + _wn_offset] =
+                                wn1[is1 - 1 + (js1 - 1) * 2 * m + _wn1_offset] * theta;
                         }
                     }
                     {
-                        for (jy = 1; jy <= (iy - 1); jy++)
+                        for (jy = 1; jy <= iy - 1; jy++)
                         {
-                            wn[(jy - (1)) + (is2 - (1)) * ((2 * m)) + _wn_offset] =
-                                (-(wn1[(is1 - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset]));
+                            wn[jy - 1 + (is2 - 1) * 2 * m + _wn_offset] =
+                                -wn1[is1 - 1 + (jy - 1) * 2 * m + _wn1_offset];
                         }
                     }
                     {
                         for (jy = iy; jy <= col; jy++)
                         {
-                            wn[(jy - (1)) + (is2 - (1)) * ((2 * m)) + _wn_offset] =
-                                wn1[(is1 - (1)) + (jy - (1)) * ((2 * m)) + _wn1_offset];
+                            wn[jy - 1 + (is2 - 1) * 2 * m + _wn_offset] =
+                                wn1[is1 - 1 + (jy - 1) * 2 * m + _wn1_offset];
                         }
                     }
 
-                    wn[(iy - (1)) + (iy - (1)) * ((2 * m)) + _wn_offset] = (wn[(iy - (1)) + (iy - (1)) * ((2 * m))
-                        + _wn_offset] + sy[(iy - (1)) + (iy - (1)) * (m) + _sy_offset]);
+                    wn[iy - 1 + (iy - 1) * 2 * m + _wn_offset] = wn[iy - 1 + (iy - 1) * 2 * m
+                                                                           + _wn_offset] + sy[iy - 1 + (iy - 1) * m + _sy_offset];
                 }
             }
 
@@ -3252,12 +3252,12 @@ namespace BioIK {
             dpofa(wn, _wn_offset, m2, col, ref info);
 
             // c        then form L^-1(-L_a'+R_z') in the (1,2) block.
-            col2 = (2 * col);
+            col2 = 2 * col;
             {
-                for (js = (col + 1); js <= col2; js++)
+                for (js = col + 1; js <= col2; js++)
                 {
-                    dtrsl(wn, _wn_offset, m2, col, wn, (1 - (1))
-                        + (js - (1)) * ((2 * m)) + _wn_offset, 11, ref info);
+                    dtrsl(wn, _wn_offset, m2, col, wn, 1 - 1
+                        + (js - 1) * 2 * m + _wn_offset, 11, ref info);
                 }
             }
 
@@ -3267,15 +3267,15 @@ namespace BioIK {
             // 
             // 
             {
-                for (is2 = (col + 1); is2 <= col2; is2++)
+                for (is2 = col + 1; is2 <= col2; is2++)
                 {
                     {
                         for (js = is2; js <= col2; js++)
                         {
-                            wn[(is2 - (1)) + (js - (1)) * ((2 * m)) + _wn_offset] =
-                                (wn[(is2 - (1)) + (js - (1)) * ((2 * m)) + _wn_offset]
-                                + ddot(col, wn, (1 - (1)) + (is2 - (1)) * ((2 * m))
-                                + _wn_offset, 1, wn, (1 - (1)) + (js - (1)) * ((2 * m)) + _wn_offset, 1));
+                            wn[is2 - 1 + (js - 1) * 2 * m + _wn_offset] =
+                                wn[is2 - 1 + (js - 1) * 2 * m + _wn_offset]
+                                + ddot(col, wn, 1 - 1 + (is2 - 1) * 2 * m
+                                                      + _wn_offset, 1, wn, 1 - 1 + (js - 1) * 2 * m + _wn_offset, 1);
                         }
                     }
                 }
@@ -3284,8 +3284,8 @@ namespace BioIK {
             // 
             // c     Cholesky factorization of (2,2) block of wn.
             // 
-            dpofa(wn, ((col + 1) - (1)) + ((col + 1) - (1))
-                * ((2 * m)) + _wn_offset, m2, col, ref info);
+            dpofa(wn, col + 1 - 1 + (col + 1 - 1) 
+                * 2 * m + _wn_offset, m2, col, ref info);
         }
 
         // 
@@ -3342,8 +3342,8 @@ namespace BioIK {
             {
                 for (j = 1; j <= col; j++)
                 {
-                    wt[(1 - (1)) + (j - (1)) * (m) + _wt_offset] = (theta * ss[(1 - (1))
-                        + (j - (1)) * (m) + _ss_offset]);
+                    wt[1 - 1 + (j - 1) * m + _wt_offset] = theta * ss[1 - 1
+                                                                      + (j - 1) * m + _ss_offset];
                 }
             }
 
@@ -3353,20 +3353,20 @@ namespace BioIK {
                     {
                         for (j = i; j <= col; j++)
                         {
-                            k1 = (System.Math.Min(i, j) - 1);
+                            k1 = System.Math.Min(i, j) - 1;
 
                             ddum = 0.0;
                             {
                                 for (k = 1; k <= k1; k++)
                                 {
-                                    ddum = (ddum + ((sy[(i - (1)) + (k - (1)) * (m)
-                                        + _sy_offset] * sy[(j - (1)) + (k - (1)) * (m)
-                                        + _sy_offset]) / sy[(k - (1)) + (k - (1)) * (m) + _sy_offset]));
+                                    ddum = ddum + sy[i - 1 + (k - 1) * m
+                                                           + _sy_offset] * sy[j - 1 + (k - 1) * m
+                                        + _sy_offset] / sy[k - 1 + (k - 1) * m + _sy_offset];
                                 }
                             }
 
-                            wt[(i - (1)) + (j - (1)) * (m) + _wt_offset] = (ddum
-                                + (theta * ss[(i - (1)) + (j - (1)) * (m) + _ss_offset]));
+                            wt[i - 1 + (j - 1) * m + _wt_offset] = ddum
+                                                                   + theta * ss[i - 1 + (j - 1) * m + _ss_offset];
                         }
                     }
                 }
@@ -3434,26 +3434,26 @@ namespace BioIK {
             int k = 0;
 
             nenter = 0;
-            ileave = (n + 1);
+            ileave = n + 1;
 
-            if (((iter > 0) && cnstnd))
+            if (iter > 0 && cnstnd)
             {
                 // c                           count the entering and leaving variables.
                 {
                     for (i = 1; i <= nfree; i++)
                     {
-                        k = index[(i - (1)) + _index_offset];
+                        k = index[i - 1 + _index_offset];
 
                         // 
                         // c            write(6,*) ' k  = index(i) ', k
                         // c            write(6,*) ' index = ', i
                         // 
-                        if ((iwhere[(k - (1)) + _iwhere_offset] > 0))
+                        if (iwhere[k - 1 + _iwhere_offset] > 0)
                         {
-                            ileave = (ileave - 1);
-                            indx2[(ileave - (1)) + _indx2_offset] = k;
+                            ileave = ileave - 1;
+                            indx2[ileave - 1 + _indx2_offset] = k;
 
-                            if ((iprint >= 100))
+                            if (iprint >= 100)
                             {
                                 // DISPLAY: "Variable " + k + " leaves the set of free variables"
                             }
@@ -3461,16 +3461,16 @@ namespace BioIK {
                     }
                 }
                 {
-                    for (i = (1 + nfree); i <= n; i++)
+                    for (i = 1 + nfree; i <= n; i++)
                     {
-                        k = index[(i - (1)) + _index_offset];
-                        if ((iwhere[(k - (1)) + _iwhere_offset] <= 0))
+                        k = index[i - 1 + _index_offset];
+                        if (iwhere[k - 1 + _iwhere_offset] <= 0)
                         {
-                            nenter = (nenter + 1);
-                            indx2[(nenter - (1)) + _indx2_offset] = k;
+                            nenter = nenter + 1;
+                            indx2[nenter - 1 + _indx2_offset] = k;
 
                             
-                            if ((iprint >= 100))
+                            if (iprint >= 100)
                             {
                                 // DISPLAY: "Variable " + k + " enters the set of free variables"
                             }
@@ -3478,37 +3478,37 @@ namespace BioIK {
                     }
                 }
                 
-                if ((iprint >= 99))
+                if (iprint >= 99)
                 {
                     // DISPLAY: ((n + 1) - ileave)) + " variables leave; "
                     //           nenter + " variables enter"
                 }
             }
 
-            wrk = ((((ileave < (n + 1))) || ((nenter > 0))) || updatd);
+            wrk = ileave < n + 1 || nenter > 0 || updatd;
 
             // 
             // c     Find the index set of free and active variables at the GCP.
             // 
             nfree = 0;
-            iact = (n + 1);
+            iact = n + 1;
             {
                 for (i = 1; i <= n; i++)
                 {
-                    if ((iwhere[(i - (1)) + _iwhere_offset] <= 0))
+                    if (iwhere[i - 1 + _iwhere_offset] <= 0)
                     {
-                        nfree = (nfree + 1);
-                        index[(nfree - (1)) + _index_offset] = i;
+                        nfree = nfree + 1;
+                        index[nfree - 1 + _index_offset] = i;
                     }
                     else
                     {
-                        iact = (iact - 1);
-                        index[(iact - (1)) + _index_offset] = i;
+                        iact = iact - 1;
+                        index[iact - 1 + _index_offset] = i;
                     }
                 }
             }
 
-            if ((iprint >= 99))
+            if (iprint >= 99)
             {
                 // DISPLAY: nfree + " variables are free at GCP " + (iter + 1))
             }
@@ -3575,7 +3575,7 @@ namespace BioIK {
             double ddum = 0.0d;
             double out2 = 0.0d;
 
-            if ((iheap == 0))
+            if (iheap == 0)
             {
                 // 
                 // c        Rearrange the elements t(1) to t(n) to form a heap.
@@ -3583,27 +3583,27 @@ namespace BioIK {
                 {
                     for (k = 2; k <= n; k++)
                     {
-                        ddum = t[(k - (1)) + _t_offset];
-                        indxin = iorder[(k - (1)) + _iorder_offset];
+                        ddum = t[k - 1 + _t_offset];
+                        indxin = iorder[k - 1 + _iorder_offset];
                         // 
                         // c           Add ddum to the heap.
                         i = k;
 
                     L10:
-                        if ((i > 1))
+                        if (i > 1)
                         {
-                            j = (i / 2);
-                            if ((ddum < t[(j - (1)) + _t_offset]))
+                            j = i / 2;
+                            if (ddum < t[j - 1 + _t_offset])
                             {
-                                t[(i - (1)) + _t_offset] = t[(j - (1)) + _t_offset];
-                                iorder[(i - (1)) + _iorder_offset] = iorder[(j - (1)) + _iorder_offset];
+                                t[i - 1 + _t_offset] = t[j - 1 + _t_offset];
+                                iorder[i - 1 + _iorder_offset] = iorder[j - 1 + _iorder_offset];
                                 i = j;
                                 goto L10;
                             }
                         }
 
-                        t[(i - (1)) + _t_offset] = ddum;
-                        iorder[(i - (1)) + _iorder_offset] = indxin;
+                        t[i - 1 + _t_offset] = ddum;
+                        iorder[i - 1 + _iorder_offset] = indxin;
                     }
                 }
             }
@@ -3612,39 +3612,39 @@ namespace BioIK {
             // c        and rearrange the remaining members to form a heap as
             // c        elements 1 to n-1 of t.
             // 
-            if ((n > 1))
+            if (n > 1)
             {
                 i = 1;
-                out2 = t[(1 - (1)) + _t_offset];
-                indxou = iorder[(1 - (1)) + _iorder_offset];
-                ddum = t[(n - (1)) + _t_offset];
-                indxin = iorder[(n - (1)) + _iorder_offset];
+                out2 = t[1 - 1 + _t_offset];
+                indxou = iorder[1 - 1 + _iorder_offset];
+                ddum = t[n - 1 + _t_offset];
+                indxin = iorder[n - 1 + _iorder_offset];
 
             // 
             // c        Restore the heap 
             L30:
-                j = (i + i);
-                if ((j <= (n - 1)))
+                j = i + i;
+                if (j <= n - 1)
                 {
-                    if ((t[((j + 1) - (1)) + _t_offset] < t[(j - (1)) + _t_offset]))
+                    if (t[j + 1 - 1 + _t_offset] < t[j - 1 + _t_offset])
                     {
-                        j = (j + 1);
+                        j = j + 1;
                     }
-                    if ((t[(j - (1)) + _t_offset] < ddum))
+                    if (t[j - 1 + _t_offset] < ddum)
                     {
-                        t[(i - (1)) + _t_offset] = t[(j - (1)) + _t_offset];
-                        iorder[(i - (1)) + _iorder_offset] = iorder[(j - (1)) + _iorder_offset];
+                        t[i - 1 + _t_offset] = t[j - 1 + _t_offset];
+                        iorder[i - 1 + _iorder_offset] = iorder[j - 1 + _iorder_offset];
                         i = j;
                         goto L30;
                     }
                 }
-                t[(i - (1)) + _t_offset] = ddum;
-                iorder[(i - (1)) + _iorder_offset] = indxin;
+                t[i - 1 + _t_offset] = ddum;
+                iorder[i - 1 + _iorder_offset] = indxin;
                 // 
                 // c     Put the least member in t(n). 
                 // 
-                t[(n - (1)) + _t_offset] = out2;
-                iorder[(n - (1)) + _iorder_offset] = indxou;
+                t[n - 1 + _t_offset] = out2;
+                iorder[n - 1 + _iorder_offset] = indxou;
             }
         }
 
@@ -3709,7 +3709,7 @@ namespace BioIK {
             stpmx = 10000000000.0;
             if (cnstnd)
             {
-                if ((iter == 0))
+                if (iter == 0)
                 {
                     stpmx = 1.0;
                 }
@@ -3718,31 +3718,31 @@ namespace BioIK {
                     {
                         for (i = 1; i <= n; i++)
                         {
-                            a1 = d[(i - (1)) + _d_offset];
-                            if ((nbd[(i - (1)) + _nbd_offset] != 0))
+                            a1 = d[i - 1 + _d_offset];
+                            if (nbd[i - 1 + _nbd_offset] != 0)
                             {
-                                if (((a1 < 0.0) && (nbd[(i - (1)) + _nbd_offset] <= 2)))
+                                if (a1 < 0.0 && nbd[i - 1 + _nbd_offset] <= 2)
                                 {
-                                    a2 = (l[(i - (1)) + _l_offset] - x[(i - (1)) + _x_offset]);
-                                    if ((a2 >= 0.0))
+                                    a2 = l[i - 1 + _l_offset] - x[i - 1 + _x_offset];
+                                    if (a2 >= 0.0)
                                     {
                                         stpmx = 0.0;
                                     }
-                                    else if (((a1 * stpmx) < a2))
+                                    else if (a1 * stpmx < a2)
                                     {
-                                        stpmx = (a2 / a1);
+                                        stpmx = a2 / a1;
                                     }
                                 }
-                                else if (((a1 > 0.0) && (nbd[(i - (1)) + _nbd_offset] >= 2)))
+                                else if (a1 > 0.0 && nbd[i - 1 + _nbd_offset] >= 2)
                                 {
-                                    a2 = (u[(i - (1)) + _u_offset] - x[(i - (1)) + _x_offset]);
-                                    if ((a2 <= 0.0))
+                                    a2 = u[i - 1 + _u_offset] - x[i - 1 + _x_offset];
+                                    if (a2 <= 0.0)
                                     {
                                         stpmx = 0.0;
                                     }
-                                    else if (((a1 * stpmx) > a2))
+                                    else if (a1 * stpmx > a2)
                                     {
-                                        stpmx = (a2 / a1);
+                                        stpmx = a2 / a1;
                                     }
                                 }
                             }
@@ -3752,12 +3752,12 @@ namespace BioIK {
             }
 
             // 
-            if (((iter == 0) && (!boxed)))
+            if (iter == 0 && !boxed)
             {
                 if (double.IsNaN(dnorm))
                     stp = stpmx;
                 else
-                    stp = System.Math.Min((1.0 / dnorm), stpmx);
+                    stp = System.Math.Min(1.0 / dnorm, stpmx);
             }
             else
             {
@@ -3776,10 +3776,10 @@ namespace BioIK {
         L556:
             gd = ddot(n, g, _g_offset, 1, d, _d_offset, 1);
 
-            if ((ifun == 0))
+            if (ifun == 0)
             {
                 gdold = gd;
-                if ((gd >= 0.0))
+                if (gd >= 0.0)
                 {
                     // the directional derivative >=0.
                     // Line search is impossible.
@@ -3797,14 +3797,14 @@ namespace BioIK {
                 stpmx, ref csave, isave, _isave_offset, dsave, _dsave_offset);
 
             // 
-            xstep = (stp * dnorm);
+            xstep = stp * dnorm;
             if (csave != Task.Convergence && csave != Task.Warning)
             {
                 task = Task.FG_LN;
-                ifun = (ifun + 1);
-                nfgv = (nfgv + 1);
-                iback = (ifun - 1);
-                if ((stp == 1.0))
+                ifun = ifun + 1;
+                nfgv = nfgv + 1;
+                iback = ifun - 1;
+                if (stp == 1.0)
                 {
                     dcopy(n, z, _z_offset, 1, x, _x_offset, 1);
                 }
@@ -3813,7 +3813,7 @@ namespace BioIK {
                     {
                         for (i = 1; i <= n; i++)
                         {
-                            x[(i - (1)) + _x_offset] = ((stp * d[(i - (1)) + _d_offset]) + t[(i - (1)) + _t_offset]);
+                            x[i - 1 + _x_offset] = stp * d[i - 1 + _d_offset] + t[i - 1 + _t_offset];
                         }
                     }
                 }
@@ -4142,19 +4142,19 @@ namespace BioIK {
                 nfree = n;
                 ifun = 0;
                 // c           for stopping tolerance:
-                tol = (factr * epsmch);
+                tol = factr * epsmch;
                 // 
                 // c           for measuring running time:
-                cachyt = (double)(0);
-                sbtime = (double)(0);
-                lnscht = (double)(0);
+                cachyt = (double)0;
+                sbtime = (double)0;
+                lnscht = (double)0;
 
                 // 
                 // c           'info' records the termination information.
                 info = 0;
                 // 
                 itfile = 8;
-                if ((iprint >= 1))
+                if (iprint >= 1)
                 {
                     // c                                open a summary file 'iterate.dat'
                     ; // WARNING: Unimplemented statement in Fortran source.
@@ -4191,46 +4191,46 @@ namespace BioIK {
             {
                 // c          restore local variables.
                 // 
-                prjctd = lsave[(1 - (1)) + _lsave_offset];
-                cnstnd = lsave[(2 - (1)) + _lsave_offset];
-                boxed = lsave[(3 - (1)) + _lsave_offset];
-                updatd = lsave[(4 - (1)) + _lsave_offset];
+                prjctd = lsave[1 - 1 + _lsave_offset];
+                cnstnd = lsave[2 - 1 + _lsave_offset];
+                boxed = lsave[3 - 1 + _lsave_offset];
+                updatd = lsave[4 - 1 + _lsave_offset];
                 // 
-                nintol = isave[(1 - (1)) + _isave_offset];
-                itfile = isave[(3 - (1)) + _isave_offset];
-                iback = isave[(4 - (1)) + _isave_offset];
-                nskip = isave[(5 - (1)) + _isave_offset];
-                head = isave[(6 - (1)) + _isave_offset];
-                col = isave[(7 - (1)) + _isave_offset];
-                itail = isave[(8 - (1)) + _isave_offset];
-                iter = isave[(9 - (1)) + _isave_offset];
-                iupdat = isave[(10 - (1)) + _isave_offset];
-                nseg = isave[(12 - (1)) + _isave_offset];
-                nfgv = isave[(13 - (1)) + _isave_offset];
-                info = isave[(14 - (1)) + _isave_offset];
-                ifun = isave[(15 - (1)) + _isave_offset];
-                iword = isave[(16 - (1)) + _isave_offset];
-                nfree = isave[(17 - (1)) + _isave_offset];
-                nact = isave[(18 - (1)) + _isave_offset];
-                ileave = isave[(19 - (1)) + _isave_offset];
-                nenter = isave[(20 - (1)) + _isave_offset];
+                nintol = isave[1 - 1 + _isave_offset];
+                itfile = isave[3 - 1 + _isave_offset];
+                iback = isave[4 - 1 + _isave_offset];
+                nskip = isave[5 - 1 + _isave_offset];
+                head = isave[6 - 1 + _isave_offset];
+                col = isave[7 - 1 + _isave_offset];
+                itail = isave[8 - 1 + _isave_offset];
+                iter = isave[9 - 1 + _isave_offset];
+                iupdat = isave[10 - 1 + _isave_offset];
+                nseg = isave[12 - 1 + _isave_offset];
+                nfgv = isave[13 - 1 + _isave_offset];
+                info = isave[14 - 1 + _isave_offset];
+                ifun = isave[15 - 1 + _isave_offset];
+                iword = isave[16 - 1 + _isave_offset];
+                nfree = isave[17 - 1 + _isave_offset];
+                nact = isave[18 - 1 + _isave_offset];
+                ileave = isave[19 - 1 + _isave_offset];
+                nenter = isave[20 - 1 + _isave_offset];
                 // 
-                theta = dsave[(1 - (1)) + _dsave_offset];
-                fold = dsave[(2 - (1)) + _dsave_offset];
-                tol = dsave[(3 - (1)) + _dsave_offset];
-                dnorm = dsave[(4 - (1)) + _dsave_offset];
-                epsmch = dsave[(5 - (1)) + _dsave_offset];
-                cpu1 = dsave[(6 - (1)) + _dsave_offset];
-                cachyt = dsave[(7 - (1)) + _dsave_offset];
-                sbtime = dsave[(8 - (1)) + _dsave_offset];
-                lnscht = dsave[(9 - (1)) + _dsave_offset];
-                time1 = dsave[(10 - (1)) + _dsave_offset];
-                gd = dsave[(11 - (1)) + _dsave_offset];
-                stpmx = dsave[(12 - (1)) + _dsave_offset];
-                sbgnrm = dsave[(13 - (1)) + _dsave_offset];
-                stp = dsave[(14 - (1)) + _dsave_offset];
-                gdold = dsave[(15 - (1)) + _dsave_offset];
-                dtd = dsave[(16 - (1)) + _dsave_offset];
+                theta = dsave[1 - 1 + _dsave_offset];
+                fold = dsave[2 - 1 + _dsave_offset];
+                tol = dsave[3 - 1 + _dsave_offset];
+                dnorm = dsave[4 - 1 + _dsave_offset];
+                epsmch = dsave[5 - 1 + _dsave_offset];
+                cpu1 = dsave[6 - 1 + _dsave_offset];
+                cachyt = dsave[7 - 1 + _dsave_offset];
+                sbtime = dsave[8 - 1 + _dsave_offset];
+                lnscht = dsave[9 - 1 + _dsave_offset];
+                time1 = dsave[10 - 1 + _dsave_offset];
+                gd = dsave[11 - 1 + _dsave_offset];
+                stpmx = dsave[12 - 1 + _dsave_offset];
+                sbgnrm = dsave[13 - 1 + _dsave_offset];
+                stp = dsave[14 - 1 + _dsave_offset];
+                gdold = dsave[15 - 1 + _dsave_offset];
+                dtd = dsave[16 - 1 + _dsave_offset];
                 // 
                 // c        After returning from the driver go to the point where execution
                 // c        is to resume.
@@ -4269,7 +4269,7 @@ namespace BioIK {
             projgr(n, l, _l_offset, u, _u_offset, nbd, _nbd_offset,
                 x, _x_offset, g, _g_offset, ref sbgnrm);
 
-            if ((sbgnrm <= pgtol))
+            if (sbgnrm <= pgtol)
             {
                 // terminate the algorithm.
                 task = Task.Convergence;
@@ -4284,9 +4284,9 @@ namespace BioIK {
             cauchy(n, x, _x_offset, l, _l_offset, u, _u_offset, nbd, _nbd_offset,
                 g, _g_offset, indx2, _indx2_offset, iwhere, _iwhere_offset, t, _t_offset,
                 d, _d_offset, z, _z_offset, m, wy, _wy_offset, ws, _ws_offset, sy, _sy_offset,
-                wt, _wt_offset, theta, col, head, wa, (1 - (1)) + _wa_offset, wa,
-                (((2 * m) + 1) - (1)) + _wa_offset, wa, (((4 * m) + 1) - (1)) + _wa_offset, wa,
-                (((6 * m) + 1) - (1)) + _wa_offset, ref nseg, iprint, sbgnrm, ref info, epsmch);
+                wt, _wt_offset, theta, col, head, wa, 1 - 1 + _wa_offset, wa,
+                2 * m + 1 - 1 + _wa_offset, wa, 4 * m + 1 - 1 + _wa_offset, wa,
+                6 * m + 1 - 1 + _wa_offset, ref nseg, iprint, sbgnrm, ref info, epsmch);
 
             cachyt = cachyt + cpu2 - cpu1;
             nintol = nintol + nseg;
@@ -4294,7 +4294,7 @@ namespace BioIK {
             // find the index set of free and active variables at the GCP.
             freev(n, ref nfree, index, _index_offset, ref nenter, ref ileave, indx2, _indx2_offset,
                 iwhere, _iwhere_offset, ref wrk, updatd, cnstnd, iprint, iter);
-            nact = (n - nfree);
+            nact = n - nfree;
             // If there are no free variables or B=theta*I, 
             // then skip the subspace minimization.
             // 
@@ -4327,7 +4327,7 @@ namespace BioIK {
             // c     Line search and optimality tests.
             // c     Generate the search direction d:=z-x.
             for (i = 1; i <= n; i++) {
-                d[(i - (1)) + _d_offset] = (z[(i - (1)) + _z_offset] - x[(i - (1)) + _x_offset]);
+                d[i - 1 + _d_offset] = z[i - 1 + _z_offset] - x[i - 1 + _x_offset];
             }
 
         L666:
@@ -4335,7 +4335,7 @@ namespace BioIK {
                 f, ref fold, ref gd, ref gdold, g, _g_offset, d, _d_offset, r, _r_offset, t, _t_offset,
                 z, _z_offset, ref stp, ref dnorm, ref dtd, ref xstep, ref stpmx, iter, ref ifun,
                 ref iback, ref nfgv, ref info, ref task, boxed, cnstnd, ref csave, isave,
-                (22 - (1)) + _isave_offset, dsave, (17 - (1)) + _dsave_offset);
+                22 - 1 + _isave_offset, dsave, 17 - 1 + _dsave_offset);
 
             if (iback >= 20)
             {
@@ -4343,20 +4343,20 @@ namespace BioIK {
                 dcopy(n, t, _t_offset, 1, x, _x_offset, 1);
                 dcopy(n, r, _r_offset, 1, g, _g_offset, 1);
                 f = fold;
-                if ((col == 0))
+                if (col == 0)
                 {
                     info = -9;
                     // restore the actual number of f and g evaluations etc.
-                    nfgv = (nfgv - 1);
-                    ifun = (ifun - 1);
-                    iback = (iback - 1);
+                    nfgv = nfgv - 1;
+                    ifun = ifun - 1;
+                    iback = iback - 1;
                     task = Task.Abnormal;
-                    iter = (iter + 1);
+                    iter = iter + 1;
                     goto L999;
                 }
                 else
                 {
-                    nfgv = (nfgv - 1);
+                    nfgv = nfgv - 1;
                     info = 0;
                     col = 0;
                     head = 1;
@@ -4375,7 +4375,7 @@ namespace BioIK {
             else
             {
                 // calculate and print out the quantities related to the new X.
-                iter = (iter + 1);
+                iter = iter + 1;
                 // Compute the infinity norm of the projected (-)gradient.
                 projgr(n, l, _l_offset, u, _u_offset, nbd, _nbd_offset, x, _x_offset, g, _g_offset, ref sbgnrm);
                 goto L1000;
@@ -4383,7 +4383,7 @@ namespace BioIK {
 
         L777:
             // c     Test for termination.
-            if ((sbgnrm <= pgtol))
+            if (sbgnrm <= pgtol)
             {
                 // terminate the algorithm.
                 task = Task.Convergence;
@@ -4392,12 +4392,12 @@ namespace BioIK {
 
             ddum = System.Math.Max(System.Math.Abs(fold), System.Math.Max(System.Math.Abs(f), 1.0));
 
-            if ((((fold - f)) <= (tol * ddum)))
+            if (fold - f <= tol * ddum)
             {
                 // terminate the algorithm.
                 task = Task.Convergence;
 
-                if ((iback >= 10))
+                if (iback >= 10)
                 {
                     info = -5;
                 }
@@ -4411,31 +4411,31 @@ namespace BioIK {
             // 
             for (i = 1; i <= n; i++)
             {
-                r[(i - (1)) + _r_offset] = (g[(i - (1)) + _g_offset] - r[(i - (1)) + _r_offset]);
+                r[i - 1 + _r_offset] = g[i - 1 + _g_offset] - r[i - 1 + _r_offset];
             }
 
             rr = ddot(n, r, _r_offset, 1, r, _r_offset, 1);
 
-            if ((stp == 1.0))
+            if (stp == 1.0)
             {
-                dr = (gd - gdold);
-                ddum = (-(gdold));
+                dr = gd - gdold;
+                ddum = -gdold;
             }
             else
             {
-                dr = (((gd - gdold)) * stp);
+                dr = (gd - gdold) * stp;
                 dscal(n, stp, d, _d_offset, 1);
-                ddum = (-((gdold * stp)));
+                ddum = -(gdold * stp);
             }
 
-            if ((dr <= (epsmch * ddum)))
+            if (dr <= epsmch * ddum)
             {
                 // skip the L-BFGS update.
-                nskip = (nskip + 1);
+                nskip = nskip + 1;
                 updatd = false;
 
 
-                if ((iprint >= 1))
+                if (iprint >= 1)
                 {
                     // DISPLAY: dr, ddum
                     // DISPLAY: '  ys=',1p,e10.3,'  -gs=',1P,E10.3,' BFGS update SKIPPED'"
@@ -4452,7 +4452,7 @@ namespace BioIK {
             // cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
             // 
             updatd = true;
-            iupdat = (iupdat + 1);
+            iupdat = iupdat + 1;
 
             // 
             // c     Update matrices WS and WY and form the middle matrix in B.
@@ -4489,46 +4489,46 @@ namespace BioIK {
             // 
             //   Save local variables.
             // 
-            lsave[(1 - (1)) + _lsave_offset] = prjctd;
-            lsave[(2 - (1)) + _lsave_offset] = cnstnd;
-            lsave[(3 - (1)) + _lsave_offset] = boxed;
-            lsave[(4 - (1)) + _lsave_offset] = updatd;
+            lsave[1 - 1 + _lsave_offset] = prjctd;
+            lsave[2 - 1 + _lsave_offset] = cnstnd;
+            lsave[3 - 1 + _lsave_offset] = boxed;
+            lsave[4 - 1 + _lsave_offset] = updatd;
             // 
-            isave[(1 - (1)) + _isave_offset] = nintol;
-            isave[(3 - (1)) + _isave_offset] = itfile;
-            isave[(4 - (1)) + _isave_offset] = iback;
-            isave[(5 - (1)) + _isave_offset] = nskip;
-            isave[(6 - (1)) + _isave_offset] = head;
-            isave[(7 - (1)) + _isave_offset] = col;
-            isave[(8 - (1)) + _isave_offset] = itail;
-            isave[(9 - (1)) + _isave_offset] = iter;
-            isave[(10 - (1)) + _isave_offset] = iupdat;
-            isave[(12 - (1)) + _isave_offset] = nseg;
-            isave[(13 - (1)) + _isave_offset] = nfgv;
-            isave[(14 - (1)) + _isave_offset] = info;
-            isave[(15 - (1)) + _isave_offset] = ifun;
-            isave[(16 - (1)) + _isave_offset] = iword;
-            isave[(17 - (1)) + _isave_offset] = nfree;
-            isave[(18 - (1)) + _isave_offset] = nact;
-            isave[(19 - (1)) + _isave_offset] = ileave;
-            isave[(20 - (1)) + _isave_offset] = nenter;
+            isave[1 - 1 + _isave_offset] = nintol;
+            isave[3 - 1 + _isave_offset] = itfile;
+            isave[4 - 1 + _isave_offset] = iback;
+            isave[5 - 1 + _isave_offset] = nskip;
+            isave[6 - 1 + _isave_offset] = head;
+            isave[7 - 1 + _isave_offset] = col;
+            isave[8 - 1 + _isave_offset] = itail;
+            isave[9 - 1 + _isave_offset] = iter;
+            isave[10 - 1 + _isave_offset] = iupdat;
+            isave[12 - 1 + _isave_offset] = nseg;
+            isave[13 - 1 + _isave_offset] = nfgv;
+            isave[14 - 1 + _isave_offset] = info;
+            isave[15 - 1 + _isave_offset] = ifun;
+            isave[16 - 1 + _isave_offset] = iword;
+            isave[17 - 1 + _isave_offset] = nfree;
+            isave[18 - 1 + _isave_offset] = nact;
+            isave[19 - 1 + _isave_offset] = ileave;
+            isave[20 - 1 + _isave_offset] = nenter;
             // 
-            dsave[(1 - (1)) + _dsave_offset] = theta;
-            dsave[(2 - (1)) + _dsave_offset] = fold;
-            dsave[(3 - (1)) + _dsave_offset] = tol;
-            dsave[(4 - (1)) + _dsave_offset] = dnorm;
-            dsave[(5 - (1)) + _dsave_offset] = epsmch;
-            dsave[(6 - (1)) + _dsave_offset] = cpu1;
-            dsave[(7 - (1)) + _dsave_offset] = cachyt;
-            dsave[(8 - (1)) + _dsave_offset] = sbtime;
-            dsave[(9 - (1)) + _dsave_offset] = lnscht;
-            dsave[(10 - (1)) + _dsave_offset] = time1;
-            dsave[(11 - (1)) + _dsave_offset] = gd;
-            dsave[(12 - (1)) + _dsave_offset] = stpmx;
-            dsave[(13 - (1)) + _dsave_offset] = sbgnrm;
-            dsave[(14 - (1)) + _dsave_offset] = stp;
-            dsave[(15 - (1)) + _dsave_offset] = gdold;
-            dsave[(16 - (1)) + _dsave_offset] = dtd;
+            dsave[1 - 1 + _dsave_offset] = theta;
+            dsave[2 - 1 + _dsave_offset] = fold;
+            dsave[3 - 1 + _dsave_offset] = tol;
+            dsave[4 - 1 + _dsave_offset] = dnorm;
+            dsave[5 - 1 + _dsave_offset] = epsmch;
+            dsave[6 - 1 + _dsave_offset] = cpu1;
+            dsave[7 - 1 + _dsave_offset] = cachyt;
+            dsave[8 - 1 + _dsave_offset] = sbtime;
+            dsave[9 - 1 + _dsave_offset] = lnscht;
+            dsave[10 - 1 + _dsave_offset] = time1;
+            dsave[11 - 1 + _dsave_offset] = gd;
+            dsave[12 - 1 + _dsave_offset] = stpmx;
+            dsave[13 - 1 + _dsave_offset] = sbgnrm;
+            dsave[14 - 1 + _dsave_offset] = stp;
+            dsave[15 - 1 + _dsave_offset] = gdold;
+            dsave[16 - 1 + _dsave_offset] = dtd;
 
             return;
         }
@@ -4575,43 +4575,43 @@ namespace BioIK {
             int j = 0;
             int pointr = 0;
 
-            if ((iupdat <= m))
+            if (iupdat <= m)
             {
                 col = iupdat;
-                itail = ((((head + iupdat) - 2)) % (m) + 1);
+                itail = (head + iupdat - 2) % m + 1;
             }
             else
             {
-                itail = ((itail) % (m) + 1);
-                head = ((head) % (m) + 1);
+                itail = itail % m + 1;
+                head = head % m + 1;
             }
 
             // 
             // c     Update matrices WS and WY.
             // 
-            dcopy(n, d, _d_offset, 1, ws, (1 - (1)) + (itail - (1)) * (n) + _ws_offset, 1);
-            dcopy(n, r, _r_offset, 1, wy, (1 - (1)) + (itail - (1)) * (n) + _wy_offset, 1);
+            dcopy(n, d, _d_offset, 1, ws, 1 - 1 + (itail - 1) * n + _ws_offset, 1);
+            dcopy(n, r, _r_offset, 1, wy, 1 - 1 + (itail - 1) * n + _wy_offset, 1);
 
             // 
             // c     Set theta=yy/ys.
             // 
-            theta = (rr / dr);
+            theta = rr / dr;
             // 
             // c     Form the middle matrix in B.
             // 
             // c        update the upper triangle of SS,
             // c                                         and the lower triangle of SY:
 
-            if ((iupdat > m))
+            if (iupdat > m)
             {
                 // c                              move old information
                 {
-                    for (j = 1; j <= (col - 1); j++)
+                    for (j = 1; j <= col - 1; j++)
                     {
-                        dcopy(j, ss, (2 - (1)) + ((j + 1) - (1)) * (m)
-                            + _ss_offset, 1, ss, (1 - (1)) + (j - (1)) * (m) + _ss_offset, 1);
-                        dcopy((col - j), sy, ((j + 1) - (1)) + ((j + 1)
-                            - (1)) * (m) + _sy_offset, 1, sy, (j - (1)) + (j - (1)) * (m) + _sy_offset, 1);
+                        dcopy(j, ss, 2 - 1 + (j + 1 - 1) * m
+                                           + _ss_offset, 1, ss, 1 - 1 + (j - 1) * m + _ss_offset, 1);
+                        dcopy(col - j, sy, j + 1 - 1 + (j + 1
+                                                        - 1) * m + _sy_offset, 1, sy, j - 1 + (j - 1) * m + _sy_offset, 1);
                     }
                 }
             }
@@ -4619,31 +4619,31 @@ namespace BioIK {
             // c                                             and the last column of SS:
             pointr = head;
             {
-                for (j = 1; j <= (col - 1); j++)
+                for (j = 1; j <= col - 1; j++)
                 {
-                    sy[(col - (1)) + (j - (1)) * (m) + _sy_offset] =
+                    sy[col - 1 + (j - 1) * m + _sy_offset] =
                         ddot(n,
                           d, _d_offset, 1,
-                        wy, (1 - (1)) + (pointr - (1)) * (n) + _wy_offset, 1);
+                        wy, 1 - 1 + (pointr - 1) * n + _wy_offset, 1);
 
-                    ss[(j - (1)) + (col - (1)) * (m) + _ss_offset] =
+                    ss[j - 1 + (col - 1) * m + _ss_offset] =
                         ddot(n,
-                          ws, (1 - (1)) + (pointr - (1)) * (n) + _ws_offset, 1,
+                          ws, 1 - 1 + (pointr - 1) * n + _ws_offset, 1,
                           d, _d_offset, 1);
 
-                    pointr = ((pointr) % (m) + 1);
+                    pointr = pointr % m + 1;
                 }
             }
-            if ((stp == 1.0))
+            if (stp == 1.0)
             {
-                ss[(col - (1)) + (col - (1)) * (m) + _ss_offset] = dtd;
+                ss[col - 1 + (col - 1) * m + _ss_offset] = dtd;
             }
             else
             {
-                ss[(col - (1)) + (col - (1)) * (m) + _ss_offset] = ((stp * stp) * dtd);
+                ss[col - 1 + (col - 1) * m + _ss_offset] = stp * stp * dtd;
             }
 
-            sy[(col - (1)) + (col - (1)) * (m) + _sy_offset] = dr;
+            sy[col - 1 + (col - 1) * m + _sy_offset] = dr;
 
             return;
         }
@@ -4689,21 +4689,21 @@ namespace BioIK {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    gi = g[(i - (1)) + _g_offset];
-                    if ((nbd[(i - (1)) + _nbd_offset] != 0))
+                    gi = g[i - 1 + _g_offset];
+                    if (nbd[i - 1 + _nbd_offset] != 0)
                     {
-                        if ((gi < 0.0))
+                        if (gi < 0.0)
                         {
-                            if ((nbd[(i - (1)) + _nbd_offset] >= 2))
+                            if (nbd[i - 1 + _nbd_offset] >= 2)
                             {
-                                gi = System.Math.Max(((x[(i - (1)) + _x_offset] - u[(i - (1)) + _u_offset])), gi);
+                                gi = System.Math.Max(x[i - 1 + _x_offset] - u[i - 1 + _u_offset], gi);
                             }
                         }
                         else
                         {
-                            if ((nbd[(i - (1)) + _nbd_offset] <= 2))
+                            if (nbd[i - 1 + _nbd_offset] <= 2)
                             {
-                                gi = System.Math.Min(((x[(i - (1)) + _x_offset] - l[(i - (1)) + _l_offset])), gi);
+                                gi = System.Math.Min(x[i - 1 + _x_offset] - l[i - 1 + _l_offset], gi);
                             }
                         }
                     }
@@ -4981,48 +4981,48 @@ namespace BioIK {
 
             if (task == Task.Start)
             {
-                isave[(1 - (1)) + _isave_offset] = (m * n);
-                isave[(2 - (1)) + _isave_offset] = ((int)System.Math.Pow(m, 2));
-                isave[(3 - (1)) + _isave_offset] = (4 * ((int)System.Math.Pow(m, 2)));
-                isave[(4 - (1)) + _isave_offset] = 1;
-                isave[(5 - (1)) + _isave_offset] = (isave[(4 - (1)) + _isave_offset] + isave[(1 - (1)) + _isave_offset]);
-                isave[(6 - (1)) + _isave_offset] = (isave[(5 - (1)) + _isave_offset] + isave[(1 - (1)) + _isave_offset]);
-                isave[(7 - (1)) + _isave_offset] = (isave[(6 - (1)) + _isave_offset] + isave[(2 - (1)) + _isave_offset]);
-                isave[(8 - (1)) + _isave_offset] = (isave[(7 - (1)) + _isave_offset] + isave[(2 - (1)) + _isave_offset]);
-                isave[(9 - (1)) + _isave_offset] = (isave[(8 - (1)) + _isave_offset] + isave[(2 - (1)) + _isave_offset]);
-                isave[(10 - (1)) + _isave_offset] = (isave[(9 - (1)) + _isave_offset] + isave[(3 - (1)) + _isave_offset]);
-                isave[(11 - (1)) + _isave_offset] = (isave[(10 - (1)) + _isave_offset] + isave[(3 - (1)) + _isave_offset]);
-                isave[(12 - (1)) + _isave_offset] = (isave[(11 - (1)) + _isave_offset] + n);
-                isave[(13 - (1)) + _isave_offset] = (isave[(12 - (1)) + _isave_offset] + n);
-                isave[(14 - (1)) + _isave_offset] = (isave[(13 - (1)) + _isave_offset] + n);
-                isave[(15 - (1)) + _isave_offset] = (isave[(14 - (1)) + _isave_offset] + n);
-                isave[(16 - (1)) + _isave_offset] = (isave[(15 - (1)) + _isave_offset] + n);
+                isave[1 - 1 + _isave_offset] = m * n;
+                isave[2 - 1 + _isave_offset] = (int)System.Math.Pow(m, 2);
+                isave[3 - 1 + _isave_offset] = 4 * (int)System.Math.Pow(m, 2);
+                isave[4 - 1 + _isave_offset] = 1;
+                isave[5 - 1 + _isave_offset] = isave[4 - 1 + _isave_offset] + isave[1 - 1 + _isave_offset];
+                isave[6 - 1 + _isave_offset] = isave[5 - 1 + _isave_offset] + isave[1 - 1 + _isave_offset];
+                isave[7 - 1 + _isave_offset] = isave[6 - 1 + _isave_offset] + isave[2 - 1 + _isave_offset];
+                isave[8 - 1 + _isave_offset] = isave[7 - 1 + _isave_offset] + isave[2 - 1 + _isave_offset];
+                isave[9 - 1 + _isave_offset] = isave[8 - 1 + _isave_offset] + isave[2 - 1 + _isave_offset];
+                isave[10 - 1 + _isave_offset] = isave[9 - 1 + _isave_offset] + isave[3 - 1 + _isave_offset];
+                isave[11 - 1 + _isave_offset] = isave[10 - 1 + _isave_offset] + isave[3 - 1 + _isave_offset];
+                isave[12 - 1 + _isave_offset] = isave[11 - 1 + _isave_offset] + n;
+                isave[13 - 1 + _isave_offset] = isave[12 - 1 + _isave_offset] + n;
+                isave[14 - 1 + _isave_offset] = isave[13 - 1 + _isave_offset] + n;
+                isave[15 - 1 + _isave_offset] = isave[14 - 1 + _isave_offset] + n;
+                isave[16 - 1 + _isave_offset] = isave[15 - 1 + _isave_offset] + n;
             }
-            lws = isave[(4 - (1)) + _isave_offset];
-            lwy = isave[(5 - (1)) + _isave_offset];
-            lsy = isave[(6 - (1)) + _isave_offset];
-            lss = isave[(7 - (1)) + _isave_offset];
-            lwt = isave[(8 - (1)) + _isave_offset];
-            lwn = isave[(9 - (1)) + _isave_offset];
-            lsnd = isave[(10 - (1)) + _isave_offset];
-            lz = isave[(11 - (1)) + _isave_offset];
-            lr = isave[(12 - (1)) + _isave_offset];
-            ld = isave[(13 - (1)) + _isave_offset];
-            lt = isave[(14 - (1)) + _isave_offset];
-            lxp = isave[(15 - (1)) + _isave_offset];
-            lwa = isave[(16 - (1)) + _isave_offset];
+            lws = isave[4 - 1 + _isave_offset];
+            lwy = isave[5 - 1 + _isave_offset];
+            lsy = isave[6 - 1 + _isave_offset];
+            lss = isave[7 - 1 + _isave_offset];
+            lwt = isave[8 - 1 + _isave_offset];
+            lwn = isave[9 - 1 + _isave_offset];
+            lsnd = isave[10 - 1 + _isave_offset];
+            lz = isave[11 - 1 + _isave_offset];
+            lr = isave[12 - 1 + _isave_offset];
+            ld = isave[13 - 1 + _isave_offset];
+            lt = isave[14 - 1 + _isave_offset];
+            lxp = isave[15 - 1 + _isave_offset];
+            lwa = isave[16 - 1 + _isave_offset];
             // 
             mainlb(n, m, x, _x_offset, l, _l_offset, u, _u_offset, nbd,
-                _nbd_offset, ref f, g, _g_offset, factr, pgtol, wa, (lws - (1)) + _wa_offset,
-                wa, (lwy - (1)) + _wa_offset, wa, (lsy - (1)) + _wa_offset, wa,
-                (lss - (1)) + _wa_offset, wa, (lwt - (1)) + _wa_offset, wa,
-                (lwn - (1)) + _wa_offset, wa, (lsnd - (1)) + _wa_offset, wa,
-                (lz - (1)) + _wa_offset, wa, (lr - (1)) + _wa_offset, wa,
-                (ld - (1)) + _wa_offset, wa, (lt - (1)) + _wa_offset, wa,
-                (lxp - (1)) + _wa_offset, wa, (lwa - (1)) + _wa_offset, iwa,
-                (1 - (1)) + _iwa_offset, iwa, ((n + 1) - (1)) + _iwa_offset,
-                iwa, (((2 * n) + 1) - (1)) + _iwa_offset, ref task, iprint, ref csave,
-                lsave, _lsave_offset, isave, (22 - (1)) + _isave_offset, dsave,
+                _nbd_offset, ref f, g, _g_offset, factr, pgtol, wa, lws - 1 + _wa_offset,
+                wa, lwy - 1 + _wa_offset, wa, lsy - 1 + _wa_offset, wa,
+                lss - 1 + _wa_offset, wa, lwt - 1 + _wa_offset, wa,
+                lwn - 1 + _wa_offset, wa, lsnd - 1 + _wa_offset, wa,
+                lz - 1 + _wa_offset, wa, lr - 1 + _wa_offset, wa,
+                ld - 1 + _wa_offset, wa, lt - 1 + _wa_offset, wa,
+                lxp - 1 + _wa_offset, wa, lwa - 1 + _wa_offset, iwa,
+                1 - 1 + _iwa_offset, iwa, n + 1 - 1 + _iwa_offset,
+                iwa, 2 * n + 1 - 1 + _iwa_offset, ref task, iprint, ref csave,
+                lsave, _lsave_offset, isave, 22 - 1 + _isave_offset, dsave,
                 _dsave_offset);
         }
 
@@ -5240,7 +5240,7 @@ namespace BioIK {
             double temp2 = 0.0d;
             double dd_p = 0.0d;
 
-            if ((nsub <= 0))
+            if (nsub <= 0)
             {
                 return;
             }
@@ -5257,32 +5257,32 @@ namespace BioIK {
                     {
                         for (j = 1; j <= nsub; j++)
                         {
-                            k = ind[(j - (1)) + _ind_offset];
-                            temp1 = (temp1 + (wy[(k - (1)) + (pointr - (1))
-                                * (n) + _wy_offset] * d[(j - (1)) + _d_offset]));
-                            temp2 = (temp2 + (ws[(k - (1)) + (pointr - (1))
-                                * (n) + _ws_offset] * d[(j - (1)) + _d_offset]));
+                            k = ind[j - 1 + _ind_offset];
+                            temp1 = temp1 + wy[k - 1 + (pointr - 1)
+                                * n + _wy_offset] * d[j - 1 + _d_offset];
+                            temp2 = temp2 + ws[k - 1 + (pointr - 1)
+                                * n + _ws_offset] * d[j - 1 + _d_offset];
                         }
                     }
 
-                    wv[(i - (1)) + _wv_offset] = temp1;
-                    wv[((col + i) - (1)) + _wv_offset] = (theta * temp2);
-                    pointr = ((pointr) % (m) + 1);
+                    wv[i - 1 + _wv_offset] = temp1;
+                    wv[col + i - 1 + _wv_offset] = theta * temp2;
+                    pointr = pointr % m + 1;
                 }
             }
 
             // 
             // Compute wv:=K^(-1)wv.
             // 
-            m2 = (2 * m);
-            col2 = (2 * col);
+            m2 = 2 * m;
+            col2 = 2 * col;
 
             dtrsl(wn, _wn_offset, m2, col2, wv, _wv_offset, 11, ref info);
 
             {
                 for (i = 1; i <= col; i++)
                 {
-                    wv[(i - (1)) + _wv_offset] = (-(wv[(i - (1)) + _wv_offset]));
+                    wv[i - 1 + _wv_offset] = -wv[i - 1 + _wv_offset];
                 }
             }
 
@@ -5295,24 +5295,24 @@ namespace BioIK {
             {
                 for (jy = 1; jy <= col; jy++)
                 {
-                    js = (col + jy);
+                    js = col + jy;
                     {
                         for (i = 1; i <= nsub; i++)
                         {
-                            k = ind[(i - (1)) + _ind_offset];
-                            d[(i - (1)) + _d_offset] = ((d[(i - (1)) + _d_offset]
-                                + ((wy[(k - (1)) + (pointr - (1)) * (n) + _wy_offset] * wv[(jy - (1))
-                                + _wv_offset]) / theta)) + (ws[(k - (1))
-                                + (pointr - (1)) * (n) + _ws_offset] * wv[(js - (1)) + _wv_offset]));
+                            k = ind[i - 1 + _ind_offset];
+                            d[i - 1 + _d_offset] = d[i - 1 + _d_offset]
+                                                   + wy[k - 1 + (pointr - 1) * n + _wy_offset] * wv[jy - 1
+                                                       + _wv_offset] / theta + ws[k - 1
+                                                       + (pointr - 1) * n + _ws_offset] * wv[js - 1 + _wv_offset];
                         }
                     }
 
-                    pointr = ((pointr) % (m) + 1);
+                    pointr = pointr % m + 1;
                 }
             }
 
 
-            dscal(nsub, (1.0 / theta), d, _d_offset, 1);
+            dscal(nsub, 1.0 / theta, d, _d_offset, 1);
 
             //  
             // ----------------------------------------------------
@@ -5326,37 +5326,37 @@ namespace BioIK {
             {
                 for (i = 1; i <= nsub; i++)
                 {
-                    k = ind[(i - (1)) + _ind_offset];
-                    dk = d[(i - (1)) + _d_offset];
-                    xk = x[(k - (1)) + _x_offset];
-                    if ((nbd[(k - (1)) + _nbd_offset] != 0))
+                    k = ind[i - 1 + _ind_offset];
+                    dk = d[i - 1 + _d_offset];
+                    xk = x[k - 1 + _x_offset];
+                    if (nbd[k - 1 + _nbd_offset] != 0)
                     {
-                        if ((nbd[(k - (1)) + _nbd_offset] == 1))
+                        if (nbd[k - 1 + _nbd_offset] == 1)
                         {
-                            x[(k - (1)) + _x_offset] = System.Math.Max(l[(k - (1)) + _l_offset], (xk + dk));
-                            if ((x[(k - (1)) + _x_offset] == l[(k - (1)) + _l_offset]))
+                            x[k - 1 + _x_offset] = System.Math.Max(l[k - 1 + _l_offset], xk + dk);
+                            if (x[k - 1 + _x_offset] == l[k - 1 + _l_offset])
                             {
                                 iword = 1;
                             }
                         }
                         else
                         {
-                            if ((nbd[(k - (1)) + _nbd_offset] == 2))
+                            if (nbd[k - 1 + _nbd_offset] == 2)
                             {
-                                xk = System.Math.Max(l[(k - (1)) + _l_offset], (xk + dk));
-                                x[(k - (1)) + _x_offset] = System.Math.Min(u[(k - (1)) + _u_offset], xk);
-                                if (((x[(k - (1)) + _x_offset] == l[(k - (1))
-                                    + _l_offset]) || (x[(k - (1)) + _x_offset] == u[(k - (1)) + _u_offset])))
+                                xk = System.Math.Max(l[k - 1 + _l_offset], xk + dk);
+                                x[k - 1 + _x_offset] = System.Math.Min(u[k - 1 + _u_offset], xk);
+                                if (x[k - 1 + _x_offset] == l[k - 1
+                                                              + _l_offset] || x[k - 1 + _x_offset] == u[k - 1 + _u_offset])
                                 {
                                     iword = 1;
                                 }
                             }
                             else
                             {
-                                if ((nbd[(k - (1)) + _nbd_offset] == 3))
+                                if (nbd[k - 1 + _nbd_offset] == 3)
                                 {
-                                    x[(k - (1)) + _x_offset] = System.Math.Min(u[(k - (1)) + _u_offset], (xk + dk));
-                                    if ((x[(k - (1)) + _x_offset] == u[(k - (1)) + _u_offset]))
+                                    x[k - 1 + _x_offset] = System.Math.Min(u[k - 1 + _u_offset], xk + dk);
+                                    if (x[k - 1 + _x_offset] == u[k - 1 + _u_offset])
                                     {
                                         iword = 1;
                                     }
@@ -5366,13 +5366,13 @@ namespace BioIK {
                     }
                     else
                     {
-                        x[(k - (1)) + _x_offset] = (xk + dk);
+                        x[k - 1 + _x_offset] = xk + dk;
                     }
                 }
             }
 
 
-            if ((iword == 0))
+            if (iword == 0)
             {
                 goto L911;
             }
@@ -5384,12 +5384,12 @@ namespace BioIK {
             {
                 for (i = 1; i <= n; i++)
                 {
-                    dd_p = (dd_p + (((x[(i - (1)) + _x_offset]
-                        - xx[(i - (1)) + _xx_offset])) * gg[(i - (1)) + _gg_offset]));
+                    dd_p = dd_p + (x[i - 1 + _x_offset]
+                                   - xx[i - 1 + _xx_offset]) * gg[i - 1 + _gg_offset];
                 }
             }
 
-            if ((dd_p > 0.0))
+            if (dd_p > 0.0)
             {
                 dcopy(n, xp, _xp_offset, 1, x, _x_offset, 1);
 
@@ -5410,36 +5410,36 @@ namespace BioIK {
             {
                 for (i = 1; i <= nsub; i++)
                 {
-                    k = ind[(i - (1)) + _ind_offset];
-                    dk = d[(i - (1)) + _d_offset];
-                    if ((nbd[(k - (1)) + _nbd_offset] != 0))
+                    k = ind[i - 1 + _ind_offset];
+                    dk = d[i - 1 + _d_offset];
+                    if (nbd[k - 1 + _nbd_offset] != 0)
                     {
-                        if (((dk < 0.0) && (nbd[(k - (1)) + _nbd_offset] <= 2)))
+                        if (dk < 0.0 && nbd[k - 1 + _nbd_offset] <= 2)
                         {
-                            temp2 = (l[(k - (1)) + _l_offset] - x[(k - (1)) + _x_offset]);
-                            if ((temp2 >= 0.0))
+                            temp2 = l[k - 1 + _l_offset] - x[k - 1 + _x_offset];
+                            if (temp2 >= 0.0)
                             {
                                 temp1 = 0.0;
                             }
-                            else if (((dk * alpha) < temp2))
+                            else if (dk * alpha < temp2)
                             {
-                                temp1 = (temp2 / dk);
+                                temp1 = temp2 / dk;
                             }
                         }
-                        else if (((dk > 0.0) && (nbd[(k - (1)) + _nbd_offset] >= 2)))
+                        else if (dk > 0.0 && nbd[k - 1 + _nbd_offset] >= 2)
                         {
-                            temp2 = (u[(k - (1)) + _u_offset] - x[(k - (1)) + _x_offset]);
-                            if ((temp2 <= 0.0))
+                            temp2 = u[k - 1 + _u_offset] - x[k - 1 + _x_offset];
+                            if (temp2 <= 0.0)
                             {
                                 temp1 = 0.0;
                             }
-                            else if (((dk * alpha) > temp2))
+                            else if (dk * alpha > temp2)
                             {
-                                temp1 = (temp2 / dk);
+                                temp1 = temp2 / dk;
                             }
                         }
 
-                        if ((temp1 < alpha))
+                        if (temp1 < alpha)
                         {
                             alpha = temp1;
                             ibd = i;
@@ -5448,33 +5448,33 @@ namespace BioIK {
                 }
             }
 
-            if ((alpha < 1.0))
+            if (alpha < 1.0)
             {
-                dk = d[(ibd - (1)) + _d_offset];
-                k = ind[(ibd - (1)) + _ind_offset];
-                if ((dk > 0.0))
+                dk = d[ibd - 1 + _d_offset];
+                k = ind[ibd - 1 + _ind_offset];
+                if (dk > 0.0)
                 {
-                    x[(k - (1)) + _x_offset] = u[(k - (1)) + _u_offset];
-                    d[(ibd - (1)) + _d_offset] = 0.0;
+                    x[k - 1 + _x_offset] = u[k - 1 + _u_offset];
+                    d[ibd - 1 + _d_offset] = 0.0;
                 }
-                else if ((dk < 0.0))
+                else if (dk < 0.0)
                 {
-                    x[(k - (1)) + _x_offset] = l[(k - (1)) + _l_offset];
-                    d[(ibd - (1)) + _d_offset] = 0.0;
+                    x[k - 1 + _x_offset] = l[k - 1 + _l_offset];
+                    d[ibd - 1 + _d_offset] = 0.0;
                 }
             }
             {
                 for (i = 1; i <= nsub; i++)
                 {
-                    k = ind[(i - (1)) + _ind_offset];
-                    x[(k - (1)) + _x_offset] = (x[(k - (1)) + _x_offset] + (alpha * d[(i - (1)) + _d_offset]));
+                    k = ind[i - 1 + _ind_offset];
+                    x[k - 1 + _x_offset] = x[k - 1 + _x_offset] + alpha * d[i - 1 + _d_offset];
                 }
             }
 
 
         L911:
 
-            if ((iprint >= 99))
+            if (iprint >= 99)
             {
                 // DISPLAY: "----------------exit SUBSM --------------------"
             }
@@ -5545,8 +5545,8 @@ namespace BioIK {
                 {
                     info = j;
                     s = 0.0e0;
-                    jm1 = (j - 1);
-                    if ((jm1 < 1))
+                    jm1 = j - 1;
+                    if (jm1 < 1)
                     {
                         goto L20;
                     }
@@ -5554,25 +5554,25 @@ namespace BioIK {
                     {
                         for (k = 1; k <= jm1; k++)
                         {
-                            t = (a[(k - (1)) + (j - (1)) * (lda) + _a_offset]
-                                - ddot((k - 1), a, (1 - (1)) + (k - (1)) * (lda)
-                                + _a_offset, 1, a, (1 - (1)) + (j - (1)) * (lda) + _a_offset, 1));
+                            t = a[k - 1 + (j - 1) * lda + _a_offset]
+                                - ddot(k - 1, a, 1 - 1 + (k - 1) * lda
+                                                       + _a_offset, 1, a, 1 - 1 + (j - 1) * lda + _a_offset, 1);
 
-                            t = (t / a[(k - (1)) + (k - (1)) * (lda) + _a_offset]);
-                            a[(k - (1)) + (j - (1)) * (lda) + _a_offset] = t;
-                            s = (s + (t * t));
+                            t = t / a[k - 1 + (k - 1) * lda + _a_offset];
+                            a[k - 1 + (j - 1) * lda + _a_offset] = t;
+                            s = s + t * t;
                         }
                     }
 
                 L20:
-                    s = (a[(j - (1)) + (j - (1)) * (lda) + _a_offset] - s);
+                    s = a[j - 1 + (j - 1) * lda + _a_offset] - s;
                     // c     ......exit
-                    if ((s <= 0.0e0))
+                    if (s <= 0.0e0)
                     {
                         goto L40;
                     }
 
-                    a[(j - (1)) + (j - (1)) * (lda) + _a_offset] = System.Math.Sqrt(s);
+                    a[j - 1 + (j - 1) * lda + _a_offset] = System.Math.Sqrt(s);
                 }
             }
 
@@ -5609,12 +5609,12 @@ namespace BioIK {
             int mp1 = 0;
             int nincx = 0;
 
-            if (((n <= 0) || (incx <= 0)))
+            if (n <= 0 || incx <= 0)
             {
                 return;
             }
 
-            if ((incx == 1))
+            if (incx == 1)
             {
                 goto L20;
             }
@@ -5622,12 +5622,12 @@ namespace BioIK {
             // *
             // *        code for increment not equal to 1
             // *
-            nincx = (n * incx);
+            nincx = n * incx;
             {
                 int _i_inc = incx;
-                for (i = 1; (_i_inc < 0) ? i >= nincx : i <= nincx; i += _i_inc)
+                for (i = 1; _i_inc < 0 ? i >= nincx : i <= nincx; i += _i_inc)
                 {
-                    dx[(i - (1)) + _dx_offset] = (da * dx[(i - (1)) + _dx_offset]);
+                    dx[i - 1 + _dx_offset] = da * dx[i - 1 + _dx_offset];
                 }
             }
             return;
@@ -5638,35 +5638,35 @@ namespace BioIK {
         // *        clean-up loop
         // *
         L20:
-            m = (n) % (5);
+            m = n % 5;
 
-            if ((m == 0))
+            if (m == 0)
             {
                 goto L40;
             }
             {
                 for (i = 1; i <= m; i++)
                 {
-                    dx[(i - (1)) + _dx_offset] = (da * dx[(i - (1)) + _dx_offset]);
+                    dx[i - 1 + _dx_offset] = da * dx[i - 1 + _dx_offset];
                 }
             }
 
-            if ((n < 5))
+            if (n < 5)
             {
                 return;
             }
 
         L40:
-            mp1 = (m + 1);
+            mp1 = m + 1;
             {
                 int _i_inc = 5;
                 for (i = mp1; i <= n; i += _i_inc)
                 {
-                    dx[(i - (1)) + _dx_offset] = (da * dx[(i - (1)) + _dx_offset]);
-                    dx[((i + 1) - (1)) + _dx_offset] = (da * dx[((i + 1) - (1)) + _dx_offset]);
-                    dx[((i + 2) - (1)) + _dx_offset] = (da * dx[((i + 2) - (1)) + _dx_offset]);
-                    dx[((i + 3) - (1)) + _dx_offset] = (da * dx[((i + 3) - (1)) + _dx_offset]);
-                    dx[((i + 4) - (1)) + _dx_offset] = (da * dx[((i + 4) - (1)) + _dx_offset]);
+                    dx[i - 1 + _dx_offset] = da * dx[i - 1 + _dx_offset];
+                    dx[i + 1 - 1 + _dx_offset] = da * dx[i + 1 - 1 + _dx_offset];
+                    dx[i + 2 - 1 + _dx_offset] = da * dx[i + 2 - 1 + _dx_offset];
+                    dx[i + 3 - 1 + _dx_offset] = da * dx[i + 3 - 1 + _dx_offset];
+                    dx[i + 4 - 1 + _dx_offset] = da * dx[i + 4 - 1 + _dx_offset];
                 }
             }
 
@@ -5703,12 +5703,12 @@ namespace BioIK {
             double ddot = 0.0d;
             ddot = 0.0e0;
             dtemp = 0.0e0;
-            if ((n <= 0))
+            if (n <= 0)
             {
                 return ddot;
             }
 
-            if (((incx == 1) && (incy == 1)))
+            if (incx == 1 && incy == 1)
             {
                 goto L20;
             }
@@ -5718,21 +5718,21 @@ namespace BioIK {
             // *
             ix = 1;
             iy = 1;
-            if ((incx < 0))
+            if (incx < 0)
             {
-                ix = (((((-(n)) + 1)) * incx) + 1);
+                ix = (-n + 1) * incx + 1;
             }
-            if ((incy < 0))
+            if (incy < 0)
             {
-                iy = (((((-(n)) + 1)) * incy) + 1);
+                iy = (-n + 1) * incy + 1;
             }
 
             {
                 for (i = 1; i <= n; i++)
                 {
-                    dtemp = (dtemp + (dx[(ix - (1)) + _dx_offset] * dy[(iy - (1)) + _dy_offset]));
-                    ix = (ix + incx);
-                    iy = (iy + incy);
+                    dtemp = dtemp + dx[ix - 1 + _dx_offset] * dy[iy - 1 + _dy_offset];
+                    ix = ix + incx;
+                    iy = iy + incy;
                 }
             }
             ddot = dtemp;
@@ -5745,9 +5745,9 @@ namespace BioIK {
         // *        clean-up loop
         // *
         L20:
-            m = (n) % (5);
+            m = n % 5;
 
-            if ((m == 0))
+            if (m == 0)
             {
                 goto L40;
             }
@@ -5755,26 +5755,26 @@ namespace BioIK {
             {
                 for (i = 1; i <= m; i++)
                 {
-                    dtemp = (dtemp + (dx[(i - (1)) + _dx_offset] * dy[(i - (1)) + _dy_offset]));
+                    dtemp = dtemp + dx[i - 1 + _dx_offset] * dy[i - 1 + _dy_offset];
                 }
             }
 
-            if ((n < 5))
+            if (n < 5)
             {
                 goto L60;
             }
 
         L40:
-            mp1 = (m + 1);
+            mp1 = m + 1;
             {
                 int _i_inc = 5;
                 for (i = mp1; i <= n; i += _i_inc)
                 {
-                    dtemp = (((((dtemp + (dx[(i - (1)) + _dx_offset] * dy[(i - (1))
-                        + _dy_offset])) + (dx[((i + 1) - (1)) + _dx_offset] * dy[((i + 1) - (1))
-                        + _dy_offset])) + (dx[((i + 2) - (1)) + _dx_offset] * dy[((i + 2) - (1))
-                        + _dy_offset])) + (dx[((i + 3) - (1)) + _dx_offset] * dy[((i + 3) - (1))
-                        + _dy_offset])) + (dx[((i + 4) - (1)) + _dx_offset] * dy[((i + 4) - (1)) + _dy_offset]));
+                    dtemp = dtemp + dx[i - 1 + _dx_offset] * dy[i - 1
+                                                                + _dy_offset] + dx[i + 1 - 1 + _dx_offset] * dy[i + 1 - 1
+                        + _dy_offset] + dx[i + 2 - 1 + _dx_offset] * dy[i + 2 - 1
+                                                                        + _dy_offset] + dx[i + 3 - 1 + _dx_offset] * dy[i + 3 - 1
+                        + _dy_offset] + dx[i + 4 - 1 + _dx_offset] * dy[i + 4 - 1 + _dy_offset];
                 }
             }
         L60:
@@ -5791,12 +5791,12 @@ namespace BioIK {
             int iy = 0;
             int m = 0;
             int mp1 = 0;
-            if ((n <= 0))
+            if (n <= 0)
             {
                 return;
             }
 
-            if (((incx == 1) && (incy == 1)))
+            if (incx == 1 && incy == 1)
             {
                 goto L20;
             }
@@ -5806,20 +5806,20 @@ namespace BioIK {
             // c
             ix = 1;
             iy = 1;
-            if ((incx < 0))
+            if (incx < 0)
             {
-                ix = (((((-(n)) + 1)) * incx) + 1);
+                ix = (-n + 1) * incx + 1;
             }
-            if ((incy < 0))
+            if (incy < 0)
             {
-                iy = (((((-(n)) + 1)) * incy) + 1);
+                iy = (-n + 1) * incy + 1;
             }
             {
                 for (i = 1; i <= n; i++)
                 {
-                    dy[(iy - (1)) + _dy_offset] = dx[(ix - (1)) + _dx_offset];
-                    ix = (ix + incx);
-                    iy = (iy + incy);
+                    dy[iy - 1 + _dy_offset] = dx[ix - 1 + _dx_offset];
+                    ix = ix + incx;
+                    iy = iy + incy;
                 }
             }
             return;
@@ -5830,35 +5830,35 @@ namespace BioIK {
         // c        clean-up loop
         // c
         L20:
-            m = (n) % (7);
-            if ((m == 0))
+            m = n % 7;
+            if (m == 0)
             {
                 goto L40;
             }
             {
                 for (i = 1; i <= m; i++)
                 {
-                    dy[(i - (1)) + _dy_offset] = dx[(i - (1)) + _dx_offset];
+                    dy[i - 1 + _dy_offset] = dx[i - 1 + _dx_offset];
                 }
             }
-            if ((n < 7))
+            if (n < 7)
             {
                 return;
             }
 
         L40:
-            mp1 = (m + 1);
+            mp1 = m + 1;
             {
                 int _i_inc = 7;
                 for (i = mp1; i <= n; i += _i_inc)
                 {
-                    dy[(i - (1)) + _dy_offset] = dx[(i - (1)) + _dx_offset];
-                    dy[((i + 1) - (1)) + _dy_offset] = dx[((i + 1) - (1)) + _dx_offset];
-                    dy[((i + 2) - (1)) + _dy_offset] = dx[((i + 2) - (1)) + _dx_offset];
-                    dy[((i + 3) - (1)) + _dy_offset] = dx[((i + 3) - (1)) + _dx_offset];
-                    dy[((i + 4) - (1)) + _dy_offset] = dx[((i + 4) - (1)) + _dx_offset];
-                    dy[((i + 5) - (1)) + _dy_offset] = dx[((i + 5) - (1)) + _dx_offset];
-                    dy[((i + 6) - (1)) + _dy_offset] = dx[((i + 6) - (1)) + _dx_offset];
+                    dy[i - 1 + _dy_offset] = dx[i - 1 + _dx_offset];
+                    dy[i + 1 - 1 + _dy_offset] = dx[i + 1 - 1 + _dx_offset];
+                    dy[i + 2 - 1 + _dy_offset] = dx[i + 2 - 1 + _dx_offset];
+                    dy[i + 3 - 1 + _dy_offset] = dx[i + 3 - 1 + _dx_offset];
+                    dy[i + 4 - 1 + _dy_offset] = dx[i + 4 - 1 + _dx_offset];
+                    dy[i + 5 - 1 + _dy_offset] = dx[i + 5 - 1 + _dx_offset];
+                    dy[i + 6 - 1 + _dy_offset] = dx[i + 6 - 1 + _dx_offset];
                 }
             }
         }
@@ -5895,17 +5895,17 @@ namespace BioIK {
             int iy = 0;
             int m = 0;
             int mp1 = 0;
-            if ((n <= 0))
+            if (n <= 0)
             {
                 return;
             }
 
-            if ((da == 0.0e0))
+            if (da == 0.0e0)
             {
                 return;
             }
 
-            if (((incx == 1) && (incy == 1)))
+            if (incx == 1 && incy == 1)
             {
                 // *
                 // *        code for both increments equal to 1
@@ -5913,36 +5913,36 @@ namespace BioIK {
                 // *
                 // *        clean-up loop
                 // *
-                m = (n) % (4);
-                if ((m != 0))
+                m = n % 4;
+                if (m != 0)
                 {
                     {
                         for (i = 1; i <= m; i++)
                         {
-                            dy[(i - (1)) + _dy_offset] = (dy[(i - (1)) + _dy_offset]
-                                + (da * dx[(i - (1)) + _dx_offset]));
+                            dy[i - 1 + _dy_offset] = dy[i - 1 + _dy_offset]
+                                                     + da * dx[i - 1 + _dx_offset];
                         }
                     }
                 }
 
-                if ((n < 4))
+                if (n < 4)
                 {
                     return;
                 }
 
-                mp1 = (m + 1);
+                mp1 = m + 1;
                 {
                     int _i_inc = 4;
                     for (i = mp1; i <= n; i += _i_inc)
                     {
-                        dy[(i - (1)) + _dy_offset] = (dy[(i - (1)) + _dy_offset]
-                            + (da * dx[(i - (1)) + _dx_offset]));
-                        dy[((i + 1) - (1)) + _dy_offset] = (dy[((i + 1) - (1)) + _dy_offset]
-                            + (da * dx[((i + 1) - (1)) + _dx_offset]));
-                        dy[((i + 2) - (1)) + _dy_offset] = (dy[((i + 2) - (1)) + _dy_offset]
-                            + (da * dx[((i + 2) - (1)) + _dx_offset]));
-                        dy[((i + 3) - (1)) + _dy_offset] = (dy[((i + 3) - (1)) + _dy_offset]
-                            + (da * dx[((i + 3) - (1)) + _dx_offset]));
+                        dy[i - 1 + _dy_offset] = dy[i - 1 + _dy_offset]
+                                                 + da * dx[i - 1 + _dx_offset];
+                        dy[i + 1 - 1 + _dy_offset] = dy[i + 1 - 1 + _dy_offset]
+                                                     + da * dx[i + 1 - 1 + _dx_offset];
+                        dy[i + 2 - 1 + _dy_offset] = dy[i + 2 - 1 + _dy_offset]
+                                                     + da * dx[i + 2 - 1 + _dx_offset];
+                        dy[i + 3 - 1 + _dy_offset] = dy[i + 3 - 1 + _dy_offset]
+                                                     + da * dx[i + 3 - 1 + _dx_offset];
                     }
                 }
             }
@@ -5954,21 +5954,21 @@ namespace BioIK {
                 // *
                 ix = 1;
                 iy = 1;
-                if ((incx < 0))
+                if (incx < 0)
                 {
-                    ix = (((((-(n)) + 1)) * incx) + 1);
+                    ix = (-n + 1) * incx + 1;
                 }
-                if ((incy < 0))
+                if (incy < 0)
                 {
-                    iy = (((((-(n)) + 1)) * incy) + 1);
+                    iy = (-n + 1) * incy + 1;
                 }
                 {
                     for (i = 1; i <= n; i++)
                     {
-                        dy[(iy - (1)) + _dy_offset] = (dy[(iy - (1)) + _dy_offset]
-                            + (da * dx[(ix - (1)) + _dx_offset]));
-                        ix = (ix + incx);
-                        iy = (iy + incy);
+                        dy[iy - 1 + _dy_offset] = dy[iy - 1 + _dy_offset]
+                                                  + da * dx[ix - 1 + _dx_offset];
+                        ix = ix + incx;
+                        iy = iy + incy;
                     }
                 }
             }

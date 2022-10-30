@@ -1,7 +1,9 @@
-﻿using UnityEngine;
+﻿using System;
 using System.Collections.Generic;
+using BioIK.Setup;
+using UnityEngine;
 
-namespace BioIK {
+namespace BioIK.Helpers {
 	public class Model {
 		//Reference to the character
 		private BioIK Character;
@@ -15,11 +17,11 @@ namespace BioIK {
 		private double OSX, OSY, OSZ;								//Offset scale to world Frame
 		
 		//Linked list of nodes in the model
-		public Node[] Nodes = new Node[0];
+		public Node[] Nodes = Array.Empty<Node>();
 
 		//Global pointers to the IK setup
-		public MotionPtr[] MotionPtrs = new MotionPtr[0];
-		public ObjectivePtr[] ObjectivePtrs = new ObjectivePtr[0];
+		public MotionPtr[] MotionPtrs = Array.Empty<MotionPtr>();
+		public ObjectivePtr[] ObjectivePtrs = Array.Empty<ObjectivePtr>();
 
 		//Assigned Configuraton
 		private double[] Configuration;
@@ -99,13 +101,14 @@ namespace BioIK {
 			}
 
 			//Update offset from world to root
-			if(Root.Transform.root == Character.transform) {
+			if(Root.transform.root == Character.transform) {
 				OPX = OPY = OPZ = ORX = ORY = ORZ = 0.0;
 				ORW = OSX = OSY = OSZ = 1.0;
 			} else {
-				Vector3 p = Root.Transform.parent.position;
-				Quaternion r = Root.Transform.parent.rotation;
-				Vector3 s = Root.Transform.parent.lossyScale;
+				Transform parent = Root.transform.parent;
+				Vector3 p = parent.position;
+				Quaternion r = parent.rotation;
+				Vector3 s = parent.lossyScale;
 				OPX = p.x; OPY = p.y; OPZ = p.z;
 				ORX = r.x; ORY = r.y; ORZ = r.z; ORW = r.w;
 				OSX = s.x; OSY = s.y; OSZ = s.z;
@@ -179,7 +182,7 @@ namespace BioIK {
 				Losses[i] = ObjectivePtrs[i].Objective.ComputeLoss(node.WPX, node.WPY, node.WPZ, node.WRX, node.WRY, node.WRZ, node.WRW, node, Configuration);
 				loss += Losses[i];
 			}
-			return System.Math.Sqrt(loss / (double)ObjectivePtrs.Length);
+			return Math.Sqrt(loss / (double)ObjectivePtrs.Length);
 		}
 
 		//Computes the gradient
@@ -193,7 +196,7 @@ namespace BioIK {
 				for(int i=0; i<ObjectivePtrs.Length; i++) {
 					newLoss += SimulatedLosses[i];
 				}
-				newLoss = System.Math.Sqrt(newLoss / (double)ObjectivePtrs.Length);
+				newLoss = Math.Sqrt(newLoss / (double)ObjectivePtrs.Length);
 				Gradient[j] = (newLoss - oldLoss) / resolution;
 			}
 			return Gradient;
@@ -221,59 +224,59 @@ namespace BioIK {
 
 		//Adds a segment node into the model
 		private void AddNode(BioSegment segment) {
-			if(FindNode(segment.Transform) == null) {
-				Node node = new(this, FindNode(segment.Transform.parent), segment);
+			if(FindNode(segment.transform) == null) {
+				Node node = new(this, FindNode(segment.transform.parent), segment);
 
 				if(node.Joint != null) {
 					if(node.Joint.GetDoF() == 0 || !node.Joint.enabled) {
 						node.Joint = null;
 					} else {
-						if(node.Joint.X.IsEnabled()) {
-							MotionPtr motionPtr = new(node.Joint.X, node, MotionPtrs.Length);
-							System.Array.Resize(ref MotionPtrs, MotionPtrs.Length+1);
-							MotionPtrs[MotionPtrs.Length-1] = motionPtr;
+						if(node.Joint.x.IsEnabled()) {
+							MotionPtr motionPtr = new(node.Joint.x, node, MotionPtrs.Length);
+							Array.Resize(ref MotionPtrs, MotionPtrs.Length+1);
+							MotionPtrs[^1] = motionPtr;
 							node.XEnabled = true;
 							node.XIndex = motionPtr.Index;
 						}
-						if(node.Joint.Y.IsEnabled()) {
-							MotionPtr motionPtr = new(node.Joint.Y, node, MotionPtrs.Length);
-							System.Array.Resize(ref MotionPtrs, MotionPtrs.Length+1);
-							MotionPtrs[MotionPtrs.Length-1] = motionPtr;
+						if(node.Joint.y.IsEnabled()) {
+							MotionPtr motionPtr = new(node.Joint.y, node, MotionPtrs.Length);
+							Array.Resize(ref MotionPtrs, MotionPtrs.Length+1);
+							MotionPtrs[^1] = motionPtr;
 							node.YEnabled = true;
 							node.YIndex = motionPtr.Index;
 						}
-						if(node.Joint.Z.IsEnabled()) {
-							MotionPtr motionPtr = new(node.Joint.Z, node, MotionPtrs.Length);
-							System.Array.Resize(ref MotionPtrs, MotionPtrs.Length+1);
-							MotionPtrs[MotionPtrs.Length-1] = motionPtr;
+						if(node.Joint.z.IsEnabled()) {
+							MotionPtr motionPtr = new(node.Joint.z, node, MotionPtrs.Length);
+							Array.Resize(ref MotionPtrs, MotionPtrs.Length+1);
+							MotionPtrs[^1] = motionPtr;
 							node.ZEnabled = true;
 							node.ZIndex = motionPtr.Index;
 						}
 					}
 				}
 
-				BioObjective[] objectives = segment.Objectives;
+				BioObjective[] objectives = segment.objectives;
 				for(int i=0; i<objectives.Length; i++) {
 					if(objectives[i].enabled) {
-						System.Array.Resize(ref ObjectivePtrs, ObjectivePtrs.Length+1);
-						ObjectivePtrs[ObjectivePtrs.Length-1] = new(objectives[i], node, ObjectivePtrs.Length);
+						Array.Resize(ref ObjectivePtrs, ObjectivePtrs.Length+1);
+						ObjectivePtrs[^1] = new(objectives[i], node, ObjectivePtrs.Length);
 					}
 				}
 
-				System.Array.Resize(ref Nodes, Nodes.Length+1);
-				Nodes[Nodes.Length-1] = node;
+				Array.Resize(ref Nodes, Nodes.Length+1);
+				Nodes[^1] = node;
 			}
 		}
 
 		//Returns all objectives which are childs in the hierarcy, beginning from the root
 		private BioObjective[] CollectObjectives(BioSegment segment, List<BioObjective> objectives) {
-			for(int i=0; i<segment.Objectives.Length; i++) {
-				if(segment.Objectives[i].enabled) {
-					objectives.Add(segment.Objectives[i]);
+			for(int i=0; i<segment.objectives.Length; i++) {
+				if(segment.objectives[i].enabled) {
+					objectives.Add(segment.objectives[i]);
 				}
 			}
-			for(int i=0; i<segment.Childs.Length; i++) {
-				CollectObjectives(segment.Childs[i], objectives);
+			for(int i=0; i<segment.children.Length; i++) {
+				CollectObjectives(segment.children[i], objectives);
 			}
 			return objectives.ToArray();
 		}
@@ -313,7 +316,7 @@ namespace BioIK {
 		public class Node {
 			public Model Model;							//Reference to the kinematic model
 			public Node Parent;							//Reference to the parent of this node
-			public Node[] Childs = new Node[0];			//Reference to all child nodes
+			public Node[] Childs = Array.Empty<Node>();			//Reference to all child nodes
 			public Transform Transform;					//Reference to the transform
 			public BioJoint Joint;						//Reference to the joint
 			public Transform[] Chain;
@@ -344,8 +347,8 @@ namespace BioIK {
 				if(Parent != null) {
 					Parent.AddChild(this);
 				}
-				Transform = segment.Transform;
-				Joint = segment.Joint;
+				Transform = segment.transform;
+				Joint = segment.joint;
 
 				List<Transform> reverseChain = new();
 				reverseChain.Add(Transform);
@@ -360,8 +363,8 @@ namespace BioIK {
 
 			//Adds a child to this node
 			public void AddChild(Node child) {
-				System.Array.Resize(ref Childs, Childs.Length+1);
-				Childs[Childs.Length-1] = child;
+				Array.Resize(ref Childs, Childs.Length+1);
+				Childs[^1] = child;
 			}
 
 			//Recursively refreshes the current transform data
@@ -378,9 +381,9 @@ namespace BioIK {
 					LRZ = lr.z;
 					LRW = lr.w;
 				} else {
-					XValue = Joint.X.GetTargetValue(true);
-					YValue = Joint.Y.GetTargetValue(true);
-					ZValue = Joint.Z.GetTargetValue(true);
+					XValue = Joint.x.GetTargetValue(true);
+					YValue = Joint.y.GetTargetValue(true);
+					ZValue = Joint.z.GetTargetValue(true);
 					Joint.ComputeLocalTransformation(XValue, YValue, ZValue, out LPX, out LPY, out LPZ, out LRX, out LRY, out LRZ, out LRW);
 				}
 				Vector3 ws = Transform.lossyScale;

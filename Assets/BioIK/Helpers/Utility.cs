@@ -1,10 +1,9 @@
-﻿using UnityEngine;
-
-#if UNITY_EDITOR
+﻿using BioIK.Setup;
+using BioIK.Setup.Objectives;
 using UnityEditor;
-#endif
+using UnityEngine;
 
-namespace BioIK {
+namespace BioIK.Helpers {
 
 	public static class Utility {
 		public const double Deg2Rad = 0.017453292;
@@ -71,26 +70,28 @@ namespace BioIK {
 			}
 		}
 
-		public static BioSegment AddBioSegment(BioIK character, Transform t) {
-			#if UNITY_EDITOR
+		public static BioSegment AddBioSegment(BioIK character, Transform t)
+		{
+#if UNITY_EDITOR
 			if(Application.isPlaying) {
 				return (t.gameObject.AddComponent(typeof(BioSegment)) as BioSegment).Create(character);
-			} else {
-				return (Undo.AddComponent(t.gameObject, typeof(BioSegment)) as BioSegment).Create(character);
 			}
-			#else
+
+			return (Undo.AddComponent(t.gameObject, typeof(BioSegment)) as BioSegment).Create(character);
+#else
 			return (t.gameObject.AddComponent(typeof(BioSegment)) as BioSegment).Create(character);
 			#endif
 		}
 
-		public static BioJoint AddBioJoint(BioSegment segment) {
-			#if UNITY_EDITOR
+		public static BioJoint AddBioJoint(BioSegment segment)
+		{
+#if UNITY_EDITOR
 			if(Application.isPlaying) {
 				return (segment.gameObject.AddComponent(typeof(BioJoint)) as BioJoint).Create(segment);
-			} else {
-				return (Undo.AddComponent(segment.gameObject, typeof(BioJoint)) as BioJoint).Create(segment);
 			}
-			#else
+
+			return (Undo.AddComponent(segment.gameObject, typeof(BioJoint)) as BioJoint).Create(segment);
+#else
 			return (segment.gameObject.AddComponent(typeof(BioJoint)) as BioJoint).Create(segment);
 			#endif
 		}
@@ -104,21 +105,6 @@ namespace BioIK {
 
 					case ObjectiveType.Orientation:
 					return (segment.gameObject.AddComponent(typeof(Orientation)) as BioObjective).Create(segment);
-
-					case ObjectiveType.LookAt:
-					return (segment.gameObject.AddComponent(typeof(LookAt)) as BioObjective).Create(segment);;
-
-					case ObjectiveType.Distance:
-					return (segment.gameObject.AddComponent(typeof(Distance)) as BioObjective).Create(segment);
-
-					case ObjectiveType.JointValue:
-					return (segment.gameObject.AddComponent(typeof(JointValue)) as BioObjective).Create(segment);
-
-					case ObjectiveType.Displacement:
-					return (segment.gameObject.AddComponent(typeof(Displacement)) as BioObjective).Create(segment);
-
-					case ObjectiveType.Projection:
-					return (segment.gameObject.AddComponent(typeof(Projection)) as BioObjective).Create(segment);
 				}
 			} else {
 				switch(type) {
@@ -127,21 +113,6 @@ namespace BioIK {
 
 					case ObjectiveType.Orientation:
 					return (Undo.AddComponent(segment.gameObject, typeof(Orientation)) as BioObjective).Create(segment);
-
-					case ObjectiveType.LookAt:
-					return (Undo.AddComponent(segment.gameObject, typeof(LookAt)) as BioObjective).Create(segment);
-
-					case ObjectiveType.Distance:
-					return (Undo.AddComponent(segment.gameObject, typeof(Distance)) as BioObjective).Create(segment);
-
-					case ObjectiveType.JointValue:
-					return (Undo.AddComponent(segment.gameObject, typeof(JointValue)) as BioObjective).Create(segment);
-
-					case ObjectiveType.Displacement:
-					return (Undo.AddComponent(segment.gameObject, typeof(Displacement)) as BioObjective).Create(segment);
-
-					case ObjectiveType.Projection:
-					return (Undo.AddComponent(segment.gameObject, typeof(Projection)) as BioObjective).Create(segment);
 				}
 			}
 			return null;
@@ -152,21 +123,6 @@ namespace BioIK {
 
 				case ObjectiveType.Orientation:
 				return (segment.gameObject.AddComponent(typeof(Orientation)) as BioObjective).Create(segment);
-
-				case ObjectiveType.LookAt:
-				return (segment.gameObject.AddComponent(typeof(LookAt)) as BioObjective).Create(segment);;
-
-				case ObjectiveType.Distance:
-				return (segment.gameObject.AddComponent(typeof(Distance)) as BioObjective).Create(segment);
-
-				case ObjectiveType.JointValue:
-				return (segment.gameObject.AddComponent(typeof(JointValue)) as BioObjective).Create(segment);
-
-				case ObjectiveType.Displacement:
-				return (segment.gameObject.AddComponent(typeof(Displacement)) as BioObjective).Create(segment);
-
-				case ObjectiveType.Projection:
-				return (segment.gameObject.AddComponent(typeof(Projection)) as BioObjective).Create(segment);
 			}
 			return null;
 			#endif

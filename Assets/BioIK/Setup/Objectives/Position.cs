@@ -1,6 +1,7 @@
-﻿using UnityEngine;
+﻿using BioIK.Helpers;
+using UnityEngine;
 
-namespace BioIK {
+namespace BioIK.Setup.Objectives {
 
 	//This objective aims to minimise the translational distance between the transform and the target.
 	[AddComponentMenu("")]
@@ -19,15 +20,15 @@ namespace BioIK {
 		}
 
 		public override void UpdateData() {
-			if(Segment.Character.Evolution == null) {
+			if(Segment.controller.Evolution == null) {
 				return;
 			}
 			ChainLength = 0.0;
-			Transform[] chain = Segment.Character.Evolution.GetModel().FindObjectivePtr(this).Node.Chain;;
+			Transform[] chain = Segment.controller.Evolution.GetModel().FindObjectivePtr(this).Node.Chain;;
 			for(int i=0; i<chain.Length-1; i++) {
 				ChainLength += Vector3.Distance(chain[i].position, chain[i+1].position);
 			}
-			Rescaling = (Utility.PI * Utility.PI) / (ChainLength * ChainLength);
+			Rescaling = Utility.PI * Utility.PI / (ChainLength * ChainLength);
 			//Root = chain[0].position;
 			if(Target != null) {
 				Vector3 position = Target.position;

@@ -1,9 +1,12 @@
-﻿using UnityEngine;
+﻿using BioIK.Helpers;
+using BioIK.Setup;
+using BioIK.Setup.Objectives;
 using UnityEditor;
+using UnityEngine;
 
-namespace BioIK {
+namespace BioIK.Editor {
 	[CustomEditor(typeof(BioIK))]
-	public class BioIKEditor : Editor {
+	public class BioIKEditor : UnityEditor.Editor {
 
 		public BioIK Target;
 		public Transform TargetTransform;
@@ -28,16 +31,11 @@ namespace BioIK {
 		private bool IsPlaying;
 		private bool IsEnabled;
 
-		private int DoF;
-
 		private void Awake() {
 			EditorApplication.playModeStateChanged += PlaymodeStateChanged;
 			Target = (BioIK)target;
 			TargetTransform = Target.transform;
 			Target.Refresh(false);
-			DoF = 0;
-			//MakeVisible(TargetTransform);
-			//MakeInvisible(TargetTransform);
 		}
 
 		private void OnEnable() {
@@ -166,7 +164,7 @@ namespace BioIK {
 				} else {
 					SetGUIColor(Color.Lerp(Color4, Color8, (float)indent / (float)maxIndent));
 				}
-				if(GUILayout.Button(segment.Transform.name, GUILayout.Height(25f), GUILayout.ExpandWidth(true))) {
+				if(GUILayout.Button(segment.transform.name, GUILayout.Height(25f), GUILayout.ExpandWidth(true))) {
 					if(Target.selectedSegment == segment) {
 						Target.selectedSegment = null;
 						ChosingObjectiveType = false;
@@ -182,11 +180,11 @@ namespace BioIK {
 				} else {
 					GUILayout.BeginHorizontal();
 					GUILayout.FlexibleSpace();
-					if(segment.Joint != null) {
+					if(segment.joint != null) {
 						SetGUIColor(Color6);
 						GUILayout.Box(" Joint ");
 					}
-					foreach(BioObjective objective in segment.Objectives) {
+					foreach(BioObjective objective in segment.objectives) {
 						SetGUIColor(Color9);
 						GUILayout.Box(" " + objective.GetObjectiveType().ToString() + " ");
 					}
@@ -195,8 +193,8 @@ namespace BioIK {
 				}
 			}
 			
-			for(int i=0; i<segment.Childs.Length; i++) {
-				InspectBody(segment.Childs[i], indent+1, maxIndent);
+			for(int i=0; i<segment.children.Length; i++) {
+				InspectBody(segment.children[i], indent+1, maxIndent);
 			}
 		}
 
@@ -207,32 +205,32 @@ namespace BioIK {
 			using(new EditorGUILayout.VerticalScope ("Box")) {
 				
 				SetGUIColor(Color4);
-				Vector3 A = segment.Parent == null ? segment.GetAnchoredPosition() : segment.Parent.GetAnchoredPosition();
+				Vector3 A = segment.parent == null ? segment.GetAnchoredPosition() : segment.parent.GetAnchoredPosition();
 				Vector3 B = segment.GetAnchoredPosition();
 				EditorGUILayout.HelpBox("Link Length: " + Vector3.Distance(A,B), MessageType.None);
 
 				SetGUIColor(Color6);
 				using(new EditorGUILayout.VerticalScope ("Box")) {
-					if(segment.Joint == null) {
+					if(segment.joint == null) {
 						GUI.skin.button.alignment = TextAnchor.MiddleCenter;
 						SetGUIColor(Color1);
 						if(GUILayout.Button("Add Joint")) {
 							segment.AddJoint();
 						}
 					} else {
-						InspectJoint(segment.Joint);
+						InspectJoint(segment.joint);
 					}
 				}
 
 			}
 
-			for(int i=0; i<segment.Objectives.Length; i++) {
+			for(int i=0; i<segment.objectives.Length; i++) {
 				SetGUIColor(Color13);
 				using(new EditorGUILayout.VerticalScope ("Box")) {
 
 					SetGUIColor(Color9);
 					using(new EditorGUILayout.VerticalScope ("Box")) {
-						InspectObjective(segment.Objectives[i]);
+						InspectObjective(segment.objectives[i]);
 					}
 
 				}
@@ -290,9 +288,7 @@ namespace BioIK {
 				SetGUIColor(Color4);
 				EditorGUILayout.HelpBox("Geometry", MessageType.None);
 				SetGUIColor(Color1);
-				joint.JointType = (JointType)EditorGUILayout.EnumPopup("Joint Type", joint.JointType);
-				SetGUIColor(Color1);
-				joint.SetAnchor(EditorGUILayout.Vector3Field("Anchor", joint.GetAnchor()));
+				joint.jointType = (JointType)EditorGUILayout.EnumPopup("Joint Type", joint.jointType);
 				SetGUIColor(Color1);
 				joint.SetOrientation(EditorGUILayout.Vector3Field("Orientation", joint.GetOrientation()));
 				SetGUIColor(Color4);
@@ -303,9 +299,9 @@ namespace BioIK {
 				Quaternion defaultRotation = Quaternion.Euler(EditorGUILayout.Vector3Field("Rotation", joint.GetDefaultRotation().eulerAngles));
 				joint.SetDefaultFrame(defaultPosition, defaultRotation);
 
-				InspectMotion(joint.X, "     X Motion     ");
-				InspectMotion(joint.Y, "     Y Motion     ");
-				InspectMotion(joint.Z, "     Z Motion     ");
+				InspectMotion(joint.x, "     X Motion     ");
+				InspectMotion(joint.y, "     Y Motion     ");
+				InspectMotion(joint.z, "     Z Motion     ");
 
 				GUI.skin.button.alignment = TextAnchor.MiddleCenter;
 				SetGUIColor(Color7);
@@ -337,8 +333,8 @@ namespace BioIK {
 
 				if(motion.IsEnabled()) {
 					SetGUIColor(Color1);
-					motion.Constrained = EditorGUILayout.Toggle("Constrained", motion.Constrained);
-					if(motion.Constrained) {
+					motion.constrained = EditorGUILayout.Toggle("Constrained", motion.constrained);
+					if(motion.constrained) {
 						SetGUIColor(Color1);
 						motion.SetLowerLimit(EditorGUILayout.DoubleField("Lower Limit", motion.GetLowerLimit()));
 						SetGUIColor(Color1);
@@ -399,26 +395,6 @@ namespace BioIK {
 					case ObjectiveType.Orientation:
 					InspectOrientation((Orientation)objective);
 					break;
-
-					case ObjectiveType.LookAt:
-					InspectLookAt((LookAt)objective);
-					break;
-
-					case ObjectiveType.Distance:
-					InspectDistance((Distance)objective);
-					break;
-
-					case ObjectiveType.JointValue:
-					InspectJointValue((JointValue)objective);
-					break;
-
-					case ObjectiveType.Displacement:
-					InspectDisplacement((Displacement)objective);
-					break;
-
-					case ObjectiveType.Projection:
-					InspectProjection((Projection)objective);
-					break;
 				}
 
 				GUI.skin.button.alignment = TextAnchor.MiddleCenter;
@@ -455,82 +431,7 @@ namespace BioIK {
 			objective.SetMaximumError(EditorGUILayout.DoubleField("Maximum Error", objective.GetMaximumError()));
 		}
 
-		private void InspectLookAt(LookAt objective) {
-			SetGUIColor(Color1);
-			objective.SetTargetTransform(EditorGUILayout.ObjectField("Target Transform", objective.GetTargetTransform(), typeof(Transform), true) as Transform);
-			SetGUIColor(Color1);
-			objective.SetTargetPosition(EditorGUILayout.Vector3Field("Target Position", objective.GetTargetPosition()));
-			SetGUIColor(Color1);
-			objective.SetViewingDirection(EditorGUILayout.Vector3Field("Viewing Direction", objective.GetViewingDirection()));
-			SetGUIColor(Color1);
-			objective.SetMaximumError(EditorGUILayout.DoubleField("Maximum Error", objective.GetMaximumError()));
-		}
-
-		private void InspectDistance(Distance objective) {
-			SetGUIColor(Color1);
-			objective.SetRadius(EditorGUILayout.DoubleField("Radius", objective.GetRadius()));
-
-			SetGUIColor(Color1);
-			GUILayout.BeginHorizontal();
-			GUILayout.FlexibleSpace();
-			EditorGUILayout.HelpBox("Points", MessageType.None);
-			GUILayout.FlexibleSpace();
-			GUILayout.EndHorizontal();
-
-			DistancePoint[] points = objective.GetPoints();
-			for(int i=0; i<points.Length; i++) {
-				SetGUIColor(Color8);
-				using(new EditorGUILayout.VerticalScope ("Box")) {
-					SetGUIColor(Color1);
-					points[i].SetTargetTransform(EditorGUILayout.ObjectField("Target", points[i].Target, typeof(Transform), true) as Transform);
-					SetGUIColor(Color1);
-					points[i].SetRadius(EditorGUILayout.DoubleField("Radius", points[i].Radius));
-				}
-			}
-			SetGUIColor(Color8);
-			if(GUILayout.Button("+")) {
-				objective.AddPoint();
-			}
-			SetGUIColor(Color8);
-			if(GUILayout.Button("-")) {
-				objective.RemovePoint();
-			}
-		}
-
-		private void InspectJointValue(JointValue objective) {
-			SetGUIColor(Color1);
-			objective.SetTargetValue(EditorGUILayout.DoubleField("Target Value", objective.GetTargetValue()));
-			SetGUIColor(Color1);
-			objective.SetXMotion(EditorGUILayout.Toggle("X Motion", objective.IsXMotion()));
-			SetGUIColor(Color1);
-			objective.SetYMotion(EditorGUILayout.Toggle("Y Motion", objective.IsYMotion()));
-			SetGUIColor(Color1);
-			objective.SetZMotion(EditorGUILayout.Toggle("Z Motion", objective.IsZMotion()));
-		}
-
-		private void InspectDisplacement(Displacement objective) {
-
-		}
-
-		private void InspectProjection(Projection objective) {
-			SetGUIColor(Color1);
-			objective.SetTargetTransform(EditorGUILayout.ObjectField("Target Transform", objective.GetTargetTransform(), typeof(Transform), true) as Transform);
-			SetGUIColor(Color1);
-			objective.SetTargetPosition(EditorGUILayout.Vector3Field("Target Position", objective.GetTargetPosition()));
-			SetGUIColor(Color1);
-			objective.SetTargetRotation(EditorGUILayout.Vector3Field("Target Rotation", objective.GetTargetRotation()));
-			SetGUIColor(Color1);
-			objective.SetNormal(EditorGUILayout.Vector3Field("Projection Normal", objective.GetNormal()));
-			SetGUIColor(Color1);
-			objective.SetLength(EditorGUILayout.FloatField("Projection Length", objective.GetLength()));
-			SetGUIColor(Color1);
-			objective.SetSensitivity(EditorGUILayout.Slider("Projection Sensitivitiy", objective.GetSensitivity(), 0f, 1f));
-			SetGUIColor(Color1);
-			objective.SetMaximumError(EditorGUILayout.DoubleField("Maximum Error", objective.GetMaximumError()));
-		}
-
 		public void OnSceneGUI() {
-			DoF = 0;
 			DrawSkeleton(Target.FindSegment(Target.transform));
 			DrawSetup(Target.FindSegment(Target.transform), false);
 			if(Target.selectedSegment != null) {
@@ -539,7 +440,7 @@ namespace BioIK {
 		}
 
 		private bool StopDraw(BioSegment segment) {
-			if(segment.Parent == null) {
+			if(segment.parent == null) {
 				return false;
 			}
 			return false;
@@ -548,11 +449,11 @@ namespace BioIK {
 
 		private void DrawSkeleton(BioSegment segment) {
 			if(!StopDraw(segment)) {
-			if(segment.Parent != null) {
-				DrawLine(segment.Parent.GetAnchoredPosition(), segment.GetAnchoredPosition(), 5f, Color.cyan);
+			if(segment.parent != null) {
+				DrawLine(segment.parent.GetAnchoredPosition(), segment.GetAnchoredPosition(), 5f, Color.cyan);
 			}
-			for(int i=0; i<segment.Childs.Length; i++) {
-				DrawSkeleton(segment.Childs[i]);
+			for(int i=0; i<segment.children.Length; i++) {
+				DrawSkeleton(segment.children[i]);
 			}
 			}
 		}
@@ -560,8 +461,8 @@ namespace BioIK {
 		private void DrawSetup(BioSegment segment, bool final) {
 			if(!StopDraw(segment)) {
 			DrawSegment(segment, final);
-			for(int i=0; i<segment.Childs.Length; i++) {
-				DrawSetup(segment.Childs[i], final);
+			for(int i=0; i<segment.children.Length; i++) {
+				DrawSetup(segment.children[i], final);
 			}
 			}
 		}
@@ -574,59 +475,65 @@ namespace BioIK {
 			} else if(Target.selectedSegment != segment) {
 				DrawSphere(P, 0.02f, Color.cyan);
 			}
-			if(segment.Joint != null) {
-				DrawJoint(segment.Joint, final);
+			if(segment.joint != null) {
+				DrawJoint(segment.joint, final);
 			}
-			for(int i=0; i<segment.Objectives.Length; i++) {
-				DrawObjective(segment.Objectives[i], final);
+			for(int i=0; i<segment.objectives.Length; i++) {
+				DrawObjective(segment.objectives[i], final);
 			}
 		}
 
 		private void DrawJoint(BioJoint joint, bool final) {
 			if(!final) {
-				DoF += joint.GetDoF();
+				joint.GetDoF();
 			}
 			//DrawDottedLine(joint.Segment.Transform.position, joint.GetAnchorInWorldSpace(), 5f, Color.magenta);
-			DrawCube(joint.GetAnchorInWorldSpace(), joint.Segment.Transform.rotation * Quaternion.Euler(joint.GetOrientation()), 0.025f, Color.magenta);
-			DrawMotion(joint.X, Color.red, final);
-			DrawMotion(joint.Y, Color.green, final);
-			DrawMotion(joint.Z, Color.blue, final);
+			DrawCube(joint.GetAnchorInWorldSpace(), joint.segment.transform.rotation * Quaternion.Euler(joint.GetOrientation()), 0.025f, Color.magenta);
+			DrawMotion(joint.x, Color.red, final);
+			DrawMotion(joint.y, Color.green, final);
+			DrawMotion(joint.z, Color.blue, final);
 		}
 
 		private void DrawMotion(BioJoint.Motion motion, Color color, bool final) {
-			if(Target.selectedSegment == motion.Joint.Segment && final) {
-				DrawArrow(motion.Joint.GetAnchorInWorldSpace(), motion.Joint.Segment.Transform.rotation * Quaternion.LookRotation(motion.Axis), 0.125f, motion.IsEnabled() ? color : Color.grey);
+			if(Target.selectedSegment == motion.joint.segment && final) {
+				DrawArrow(motion.joint.GetAnchorInWorldSpace(), motion.joint.segment.transform.rotation * Quaternion.LookRotation(motion.axis), 0.125f, motion.IsEnabled() ? color : Color.grey);
 				
-				if(!motion.IsEnabled() || !motion.Constrained) {
+				if(!motion.IsEnabled() || !motion.constrained) {
 					return;
 				}
 
-				if(motion.Joint.JointType == JointType.Rotational) {
-					if(motion == motion.Joint.X) {
+				if(motion.joint.jointType == JointType.Rotational) {
+					if(motion == motion.joint.x)
+					{
+						var rotation = motion.joint.segment.transform.rotation;
 						DrawSolidArc(
-							motion.Joint.GetAnchorInWorldSpace(), 
-							motion.Joint.Segment.Transform.rotation * motion.Axis, 
-							Quaternion.AngleAxis((float)motion.GetLowerLimit(), motion.Joint.Segment.Transform.rotation * motion.Axis) * motion.Joint.Segment.Transform.rotation * motion.Joint.Y.Axis, 
+							motion.joint.GetAnchorInWorldSpace(), 
+							rotation * motion.axis, 
+							Quaternion.AngleAxis((float)motion.GetLowerLimit(), rotation * motion.axis) * rotation * motion.joint.y.axis, 
 							(float)motion.GetUpperLimit() - (float)motion.GetLowerLimit(), 
 							0.125f, 
 							new(1f, 0f, 0f, 0.25f)
 							);
 					}
-					if(motion == motion.Joint.Y) {
+					if(motion == motion.joint.y)
+					{
+						var rotation = motion.joint.segment.transform.rotation;
 						DrawSolidArc(
-							motion.Joint.GetAnchorInWorldSpace(), 
-							motion.Joint.Segment.Transform.rotation * motion.Axis, 
-							Quaternion.AngleAxis((float)motion.GetLowerLimit(), motion.Joint.Segment.Transform.rotation * motion.Axis) * motion.Joint.Segment.Transform.rotation * motion.Joint.Z.Axis, 
+							motion.joint.GetAnchorInWorldSpace(), 
+							rotation * motion.axis, 
+							Quaternion.AngleAxis((float)motion.GetLowerLimit(), rotation * motion.axis) * rotation * motion.joint.z.axis, 
 							(float)motion.GetUpperLimit() - (float)motion.GetLowerLimit(), 
 							0.125f, 
 							new(0f, 1f, 0f, 0.25f)
 							);
 					}
-					if(motion == motion.Joint.Z) {
+					if(motion == motion.joint.z)
+					{
+						var rotation = motion.joint.segment.transform.rotation;
 						DrawSolidArc(
-							motion.Joint.GetAnchorInWorldSpace(), 
-							motion.Joint.Segment.Transform.rotation * motion.Axis, 
-							Quaternion.AngleAxis((float)motion.GetLowerLimit(), motion.Joint.Segment.Transform.rotation * motion.Axis) * motion.Joint.Segment.Transform.rotation * motion.Joint.X.Axis, 
+							motion.joint.GetAnchorInWorldSpace(), 
+							rotation * motion.axis, 
+							Quaternion.AngleAxis((float)motion.GetLowerLimit(), rotation * motion.axis) * rotation * motion.joint.x.axis, 
 							(float)motion.GetUpperLimit() - (float)motion.GetLowerLimit(), 
 							0.125f, 
 							new(0f, 0f, 1f, 0.25f)
@@ -634,26 +541,28 @@ namespace BioIK {
 					}
 				}
 
-				if(motion.Joint.JointType == JointType.Translational) {
-					Vector3 A = motion.Joint.GetAnchorInWorldSpace() + (float)motion.GetLowerLimit() * (motion.Joint.Segment.Transform.rotation * motion.Axis);
-					Vector3 B = motion.Joint.GetAnchorInWorldSpace() + (float)motion.GetUpperLimit() * (motion.Joint.Segment.Transform.rotation * motion.Axis);
+				if(motion.joint.jointType == JointType.Translational) {
+					Quaternion rotation = motion.joint.segment.transform.rotation;
+					Vector3 A = motion.joint.GetAnchorInWorldSpace() + (float)motion.GetLowerLimit() * (rotation * motion.axis);
+					Vector3 B = motion.joint.GetAnchorInWorldSpace() + (float)motion.GetUpperLimit() * (rotation * motion.axis);
 					Color c = Color.white;
-					if(motion == motion.Joint.X) {
+					if(motion == motion.joint.x) {
 						c = Color.red;
 					}
-					if(motion == motion.Joint.Y) {
+					if(motion == motion.joint.y) {
 						c = Color.green;
 					}
-					if(motion == motion.Joint.Z) {
+					if(motion == motion.joint.z) {
 						c = Color.blue;
 					}
 					DrawLine(A,	B, 3f, c);
-					DrawCube(A, motion.Joint.Segment.Transform.rotation, 0.0125f, new(c.r, c.g, c.b, 0.5f));
-					DrawCube(B, motion.Joint.Segment.Transform.rotation, 0.0125f, new(c.r, c.g, c.b, 0.5f));
+					rotation = motion.joint.segment.transform.rotation;
+					DrawCube(A, rotation, 0.0125f, new(c.r, c.g, c.b, 0.5f));
+					DrawCube(B, rotation, 0.0125f, new(c.r, c.g, c.b, 0.5f));
 				}
 
-			} else if(Target.selectedSegment != motion.Joint.Segment) {
-				DrawArrow(motion.Joint.GetAnchorInWorldSpace(), motion.Joint.Segment.Transform.rotation * Quaternion.LookRotation(motion.Axis), 0.05f, motion.IsEnabled() ? color : Color.clear);
+			} else if(Target.selectedSegment != motion.joint.segment) {
+				DrawArrow(motion.joint.GetAnchorInWorldSpace(), motion.joint.segment.transform.rotation * Quaternion.LookRotation(motion.axis), 0.05f, motion.IsEnabled() ? color : Color.clear);
 			}
 		}
 
@@ -670,26 +579,6 @@ namespace BioIK {
 				case ObjectiveType.Orientation:
 				DrawOrientation((Orientation)objective);
 				break;
-
-				case ObjectiveType.LookAt:
-				DrawLookAt((LookAt)objective);
-				break;
-
-				case ObjectiveType.Distance:
-				DrawDistance((Distance)objective);
-				break;
-
-				case ObjectiveType.JointValue:
-				DrawJointValue((JointValue)objective);
-				break;
-
-				case ObjectiveType.Displacement:
-				DrawDisplacement((Displacement)objective);
-				break;
-
-				case ObjectiveType.Projection:
-				DrawProjection((Projection)objective);
-				break;
 			}
 		}
 
@@ -704,70 +593,11 @@ namespace BioIK {
 			Vector3 up = rotation * Vector3.up;
 			Vector3 forward = rotation * Vector3.forward;
 			float length = 0.1f;
-			DrawLine(objective.Segment.Transform.position - length * right, objective.Segment.Transform.position + length * right, 5f, new(1f, 0f, 0f, 0.75f));
-			DrawLine(objective.Segment.Transform.position - length * up, objective.Segment.Transform.position + length * up, 5f, new(0f, 1f, 0f, 0.75f));
-			DrawLine(objective.Segment.Transform.position - length * forward, objective.Segment.Transform.position + length * forward, 5f, new(0f, 0f, 1f, 0.75f));
-			Handles.Label(objective.Segment.Transform.position, "Target");
-		}
-
-		private void DrawLookAt(LookAt objective) {
-			if(objective.GetViewingDirection().magnitude != 0f) {
-				DrawArrow(objective.transform.position, objective.transform.rotation*Quaternion.LookRotation((objective.GetViewingDirection())), 0.125f, Color5);
-			}
-		}
-
-		private void DrawDistance(Distance objective) {
-			DrawSphere(objective.transform.position, (float)objective.GetRadius(), new(0f, 1f, 0f, 0.5f));
-			DistancePoint[] points = objective.GetPoints();
-			for(int i=0; i<points.Length; i++) {
-				DistancePoint point = points[i];
-				if(point != null) {
-					DrawSphere(point.GetTargetPoint(), (float)point.GetRadius(), new(1f, 0f, 0f, 0.5f));
-				}
-			}
-		}
-
-		private void DrawJointValue(JointValue objective) {
-
-		}
-
-		private void DrawDisplacement(Displacement objective) {
-
-		}
-
-		private void DrawProjection(Projection objective) {
-			Vector3 normal = objective.Segment.Transform.rotation * objective.GetNormal();
-			Vector3 start = objective.Segment.Transform.position - objective.GetLength() * normal;
-			Vector3 end = start + objective.GetLength() * normal;
-
-			DrawSphere(start, 0.025f, Color5);
-			DrawArrow(start, Quaternion.FromToRotation(Vector3.forward, end-start), objective.GetLength(), Color5);
-
-			DrawSphere(objective.GetTargetPosition(), 0.025f, Color.red);
-
-			/*
-			Quaternion rotation = Quaternion.Euler(objective.GetTargetRotation());
-			Vector3 right = rotation * Vector3.right;
-			Vector3 up = rotation * Vector3.up;
-			Vector3 forward = rotation * Vector3.forward;
-
-			//float length = 0.05f;
-			
-			//DrawLine(objective.Segment.Transform.position - length * right, objective.Segment.Transform.position + length * right, 5f, Color.red);
-			//DrawLine(objective.Segment.Transform.position - length * up, objective.Segment.Transform.position + length * up, 5f, Color.green);
-			//DrawLine(objective.Segment.Transform.position - length * forward, objective.Segment.Transform.position + length * forward, 5f, Color.blue);
-			
-			//for(int i=0; i<Corrections.Length; i++) {
-			//	normal = transform.rotation * Corrections[i].Direction;
-			//	start = transform.position + transform.rotation * Corrections[i].Offset;
-			//	end = start + Corrections[i].Length * normal;
-
-			//	Gizmos.color = Color.cyan;
-			//	Gizmos.DrawSphere(start, 0.025f);
-			//	Gizmos.DrawLine(start, end);
-			//	Gizmos.DrawSphere(end, 0.025f);
-			//}
-			*/
+			Vector3 position = objective.Segment.transform.position;
+			DrawLine(position - length * right, position + length * right, 5f, new(1f, 0f, 0f, 0.75f));
+			DrawLine(position - length * up, position + length * up, 5f, new(0f, 1f, 0f, 0.75f));
+			DrawLine(position - length * forward, position + length * forward, 5f, new(0f, 0f, 1f, 0.75f));
+			Handles.Label(position, "Target");
 		}
 
 		private void DrawSphere(Vector3 position, float radius, Color color) {
@@ -783,11 +613,6 @@ namespace BioIK {
 		private void DrawLine(Vector3 a, Vector3 b, float width, Color color) {
 			Handles.color = color;
 			Handles.DrawAAPolyLine(width, new Vector3[2] {a,b});
-		}
-
-		private void DrawDottedLine(Vector3 a, Vector3 b, float width, Color color) {
-			Handles.color = color;
-			Handles.DrawDottedLine(a, b, width);
 		}
 
 		private void DrawArrow(Vector3 position, Quaternion rotation, float length, Color color) {
