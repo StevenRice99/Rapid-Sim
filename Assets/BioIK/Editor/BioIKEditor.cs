@@ -378,9 +378,6 @@ namespace BioIK.Editor {
 				SetGUIColor(Color1);
 				objective.enabled = EditorGUILayout.Toggle("Enabled", objective.enabled);
 
-				SetGUIColor(Color1);
-				objective.Weight = EditorGUILayout.DoubleField("Weight", objective.Weight);
-
 				switch(objective.GetObjectiveType()) {
 					case ObjectiveType.Position:
 					InspectPosition((Position)objective);
@@ -409,20 +406,12 @@ namespace BioIK.Editor {
 
 		private void InspectPosition(Position objective) {
 			SetGUIColor(Color1);
-			objective.SetTargetTransform(EditorGUILayout.ObjectField("Target Transform", objective.GetTargetTransform(), typeof(Transform), true) as Transform);
-			SetGUIColor(Color1);
 			objective.SetTargetPosition(EditorGUILayout.Vector3Field("Target Position", objective.GetTargetPosition()));
-			SetGUIColor(Color1);
-			objective.SetMaximumError(EditorGUILayout.DoubleField("Maximum Error", objective.GetMaximumError()));
 		}
 
 		private void InspectOrientation(Orientation objective) {
 			SetGUIColor(Color1);
-			objective.SetTargetTransform(EditorGUILayout.ObjectField("Target Transform", objective.GetTargetTransform(), typeof(Transform), true) as Transform);
-			SetGUIColor(Color1);
-			objective.SetTargetRotation(EditorGUILayout.Vector3Field("Target Rotation", objective.GetTargetRotattion()));
-			SetGUIColor(Color1);
-			objective.SetMaximumError(EditorGUILayout.DoubleField("Maximum Error", objective.GetMaximumError()));
+			objective.SetTargetRotation(EditorGUILayout.Vector3Field("Target Rotation", objective.GetTargetRotation()));
 		}
 
 		public void OnSceneGUI() {
@@ -582,12 +571,12 @@ namespace BioIK.Editor {
 		}
 
 		private void DrawOrientation(Orientation objective) {
-			Quaternion rotation = Quaternion.Euler(objective.GetTargetRotattion());
+			Quaternion rotation = Quaternion.Euler(objective.GetTargetRotation());
 			Vector3 right = rotation * Vector3.right;
 			Vector3 up = rotation * Vector3.up;
 			Vector3 forward = rotation * Vector3.forward;
 			float length = 0.1f;
-			Vector3 position = objective.Segment.transform.position;
+			Vector3 position = objective.segment.transform.position;
 			DrawLine(position - length * right, position + length * right, 5f, new(1f, 0f, 0f, 0.75f));
 			DrawLine(position - length * up, position + length * up, 5f, new(0f, 1f, 0f, 0.75f));
 			DrawLine(position - length * forward, position + length * forward, 5f, new(0f, 0f, 1f, 0.75f));

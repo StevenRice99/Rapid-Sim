@@ -47,7 +47,7 @@ namespace BioIK.Helpers {
 			//Build Model
 			BioObjective[] objectives = CollectObjectives(Root, new());
 			for(int i=0; i<objectives.Length; i++) {
-				List<BioSegment> chain = Character.GetChain(objectives[i].Segment);
+				List<BioSegment> chain = Character.GetChain(objectives[i].segment);
 				for(int j=1; j<chain.Count; j++) {
 					AddNode(chain[j]);
 				}
@@ -179,7 +179,7 @@ namespace BioIK.Helpers {
 			double loss = 0.0;
 			for(int i=0; i<ObjectivePtrs.Length; i++) {
 				Node node = ObjectivePtrs[i].Node;
-				Losses[i] = ObjectivePtrs[i].Objective.ComputeLoss(node.WPX, node.WPY, node.WPZ, node.WRX, node.WRY, node.WRZ, node.WRW, node, Configuration);
+				Losses[i] = ObjectivePtrs[i].Objective.ComputeLoss(node.WPX, node.WPY, node.WPZ, node.WRX, node.WRY, node.WRZ, node.WRW);
 				loss += Losses[i];
 			}
 			return Math.Sqrt(loss / (double)ObjectivePtrs.Length);
@@ -200,18 +200,6 @@ namespace BioIK.Helpers {
 				Gradient[j] = (newLoss - oldLoss) / resolution;
 			}
 			return Gradient;
-		}
-
-		//Returns whether the model converges for a particular configuration
-		public bool CheckConvergence(double[] configuration) {
-			FK(configuration);
-			for(int i=0; i<ObjectivePtrs.Length; i++) {
-				Node node = ObjectivePtrs[i].Node;
-				if(!ObjectivePtrs[i].Objective.CheckConvergence(node.WPX, node.WPY, node.WPZ, node.WRX, node.WRY, node.WRZ, node.WRW, node, configuration)) {
-					return false;
-				}
-			}
-			return true;
 		}
 
 		//Applies a forward kinematics pass to the model
@@ -501,7 +489,7 @@ namespace BioIK.Helpers {
 						ry[i] = -qx * node.WRZ + qy * node.WRW + qz * node.WRX + qw * node.WRY;
 						rz[i] = qx * node.WRY - qy * node.WRX + qz * node.WRW + qw * node.WRZ;
 						rw[i] = -qx * node.WRX - qy * node.WRY - qz * node.WRZ + qw * node.WRW;
-						Model.SimulatedLosses[i] = Model.ObjectivePtrs[i].Objective.ComputeLoss(px[i], py[i], pz[i], rx[i], ry[i], rz[i], rw[i], node, configuration);
+						Model.SimulatedLosses[i] = Model.ObjectivePtrs[i].Objective.ComputeLoss(px[i], py[i], pz[i], rx[i], ry[i], rz[i], rw[i]);
 					} else {
 						px[i] = node.WPX;
 						py[i] = node.WPY;

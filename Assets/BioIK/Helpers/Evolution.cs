@@ -96,18 +96,15 @@ namespace BioIK.Helpers {
 			}
 			Fitness = Model.ComputeLoss(Solution);
 
-			if(!Model.CheckConvergence(Solution)) {
-				Initialise(seed);
-				for(int i=0; i<Elites; i++) {
-					Models[i].CopyFrom(Model);
-					Optimisers[i].LowerBounds = LowerBounds;
-					Optimisers[i].UpperBounds = UpperBounds;
-				}
-				for(int i=0; i<generations; i++) {
-					//for(int i=0; i<25; i++) { //Performance testing
-					Evolve();
-				}
-			}
+            Initialise(seed);
+            for(int i=0; i<Elites; i++) {
+                Models[i].CopyFrom(Model);
+                Optimisers[i].LowerBounds = LowerBounds;
+                Optimisers[i].UpperBounds = UpperBounds;
+            }
+            for(int i=0; i<generations; i++) {
+                Evolve();
+            }
 
 			return Solution;
 		}

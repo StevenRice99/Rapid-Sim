@@ -1,107 +1,57 @@
 ﻿using BioIK.Helpers;
 using UnityEngine;
 
-namespace BioIK.Setup.Objectives {
-
+namespace BioIK.Setup.Objectives
+{
 	//This objective aims to minimise the rotational distance between the transform and the target.
 	[AddComponentMenu("")]
-	public class Orientation : BioObjective {
+	public class Orientation : BioObjective
+	{
+		private double _trx, _try, _trz, _trw;
 
-		[SerializeField] private Transform Target;
-		[SerializeField] private double TRX, TRY, TRZ, TRW;
-		[SerializeField] private double MaximumError = 0.1;
-
-		public override ObjectiveType GetObjectiveType() {
+		public override ObjectiveType GetObjectiveType()
+		{
 			return ObjectiveType.Orientation;
 		}
 
-		public override void UpdateData() {
-			if(Segment.controller.Evolution == null) {
-				return;
-			}
-			if(Target != null) {
-				Quaternion rotation = Target.rotation;
-				TRX = rotation.x;
-				TRY = rotation.y;
-				TRZ = rotation.z;
-				TRW = rotation.w;
-			}
-		}
+		public override double ComputeLoss(double wpx, double wpy, double wpz, double wrx, double wry, double wrz, double wrw)
+		{
+			double d = wrx*_trx + wry*_try + wrz*_trz + wrw*_trw;
+			switch (d)
+			{
+				case < 0.0:
+				{
+					d = -d;
+					if(d > 1.0) {
+						d = 1.0;
+					}
 
-		public override double ComputeLoss(double WPX, double WPY, double WPZ, double WRX, double WRY, double WRZ, double WRW, Model.Node node, double[] configuration) {
-			double d = WRX*TRX + WRY*TRY + WRZ*TRZ + WRW*TRW;
-			if(d < 0.0) {
-				d = -d;
-				if(d > 1.0) {
-					d = 1.0;
+					break;
 				}
-			} else if(d > 1.0) {
-				d = 1.0;
+				case > 1.0:
+					d = 1.0;
+					break;
 			}
 			double loss = 2.0 * System.Math.Acos(d);
-			return Weight * loss * loss;
+			return loss * loss;
 		}
 
-		public override bool CheckConvergence(double WPX, double WPY, double WPZ, double WRX, double WRY, double WRZ, double WRW, Model.Node node, double[] configuration) {
-			double d = WRX*TRX + WRY*TRY + WRZ*TRZ + WRW*TRW;
-			if(d < 0.0) {
-				d = -d;
-				if(d > 1.0) {
-					d = 1.0;
-				}
-			} else if(d > 1.0) {
-				d = 1.0;
-			}
-			return 2.0 * System.Math.Acos(d) <= Utility.Deg2Rad * MaximumError;
+		public void SetTargetRotation(Quaternion rotation)
+		{
+			_trx = rotation.x;
+			_try = rotation.y;
+			_trz = rotation.z;
+			_trw = rotation.w;
 		}
 
-		public override double ComputeValue(double WPX, double WPY, double WPZ, double WRX, double WRY, double WRZ, double WRW, Model.Node node, double[] configuration) {
-			double d = WRX*TRX + WRY*TRY + WRZ*TRZ + WRW*TRW;
-			if(d < 0.0) {
-				d = -d;
-				if(d > 1.0) {
-					d = 1.0;
-				}
-			} else if(d > 1.0) {
-				d = 1.0;
-			}
-			return Utility.Rad2Deg * 2.0 * System.Math.Acos(d);
-		}
-
-		public void SetTargetTransform(Transform target) {
-			Target = target;
-			if(Target != null) {
-				SetTargetRotation(Target.rotation);
-			}
-		}
-
-		public Transform GetTargetTransform() {
-			return Target;
-		}
-
-		public void SetTargetRotation(Quaternion rotation) {
-			TRX = rotation.x;
-			TRY = rotation.y;
-			TRZ = rotation.z;
-			TRW = rotation.w;
-		}
-
-		public void SetTargetRotation(Vector3 angles) {
+		public void SetTargetRotation(Vector3 angles)
+		{
 			SetTargetRotation(Quaternion.Euler(angles));
 		}
 
-		public Vector3 GetTargetRotattion() {
-			return new Quaternion((float)TRX, (float)TRY, (float)TRZ, (float)TRW).eulerAngles;
+		public Vector3 GetTargetRotation()
+		{
+			return new Quaternion((float)_trx, (float)_try, (float)_trz, (float)_trw).eulerAngles;
 		}
-
-		public void SetMaximumError(double degrees) {
-			MaximumError = degrees;
-		}
-
-		public double GetMaximumError() {
-			return MaximumError;
-		}
-		
 	}
-
 }

@@ -292,8 +292,6 @@ namespace RapidSim
                     if (_position != null)
                     {
                         _position.Create(segment);
-                        _position.SetWeight(10);
-                        _position.SetMaximumError(0);
                         _position.SetTargetPosition(segmentTransform.position);
                     }
 
@@ -301,8 +299,6 @@ namespace RapidSim
                     if (_orientation != null)
                     {
                         _orientation.Create(segment);
-                        _orientation.SetWeight(10);
-                        _orientation.SetMaximumError(0);
                         _orientation.SetTargetRotation(segmentTransform.rotation);
                     }
                 }
