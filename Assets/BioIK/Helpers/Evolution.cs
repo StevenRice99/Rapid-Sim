@@ -1,14 +1,15 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace BioIK.Helpers {
-
-	//----------------------------------------------------------------------------------------------------
+namespace BioIK.Helpers
+{
+    //----------------------------------------------------------------------------------------------------
 	//====================================================================================================
 	//Memetic Evolutionary Optimisation
 	//====================================================================================================
 	//----------------------------------------------------------------------------------------------------
-	public class Evolution {		
+	public class Evolution
+    {		
 		private readonly Model _model;          //Reference to the kinematic model
 		private readonly int _populationSize;   //Number of individuals (population size)
 		private readonly int _elites;           //Number of elite individuals
@@ -1328,11 +1329,8 @@ namespace BioIK.Helpers {
             // in iorder(1),...,iorder(nbreak) and iorder(nfree),...,iorder(n).
             // The smallest of the nbreak breakpoints is in t(ibkmin)=bkmin.
             // 
-            if (theta != 1.0)
-            {
-                // complete the initialization of p for theta not= one.
-                Dscal(col, theta, p, col + 1 - 1 + pOffset, 1);
-            }
+            // complete the initialization of p for theta not= one.
+            Dscal(col, theta, p, col + 1 - 1 + pOffset, 1);
 
             // 
             // c     Initialize GCP xcp = x.
@@ -1863,14 +1861,6 @@ namespace BioIK.Helpers {
                 task = Task.Warning;
             }
             if (brackt && stmax - stmin <= xtol * stmax)
-            {
-                task = Task.Warning;
-            }
-            if (stp == stpmax && f <= ftest && g <= gtest)
-            {
-                task = Task.Warning;
-            }
-            if (stp == stpmin && (f > ftest || g >= gtest))
             {
                 task = Task.Warning;
             }
@@ -3153,7 +3143,7 @@ namespace BioIK.Helpers {
         private static void Lnsrlb(int n, double[] l, int lOffset, double[] u, int uOffset,
             int[] nbd, int nbdOffset, double[] x, int xOffset, double f, ref double fold, out double gd,
             ref double gdold, double[] g, int gOffset, double[] d, int dOffset, double[] r, int rOffset,
-            double[] t, int tOffset, double[] z, int zOffset, ref double stp,
+            double[] t, int tOffset, ref double stp,
             ref double dnorm, ref double dtd, ref double xstep, ref double stpmx, int iter,
             ref int ifun, ref int iback, ref int nfgv, ref int info, ref Task task,
             bool boxed, bool cnstnd, ref Task csave, int[] isave, int isaveOffset,
@@ -3260,18 +3250,9 @@ namespace BioIK.Helpers {
                 ifun += 1;
                 nfgv += 1;
                 iback = ifun - 1;
-                if (stp == 1.0)
+                for (i = 1; i <= n; i++)
                 {
-                    Dcopy(n, z, zOffset, 1, x, xOffset, 1);
-                }
-                else
-                {
-                    {
-                        for (i = 1; i <= n; i++)
-                        {
-                            x[i - 1 + xOffset] = stp * d[i - 1 + dOffset] + t[i - 1 + tOffset];
-                        }
-                    }
+                    x[i - 1 + xOffset] = stp * d[i - 1 + dOffset] + t[i - 1 + tOffset];
                 }
             }
             else
@@ -3531,7 +3512,6 @@ namespace BioIK.Helpers {
             int nenter;
             double theta;
             double fold;
-            double dr;
             double tol;
             double xstep = 0.0d;
             double sbgnrm;
@@ -3756,7 +3736,7 @@ namespace BioIK.Helpers {
             // c-jlm-jn   call the direct method. 
             Subsm(n, m, nfree, index, indexOffset, l, lOffset, u, uOffset,
                 nbd, nbdOffset, z, zOffset, r, rOffset, xp, xpOffset, ws, wsOffset,
-                wy, wyOffset, theta, x, xOffset, g, gOffset, col, head,
+                wy, wyOffset, theta, col, head,
                 ref iword, wa, waOffset, wn, wnOffset, ref info);          
 
         L555:
@@ -3768,8 +3748,7 @@ namespace BioIK.Helpers {
 
             L666:
             Lnsrlb(n, l, lOffset, u, uOffset, nbd, nbdOffset, x, xOffset,
-                f, ref fold, out gd, ref gdold, g, gOffset, d, dOffset, r, rOffset, t, tOffset,
-                z, zOffset, ref stp, ref dnorm, ref dtd, ref xstep, ref stpmx, iter, ref ifun,
+                f, ref fold, out gd, ref gdold, g, gOffset, d, dOffset, r, rOffset, t, tOffset, ref stp, ref dnorm, ref dtd, ref xstep, ref stpmx, iter, ref ifun,
                 ref iback, ref nfgv, ref info, ref task, boxed, cnstnd, ref csave, isave,
                 22 - 1 + isaveOffset, dsave, 17 - 1 + dsaveOffset);
 
@@ -3848,17 +3827,9 @@ namespace BioIK.Helpers {
 
             double rr = Ddot(n, r, rOffset, 1, r, rOffset, 1);
 
-            if (stp == 1.0)
-            {
-                dr = gd - gdold;
-                ddum = -gdold;
-            }
-            else
-            {
-                dr = (gd - gdold) * stp;
-                Dscal(n, stp, d, dOffset, 1);
-                ddum = -(gdold * stp);
-            }
+            double dr = (gd - gdold) * stp;
+            Dscal(n, stp, d, dOffset, 1);
+            ddum = -(gdold * stp);
 
             if (dr <= epsmch * ddum)
             {
@@ -4054,7 +4025,7 @@ namespace BioIK.Helpers {
                 pointr = pointr % m + 1;
             }
 
-            ss[col - 1 + (col - 1) * m + ssOffset] = stp == 1.0 ? dtd : stp * stp * dtd;
+            ss[col - 1 + (col - 1) * m + ssOffset] = stp * stp * dtd;
 
             sy[col - 1 + (col - 1) * m + syOffset] = dr;
         }
@@ -4612,15 +4583,12 @@ namespace BioIK.Helpers {
         int[] nbd, int nbdOffset, double[] x, int xOffset,
         double[] d, int dOffset, double[] xp, int xpOffset,
         double[] ws, int wsOffset, double[] wy, int wyOffset,
-        double theta, double[] xx, int xxOffset, double[] gg, int ggOffset,
+        double theta,
         int col, int head, ref int iword,
         double[] wv, int wvOffset, double[] wn, int wnOffset, ref int info)
         {
             int i;
             int k;
-            double dk;
-            double temp1;
-            double temp2;
 
             if (nsub <= 0)
             {
@@ -4633,8 +4601,8 @@ namespace BioIK.Helpers {
             int pointr = head;
             for (i = 1; i <= col; i++)
             {
-                temp1 = 0.0;
-                temp2 = 0.0;
+                double temp1 = 0.0;
+                double temp2 = 0.0;
                 int j;
                 for (j = 1; j <= nsub; j++)
                 {
@@ -4701,7 +4669,7 @@ namespace BioIK.Helpers {
             for (i = 1; i <= nsub; i++)
             {
                 k = ind[i - 1 + indOffset];
-                dk = d[i - 1 + dOffset];
+                double dk = d[i - 1 + dOffset];
                 double xk = x[k - 1 + xOffset];
                 if (nbd[k - 1 + nbdOffset] != 0)
                 {
@@ -4710,10 +4678,6 @@ namespace BioIK.Helpers {
                         case 1:
                         {
                             x[k - 1 + xOffset] = System.Math.Max(l[k - 1 + lOffset], xk + dk);
-                            if (x[k - 1 + xOffset] == l[k - 1 + lOffset])
-                            {
-                                iword = 1;
-                            }
 
                             break;
                         }
@@ -4721,21 +4685,12 @@ namespace BioIK.Helpers {
                         {
                             xk = System.Math.Max(l[k - 1 + lOffset], xk + dk);
                             x[k - 1 + xOffset] = System.Math.Min(u[k - 1 + uOffset], xk);
-                            if (x[k - 1 + xOffset] == l[k - 1
-                                                        + lOffset] || x[k - 1 + xOffset] == u[k - 1 + uOffset])
-                            {
-                                iword = 1;
-                            }
 
                             break;
                         }
                         case 3:
                         {
                             x[k - 1 + xOffset] = System.Math.Min(u[k - 1 + uOffset], xk + dk);
-                            if (x[k - 1 + xOffset] == u[k - 1 + uOffset])
-                            {
-                                iword = 1;
-                            }
 
                             break;
                         }
@@ -4745,109 +4700,6 @@ namespace BioIK.Helpers {
                 {
                     x[k - 1 + xOffset] = xk + dk;
                 }
-            }
-
-
-            if (iword == 0)
-            {
-                return;
-            }
-
-            // 
-            // check sign of the directional derivative
-            // 
-            double ddP = 0.0;
-            for (i = 1; i <= n; i++)
-            {
-                ddP += (x[i - 1 + xOffset]
-                        - xx[i - 1 + xxOffset]) * gg[i - 1 + ggOffset];
-            }
-
-            if (ddP > 0.0)
-            {
-                Dcopy(n, xp, xpOffset, 1, x, xOffset, 1);
-
-                // DISPLAY: " Positive dir derivative in projection "
-                // DISPLAY: " Using the backtracking step "
-            }
-            else
-            {
-                return;
-            }
-
-            // 
-            // -----------------------------------------------------------------
-            // 
-            double alpha = 1.0;
-            temp1 = alpha;
-            int ibd = 0;
-            for (i = 1; i <= nsub; i++)
-            {
-                k = ind[i - 1 + indOffset];
-                dk = d[i - 1 + dOffset];
-                if (nbd[k - 1 + nbdOffset] != 0)
-                {
-                    switch (dk)
-                    {
-                        case < 0.0 when nbd[k - 1 + nbdOffset] <= 2:
-                        {
-                            temp2 = l[k - 1 + lOffset] - x[k - 1 + xOffset];
-                            if (temp2 >= 0.0)
-                            {
-                                temp1 = 0.0;
-                            }
-                            else if (dk * alpha < temp2)
-                            {
-                                temp1 = temp2 / dk;
-                            }
-
-                            break;
-                        }
-                        case > 0.0 when nbd[k - 1 + nbdOffset] >= 2:
-                        {
-                            temp2 = u[k - 1 + uOffset] - x[k - 1 + xOffset];
-                            if (temp2 <= 0.0)
-                            {
-                                temp1 = 0.0;
-                            }
-                            else if (dk * alpha > temp2)
-                            {
-                                temp1 = temp2 / dk;
-                            }
-
-                            break;
-                        }
-                    }
-
-                    if (temp1 < alpha)
-                    {
-                        alpha = temp1;
-                        ibd = i;
-                    }
-                }
-            }
-
-            if (alpha < 1.0)
-            {
-                dk = d[ibd - 1 + dOffset];
-                k = ind[ibd - 1 + indOffset];
-                switch (dk)
-                {
-                    case > 0.0:
-                        x[k - 1 + xOffset] = u[k - 1 + uOffset];
-                        d[ibd - 1 + dOffset] = 0.0;
-                        break;
-                    case < 0.0:
-                        x[k - 1 + xOffset] = l[k - 1 + lOffset];
-                        d[ibd - 1 + dOffset] = 0.0;
-                        break;
-                }
-            }
-
-            for (i = 1; i <= nsub; i++)
-            {
-                k = ind[i - 1 + indOffset];
-                x[k - 1 + xOffset] += alpha * d[i - 1 + dOffset];
             }
         }
 
