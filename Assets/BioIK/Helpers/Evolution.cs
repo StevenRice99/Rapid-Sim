@@ -234,17 +234,17 @@ namespace BioIK.Helpers
 		private bool TryUpdateSolution()
         {
 			double candidateFitness = _population[0].Fitness;
-			if (candidateFitness < _fitness)
+            if (candidateFitness >= _fitness)
             {
-				for (int i = 0; i < _dimensionality; i++)
-                {
-					_solution[i] = _population[0].Genes[i];
-				}
-				_fitness = candidateFitness;
-				return true;
-			}
+                return false;
+            }
 
-            return false;
+            for (int i = 0; i < _dimensionality; i++)
+            {
+                _solution[i] = _population[0].Genes[i];
+            }
+            _fitness = candidateFitness;
+            return true;
         }
 
 		private void SurviveSequential(int index, double timeout)
@@ -270,13 +270,12 @@ namespace BioIK.Helpers
                 }
                 elite.Fitness = _optimisers[index].Value;        
                 _improved[index] = true;
+                return;
             }
-            else
-            {
-                elite.Fitness = fitness;
-                _improved[index] = false;
-            }
-		}
+
+            elite.Fitness = fitness;
+            _improved[index] = false;
+        }
 
 		//Evolves a new individual
 		private void Reproduce(Individual offspring, Individual parentA, Individual parentB, Individual prototype)
@@ -311,7 +310,7 @@ namespace BioIK.Helpers
                 {
                     offspring.Genes[i] = _lowerBounds[i];
                 }
-                if (offspring.Genes[i] > _upperBounds[i])
+                else if (offspring.Genes[i] > _upperBounds[i])
                 {
                     offspring.Genes[i] = _upperBounds[i];
                 }
@@ -608,33 +607,32 @@ namespace BioIK.Helpers
             // 
             // c     Initialize iwhere and assign values to cnstnd and boxed.
             // 
+            for (i = 1; i <= n; i++)
             {
-                for (i = 1; i <= n; i++)
+                if (nbd[i - 1 + nbdOffset] != 2)
                 {
-                    if (nbd[i - 1 + nbdOffset] != 2)
+                    boxed = false;
+                }
+
+                if (nbd[i - 1 + nbdOffset] == 0)
+                {
+                    // this variable is always free
+                    iwhere[i - 1 + iwhereOffset] = -1;
+                    // 
+                    // otherwise set x(i)=mid(x(i), u(i), l(i)).
+                }
+                else
+                {
+                    cnstnd = true;
+                    if (nbd[i - 1 + nbdOffset] == 2 &&
+                        u[i - 1 + uOffset] - l[i - 1 + lOffset] <= 0.0)
                     {
-                        boxed = false;
-                    }
-                    if (nbd[i - 1 + nbdOffset] == 0)
-                    {
-                        // this variable is always free
-                        iwhere[i - 1 + iwhereOffset] = -1;
-                        // 
-                        // otherwise set x(i)=mid(x(i), u(i), l(i)).
+                        // this variable is always fixed
+                        iwhere[i - 1 + iwhereOffset] = 3;
                     }
                     else
                     {
-                        cnstnd = true;
-                        if (nbd[i - 1 + nbdOffset] == 2 &&
-                            u[i - 1 + uOffset] - l[i - 1 + lOffset] <= 0.0)
-                        {
-                            // this variable is always fixed
-                            iwhere[i - 1 + iwhereOffset] = 3;
-                        }
-                        else
-                        {
-                            iwhere[i - 1 + iwhereOffset] = 0;
-                        }
+                        iwhere[i - 1 + iwhereOffset] = 0;
                     }
                 }
             }
@@ -708,22 +706,11 @@ namespace BioIK.Helpers
         // c
 
         private static void Dtrsl(double[] t, int tOffset, int ldt, int n,
-            double[] b, int bOffset, int job, out int info)
+            double[] b, int bOffset, int job)
         {
             double temp;
             int j;
             int jj;
-
-            for (info = 1; info <= n; info++)
-            {
-                // ......exit
-                if (t[info - 1 + (info - 1) * ldt + tOffset] == 0.0e0)
-                {
-                    return;
-                }
-            }
-
-            info = 0;
 
             // 
             // determine the task and go to it.
@@ -908,7 +895,7 @@ namespace BioIK.Helpers
         // 
         // 
         private static void Bmv(int m, double[] sy, int syOffset, double[] wt, int wtOffset,
-            int col, double[] v, int vOffset, double[] p, int pOffset, ref int info)
+            int col, double[] v, int vOffset, double[] p, int pOffset)
         {
 
             int i;
@@ -916,7 +903,9 @@ namespace BioIK.Helpers
             double sum;
 
             if (col == 0)
+            {
                 return;
+            }
 
             // 
             // PART I: solve [  D^(1/2)      O ] [ p1 ] = [ v1 ]
@@ -941,7 +930,7 @@ namespace BioIK.Helpers
 
             // Solve the triangular system
             Dtrsl(wt, wtOffset, m, col, p,
-                col + 1 - 1 + pOffset, 11, out info);
+                col + 1 - 1 + pOffset, 11);
 
             // 
             // solve D^(1/2)p1=v1.
@@ -958,7 +947,7 @@ namespace BioIK.Helpers
             //    solve J^Tp2=p2. 
             //
             Dtrsl(wt, wtOffset, m, col,
-                p, col + 1 - 1 + pOffset, 01, out info);
+                p, col + 1 - 1 + pOffset, 01);
 
             // 
             // compute p1 = -D^(-1/2)(p1-D^(-1/2)L'p2)
@@ -1180,7 +1169,7 @@ namespace BioIK.Helpers
             double[] wy, int wyOffset, double[] ws, int wsOffset, double[] sy, int syOffset,
             double[] wt, int wtOffset, double theta, int col,
             int head, double[] p, int pOffset, double[] c, int cOffset,
-            double[] wbp, int wbpOffset, double[] v, int vOffset, ref int nseg, double sbgnrm, ref int info, double epsmch)
+            double[] wbp, int wbpOffset, double[] v, int vOffset, ref int nseg, double sbgnrm, double epsmch)
         {
             int i;
             int j;
@@ -1359,7 +1348,7 @@ namespace BioIK.Helpers
             if (col > 0)
             {
                 Bmv(m, sy, syOffset, wt, wtOffset,
-                    col, p, pOffset, v, vOffset, ref info);
+                    col, p, pOffset, v, vOffset);
 
                 f2 -= Ddot(col2, v, vOffset, 1, p, pOffset, 1);
             }
@@ -1494,7 +1483,7 @@ namespace BioIK.Helpers
 
                 // compute (wbp)Mc, (wbp)Mp, and (wbp)M(wbp)'.
                 Bmv(m, sy, syOffset, wt, wtOffset, col, wbp,
-                    wbpOffset, v, vOffset, ref info);
+                    wbpOffset, v, vOffset);
 
                 double wmc = Ddot(col2, c, cOffset, 1, v, vOffset, 1);
                 double wmp = Ddot(col2, p, pOffset, 1, v, vOffset, 1);
@@ -1588,7 +1577,7 @@ namespace BioIK.Helpers
         private static void Cmprlb(int n, int m, double[] x, int xOffset, double[] g, int gOffset, double[] ws, int wsOffset, double[] wy, int wyOffset, double[] sy, int syOffset,
         double[] wt, int wtOffset, double[] z, int zOffset, double[] r, int rOffset,
         double[] wa, int waOffset, int[] index, int indexOffset, double theta,
-        int col, int head, int nfree, bool cnstnd, ref int info)
+        int col, int head, int nfree, bool cnstnd)
         {
 
             int i;
@@ -1611,7 +1600,7 @@ namespace BioIK.Helpers
                 }
 
                 Bmv(m, sy, syOffset, wt, wtOffset, col, wa,
-                    2 * m + 1 - 1 + waOffset, wa, 1 - 1 + waOffset, ref info);
+                    2 * m + 1 - 1 + waOffset, wa, 1 - 1 + waOffset);
 
                 int pointr = head;
 
@@ -2343,7 +2332,7 @@ namespace BioIK.Helpers
         // 
         private static void Errclb(int n, int m, double factr,
             double[] l, int lOffset, double[] u, int uOffset,
-            int[] nbd, int nbdOffset, ref Task task, ref int info, ref int k)
+            int[] nbd, int nbdOffset, ref Task task, ref int k)
         {
             if (n <= 0)
             {
@@ -2368,7 +2357,6 @@ namespace BioIK.Helpers
                 {
                     // c                                                   return
                     task = Task.Error;
-                    info = -6;
                     k = i;
                 }
 
@@ -2376,7 +2364,6 @@ namespace BioIK.Helpers
                 {
                     // c                                    return
                     task = Task.Error;
-                    info = -7;
                     k = i;
                 }
             }
@@ -2525,8 +2512,7 @@ namespace BioIK.Helpers
             int nenter, int ileave, int[] indx2, int indx2Offset,
             int iupdat, bool updatd, double[] wn, int wnOffset, double[] wn1, int wn1Offset,
             int m, double[] ws, int wsOffset, double[] wy, int wyOffset,
-            double[] sy, int syOffset, double theta, int col, int head,
-            out int info)
+            double[] sy, int syOffset, double theta, int col, int head)
         {
             int ipntr;
             int jpntr;
@@ -2759,14 +2745,14 @@ namespace BioIK.Helpers
             // 
             // c        first Cholesky factor (1,1) block of wn to get LL'
             // c                          with L' stored in the upper triangle of wn.
-            Dpofa(wn, wnOffset, m2, col, out info);
+            Dpofa(wn, wnOffset, m2, col);
 
             // c        then form L^-1(-L_a'+R_z') in the (1,2) block.
             int col2 = 2 * col;
             for (js = col + 1; js <= col2; js++)
             {
                 Dtrsl(wn, wnOffset, m2, col, wn, 1 - 1
-                                                 + (js - 1) * 2 * m + wnOffset, 11, out info);
+                                                 + (js - 1) * 2 * m + wnOffset, 11);
             }
 
             // 
@@ -2787,7 +2773,7 @@ namespace BioIK.Helpers
             // c     Cholesky factorization of (2,2) block of wn.
             // 
             Dpofa(wn, col + 1 - 1 + (col + 1 - 1) 
-                * 2 * m + wnOffset, m2, col, out info);
+                * 2 * m + wnOffset, m2, col);
         }
 
         // 
@@ -2832,7 +2818,7 @@ namespace BioIK.Helpers
             double[] wt, int wtOffset,
             double[] sy, int syOffset,
             double[] ss, int ssOffset,
-            int col, double theta, out int info)
+            int col, double theta)
         {
             int j;
 
@@ -2868,7 +2854,7 @@ namespace BioIK.Helpers
             // c     Cholesky factorize T to J*J' with 
             // c        J' stored in the upper triangle of wt.
             // 
-            Dpofa(wt, wtOffset, m, col, out info);
+            Dpofa(wt, wtOffset, m, col);
         }
 
         // 
@@ -3145,7 +3131,7 @@ namespace BioIK.Helpers
             ref double gdold, double[] g, int gOffset, double[] d, int dOffset, double[] r, int rOffset,
             double[] t, int tOffset, ref double stp,
             ref double dnorm, ref double dtd, ref double xstep, ref double stpmx, int iter,
-            ref int ifun, ref int iback, ref int nfgv, ref int info, ref Task task,
+            ref int ifun, ref int iback, ref int nfgv, ref Task task,
             bool boxed, bool cnstnd, ref Task csave, int[] isave, int isaveOffset,
             double[] dsave, int dsaveOffset)
         {
@@ -3229,9 +3215,6 @@ namespace BioIK.Helpers
                 {
                     // the directional derivative >=0.
                     // Line search is impossible.
-
-                    // DISPLAY: " ascent direction in projection gd = " + gd
-                    info = -4;
                     return;
                 }
             }
@@ -3503,7 +3486,6 @@ namespace BioIK.Helpers
             int iupdat;
             int nseg;
             int nfgv;
-            int info;
             int ifun;
             int iword;
             int nfree;
@@ -3576,15 +3558,13 @@ namespace BioIK.Helpers
                 lnscht = 0;
 
                 // 
-                // c           'info' records the termination information.
-                info = 0;
                 // 
                 itfile = 8;
                 // 
                 // c        Check the input arguments for errors.
                 // 
                 Errclb(n, m, factr, l, lOffset, u, uOffset,
-                    nbd, nbdOffset, ref task, ref info, ref k);
+                    nbd, nbdOffset, ref task, ref k);
 
                 if (task == Task.Error)
                 {
@@ -3628,7 +3608,6 @@ namespace BioIK.Helpers
                 iupdat = isave[10 - 1 + isaveOffset];
                 nseg = isave[12 - 1 + isaveOffset];
                 nfgv = isave[13 - 1 + isaveOffset];
-                info = isave[14 - 1 + isaveOffset];
                 ifun = isave[15 - 1 + isaveOffset];
                 iword = isave[16 - 1 + isaveOffset];
                 nfree = isave[17 - 1 + isaveOffset];
@@ -3702,7 +3681,7 @@ namespace BioIK.Helpers
                 d, dOffset, z, zOffset, m, wy, wyOffset, ws, wsOffset, sy, syOffset,
                 wt, wtOffset, theta, col, head, wa, 1 - 1 + waOffset, wa,
                 2 * m + 1 - 1 + waOffset, wa, 4 * m + 1 - 1 + waOffset, wa,
-                6 * m + 1 - 1 + waOffset, ref nseg, sbgnrm, ref info, epsmch);
+                6 * m + 1 - 1 + waOffset, ref nseg, sbgnrm, epsmch);
 
             cachyt = cachyt + cpu2 - cpu1;
             nintol += nseg;
@@ -3727,17 +3706,17 @@ namespace BioIK.Helpers
                 Formk(n, nfree, index, indexOffset, nenter,
                     ileave, indx2, indx2Offset, iupdat, updatd, wn, wnOffset,
                     snd, sndOffset, m, ws, wsOffset, wy, wyOffset, sy, syOffset,
-                    theta, col, head, out info);
+                    theta, col, head);
             }
             // compute r=-Z'B(xcp-xk)-Z'g   (using wa(2m+1)=W'(xcp-x) from 'cauchy')
             Cmprlb(n, m, x, xOffset, g, gOffset, ws, wsOffset, wy, wyOffset,
                 sy, syOffset, wt, wtOffset, z, zOffset, r, rOffset, wa, waOffset,
-                index, indexOffset, theta, col, head, nfree, cnstnd, ref info);
+                index, indexOffset, theta, col, head, nfree, cnstnd);
             // c-jlm-jn   call the direct method. 
             Subsm(n, m, nfree, index, indexOffset, l, lOffset, u, uOffset,
                 nbd, nbdOffset, z, zOffset, r, rOffset, xp, xpOffset, ws, wsOffset,
                 wy, wyOffset, theta, col, head,
-                ref iword, wa, waOffset, wn, wnOffset, ref info);          
+                ref iword, wa, waOffset, wn, wnOffset);          
 
         L555:
             // c     Line search and optimality tests.
@@ -3749,7 +3728,7 @@ namespace BioIK.Helpers
             L666:
             Lnsrlb(n, l, lOffset, u, uOffset, nbd, nbdOffset, x, xOffset,
                 f, ref fold, out gd, ref gdold, g, gOffset, d, dOffset, r, rOffset, t, tOffset, ref stp, ref dnorm, ref dtd, ref xstep, ref stpmx, iter, ref ifun,
-                ref iback, ref nfgv, ref info, ref task, boxed, cnstnd, ref csave, isave,
+                ref iback, ref nfgv, ref task, boxed, cnstnd, ref csave, isave,
                 22 - 1 + isaveOffset, dsave, 17 - 1 + dsaveOffset);
 
             if (iback >= 20)
@@ -3760,7 +3739,6 @@ namespace BioIK.Helpers
                 f = fold;
                 if (col == 0)
                 {
-                    info = -9;
                     // restore the actual number of f and g evaluations etc.
                     nfgv -= 1;
                     ifun -= 1;
@@ -3771,7 +3749,6 @@ namespace BioIK.Helpers
                 }
 
                 nfgv -= 1;
-                info = 0;
                 col = 0;
                 head = 1;
                 theta = 1.0;
@@ -3807,11 +3784,6 @@ namespace BioIK.Helpers
             {
                 // terminate the algorithm.
                 task = Task.Convergence;
-
-                if (iback >= 10)
-                {
-                    info = -5;
-                }
 
                 // i.e., to issue a warning if iback>10 in the line search.
                 goto L999;
@@ -3864,7 +3836,7 @@ namespace BioIK.Helpers
             // c           J' stored in the upper triangular of wt.
             // 
             Formt(m, wt, wtOffset, sy, syOffset, ss,
-                ssOffset, col, theta, out info);
+                ssOffset, col, theta);
 
         // 
         //   Now the inverse of the middle matrix in B is
@@ -3901,7 +3873,6 @@ namespace BioIK.Helpers
             isave[10 - 1 + isaveOffset] = iupdat;
             isave[12 - 1 + isaveOffset] = nseg;
             isave[13 - 1 + isaveOffset] = nfgv;
-            isave[14 - 1 + isaveOffset] = info;
             isave[15 - 1 + isaveOffset] = ifun;
             isave[16 - 1 + isaveOffset] = iword;
             isave[17 - 1 + isaveOffset] = nfree;
@@ -4585,7 +4556,7 @@ namespace BioIK.Helpers
         double[] ws, int wsOffset, double[] wy, int wyOffset,
         double theta,
         int col, int head, ref int iword,
-        double[] wv, int wvOffset, double[] wn, int wnOffset, ref int info)
+        double[] wv, int wvOffset, double[] wn, int wnOffset)
         {
             int i;
             int k;
@@ -4624,14 +4595,14 @@ namespace BioIK.Helpers
             int m2 = 2 * m;
             int col2 = 2 * col;
 
-            Dtrsl(wn, wnOffset, m2, col2, wv, wvOffset, 11, out info);
+            Dtrsl(wn, wnOffset, m2, col2, wv, wvOffset, 11);
 
             for (i = 1; i <= col; i++)
             {
                 wv[i - 1 + wvOffset] = -wv[i - 1 + wvOffset];
             }
 
-            Dtrsl(wn, wnOffset, m2, col2, wv, wvOffset, 1, out info);
+            Dtrsl(wn, wnOffset, m2, col2, wv, wvOffset, 1);
 
             // 
             // Compute d = (1/theta)d + (1/theta**2)Z'W wv.
@@ -4754,12 +4725,11 @@ namespace BioIK.Helpers
         // c     begin block with ...exits to 40
         // c
         // c
-        private static void Dpofa(double[] a, int aOffset, int lda, int n, out int info)
+        private static void Dpofa(double[] a, int aOffset, int lda, int n)
         {
             int j;
             for (j = 1; j <= n; j++)
             {
-                info = j;
                 double s = 0.0e0;
                 int jm1 = j - 1;
                 if (jm1 < 1)
@@ -4789,8 +4759,6 @@ namespace BioIK.Helpers
 
                 a[j - 1 + (j - 1) * lda + aOffset] = System.Math.Sqrt(s);
             }
-
-            info = 0;
         }
 
         // *     .. Scalar Arguments ..
