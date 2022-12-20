@@ -22,7 +22,7 @@ namespace BioIK.Helpers
 
 		//Global pointers to the IK setup
 		public MotionPtr[] motionPointers = Array.Empty<MotionPtr>();
-		private ObjectivePtr[] _objectivePointers = Array.Empty<ObjectivePtr>();
+		private ObjectivePtr _objectivePointer;
 
 		//Assigned Configuration
 		private readonly double[] _configuration;
@@ -69,27 +69,27 @@ namespace BioIK.Helpers
 			//Initialise arrays for single transform modifications
 			for (int i = 0; i < _nodes.Length; i++)
 			{
-				_nodes[i].objectiveImpacts = new bool[_objectivePointers.Length];
+				_nodes[i].objectiveImpacts = new bool[1];
 			}
-			_px = new double[_objectivePointers.Length];
-			_py = new double[_objectivePointers.Length];
-			_pz = new double[_objectivePointers.Length];
-			_rx = new double[_objectivePointers.Length];
-			_ry = new double[_objectivePointers.Length];
-			_rz = new double[_objectivePointers.Length];
-			_rw = new double[_objectivePointers.Length];
+			_px = new double[1];
+			_py = new double[1];
+			_pz = new double[1];
+			_rx = new double[1];
+			_ry = new double[1];
+			_rz = new double[1];
+			_rw = new double[1];
 			_configuration = new double[motionPointers.Length];
 			_gradient = new double[motionPointers.Length];
-			_losses = new double[_objectivePointers.Length];
-			_simulatedLosses = new double[_objectivePointers.Length];
+			_losses = new double[1];
+			_simulatedLosses = new double[1];
 
 			//Assigns references to all objective nodes that are affected by a parenting node
-			for (int i = 0; i < _objectivePointers.Length; i++)
+			if (_objectivePointer != null)
 			{
-				Node node = _objectivePointers[i].node;
+				Node node = _objectivePointer.node;
 				while (node != null)
 				{
-					node.objectiveImpacts[i] = true;
+					node.objectiveImpacts[0] = true;
 					node = node.parent;
 				}
 			}
@@ -153,18 +153,15 @@ namespace BioIK.Helpers
 				_configuration[i] = model._configuration[i];
 				_gradient[i] = model._gradient[i];
 			}
-			for (int i = 0; i < _objectivePointers.Length; i++)
-			{
-				_px[i] = model._px[i];
-				_py[i] = model._py[i];
-				_pz[i] = model._pz[i];
-				_rx[i] = model._rx[i];
-				_ry[i] = model._ry[i];
-				_rz[i] = model._rz[i];
-				_rw[i] = model._rw[i];
-				_losses[i] = model._losses[i];
-				_simulatedLosses[i] = model._simulatedLosses[i];
-			}
+			_px[0] = model._px[0];
+			_py[0] = model._py[0];
+			_pz[0] = model._pz[0];
+			_rx[0] = model._rx[0];
+			_ry[0] = model._ry[0];
+			_rz[0] = model._rz[0];
+			_rw[0] = model._rw[0];
+			_losses[0] = model._losses[0];
+			_simulatedLosses[0] = model._simulatedLosses[0];
 			for (int i = 0; i < _nodes.Length; i++)
 			{
 				_nodes[i].wpx = model._nodes[i].wpx;
@@ -196,14 +193,9 @@ namespace BioIK.Helpers
 		public double ComputeLoss(double[] configuration)
 		{
 			ForwardKinematics(configuration);
-			double loss = 0.0;
-			for (int i = 0; i < _objectivePointers.Length; i++)
-			{
-				Node node = _objectivePointers[i].node;
-				_losses[i] = _objectivePointers[i].objective.ComputeLoss(node.wpx, node.wpy, node.wpz, node.wrx, node.wry, node.wrz, node.wrw);
-				loss += _losses[i];
-			}
-			return Math.Sqrt(loss / _objectivePointers.Length);
+			Node node = _objectivePointer.node;
+			_losses[0] = _objectivePointer.objective.ComputeLoss(node.wpx, node.wpy, node.wpz, node.wrx, node.wry, node.wrz, node.wrw);
+			return Math.Sqrt(_losses[0]);
 		}
 
 		//Computes the gradient
@@ -215,13 +207,7 @@ namespace BioIK.Helpers
 				_configuration[j] += resolution;
 				motionPointers[j].node.SimulateModification(_configuration);
 				_configuration[j] -= resolution;
-				double newLoss = 0.0;
-				for (int i = 0; i < _objectivePointers.Length; i++)
-				{
-					newLoss += _simulatedLosses[i];
-				}
-				newLoss = Math.Sqrt(newLoss / _objectivePointers.Length);
-				_gradient[j] = (newLoss - oldLoss) / resolution;
+				_gradient[j] = (Math.Sqrt(_simulatedLosses[0]) - oldLoss) / resolution;
 			}
 			return _gradient;
 		}
@@ -281,14 +267,10 @@ namespace BioIK.Helpers
 				}
 			}
 
-			BioObjective[] objectives = segment.objectives;
-			for (int i = 0; i < objectives.Length; i++)
+			BioObjective objective = segment.objective;
+			if (objective != null && objective.enabled)
 			{
-				if (objectives[i].enabled)
-				{
-					Array.Resize(ref _objectivePointers, _objectivePointers.Length + 1);
-					_objectivePointers[^1] = new(objectives[i], node);
-				}
+				_objectivePointer = new(objective, node);
 			}
 
 			Array.Resize(ref _nodes, _nodes.Length + 1);
@@ -298,12 +280,9 @@ namespace BioIK.Helpers
 		//Returns all objectives which are childs in the hierarcy, beginning from the root
 		private static BioObjective[] CollectObjectives(BioSegment segment, List<BioObjective> objectives)
 		{
-			for (int i = 0; i < segment.objectives.Length; i++)
+			if (segment.objective != null && segment.objective.enabled)
 			{
-				if (segment.objectives[i].enabled)
-				{
-					objectives.Add(segment.objectives[i]);
-				}
+				objectives.Add(segment.objective);
 			}
 			for (int i = 0; i < segment.children.Length; i++)
 			{
@@ -328,14 +307,7 @@ namespace BioIK.Helpers
 		//Returns the pointer to the objective
 		public ObjectivePtr FindObjectivePtr(BioObjective objective)
 		{
-			for (int i = 0; i < _objectivePointers.Length; i++)
-			{
-				if (_objectivePointers[i].objective == objective)
-				{
-					return _objectivePointers[i];
-				}
-			}
-			return null;
+			return _objectivePointer.objective == objective ? _objectivePointer : null;
 		}
 
 		//Subclass representing the single nodes for the OFKT data structure.
@@ -482,79 +454,78 @@ namespace BioIK.Helpers
 			{
 				double[] px=_model._px; double[] py=_model._py; double[] pz=_model._pz;
 				double[] rx=_model._rx; double[] ry=_model._ry; double[] rz=_model._rz; double[] rw=_model._rw;
-				for(int i=0; i<_model._objectivePointers.Length; i++) {
-					Node node = _model._objectivePointers[i].node;
-					if (objectiveImpacts[i])
+
+				Node node = _model._objectivePointer.node;
+				if (objectiveImpacts[0])
+				{
+					joint.ComputeLocalTransformation(
+						xEnabled ? configuration[xIndex] : xValue,
+						yEnabled ? configuration[yIndex] : yValue, 
+						zEnabled ? configuration[zIndex] : zValue, 
+						out double lpX, out double lpY, out double lpZ, out double lrX, out double lrY, out double lrZ, out double lrW
+					);
+					double localRx, localRy, localRz, localRw, localX, localY, localZ;
+					if (parent == null)
 					{
-						joint.ComputeLocalTransformation(
-							xEnabled ? configuration[xIndex] : xValue,
-							yEnabled ? configuration[yIndex] : yValue, 
-							zEnabled ? configuration[zIndex] : zValue, 
-							out double lpX, out double lpY, out double lpZ, out double lrX, out double lrY, out double lrZ, out double lrW
-						);
-						double localRx, localRy, localRz, localRw, localX, localY, localZ;
-						if (parent == null)
-						{
-							px[i] = _model._opx;
-							py[i] = _model._opy;
-							pz[i] = _model._opz;
-							localRx = _model._orx;
-							localRy = _model._ory;
-							localRz = _model._orz;
-							localRw = _model._orw;
-							localX = _model._osx*lpX;
-							localY = _model._osy*lpY;
-							localZ = _model._osz*lpZ;
-						}
-						else
-						{
-							px[i] = parent.wpx;
-							py[i] = parent.wpy;
-							pz[i] = parent.wpz;
-							localRx = parent.wrx;
-							localRy = parent.wry;
-							localRz = parent.wrz;
-							localRw = parent.wrw;
-							localX = parent.wsx*lpX;
-							localY = parent.wsy*lpY;
-							localZ = parent.wsz*lpZ;
-						}
-						double qx = localRx * lrW + localRy * lrZ - localRz * lrY + localRw * lrX;
-						double qy = -localRx * lrZ + localRy * lrW + localRz * lrX + localRw * lrY;
-						double qz = localRx * lrY - localRy * lrX + localRz * lrW + localRw * lrZ;
-						double qw = -localRx * lrX - localRy * lrY - localRz * lrZ + localRw * lrW;
-						double dot = wrx*wrx + wry*wry + wrz*wrz + wrw*wrw;
-						double x = qx / dot; double y = qy / dot; double z = qz / dot; double w = qw / dot;
-						qx = x * wrw + y * -wrz - z * -wry + w * -wrx;
-						qy = -x * -wrz + y * wrw + z * -wrx + w * -wry;
-						qz = x * -wry - y * -wrx + z * wrw + w * -wrz;
-						qw = -x * -wrx - y * -wry - z * -wrz + w * wrw;
-						px[i] +=
-								+ 2.0 * ((0.5 - localRy * localRy - localRz * localRz) * localX + (localRx * localRy - localRw * localRz) * localY + (localRx * localRz + localRw * localRy) * localZ)
-								+ 2.0 * ((0.5 - qy * qy - qz * qz) * (node.wpx-wpx) + (qx * qy - qw * qz) * (node.wpy-wpy) + (qx * qz + qw * qy) * (node.wpz-wpz));
-						py[i] += 
-								+ 2.0 * ((localRx * localRy + localRw * localRz) * localX + (0.5 - localRx * localRx - localRz * localRz) * localY + (localRy * localRz - localRw * localRx) * localZ)
-								+ 2.0 * ((qx * qy + qw * qz) * (node.wpx-wpx) + (0.5 - qx * qx - qz * qz) * (node.wpy-wpy) + (qy * qz - qw * qx) * (node.wpz-wpz));
-						pz[i] += 
-								+ 2.0 * ((localRx * localRz - localRw * localRy) * localX + (localRy * localRz + localRw * localRx) * localY + (0.5 - (localRx * localRx + localRy * localRy)) * localZ)
-								+ 2.0 * ((qx * qz - qw * qy) * (node.wpx-wpx) + (qy * qz + qw * qx) * (node.wpy-wpy) + (0.5 - qx * qx - qy * qy) * (node.wpz-wpz));
-						rx[i] = qx * node.wrw + qy * node.wrz - qz * node.wry + qw * node.wrx;
-						ry[i] = -qx * node.wrz + qy * node.wrw + qz * node.wrx + qw * node.wry;
-						rz[i] = qx * node.wry - qy * node.wrx + qz * node.wrw + qw * node.wrz;
-						rw[i] = -qx * node.wrx - qy * node.wry - qz * node.wrz + qw * node.wrw;
-						_model._simulatedLosses[i] = _model._objectivePointers[i].objective.ComputeLoss(px[i], py[i], pz[i], rx[i], ry[i], rz[i], rw[i]);
+						px[0] = _model._opx;
+						py[0] = _model._opy;
+						pz[0] = _model._opz;
+						localRx = _model._orx;
+						localRy = _model._ory;
+						localRz = _model._orz;
+						localRw = _model._orw;
+						localX = _model._osx*lpX;
+						localY = _model._osy*lpY;
+						localZ = _model._osz*lpZ;
 					}
 					else
 					{
-						px[i] = node.wpx;
-						py[i] = node.wpy;
-						pz[i] = node.wpz;
-						rx[i] = node.wrx;
-						ry[i] = node.wry;
-						rz[i] = node.wrz;
-						rw[i] = node.wrw;
-						_model._simulatedLosses[i] = _model._losses[i];
+						px[0] = parent.wpx;
+						py[0] = parent.wpy;
+						pz[0] = parent.wpz;
+						localRx = parent.wrx;
+						localRy = parent.wry;
+						localRz = parent.wrz;
+						localRw = parent.wrw;
+						localX = parent.wsx*lpX;
+						localY = parent.wsy*lpY;
+						localZ = parent.wsz*lpZ;
 					}
+					double qx = localRx * lrW + localRy * lrZ - localRz * lrY + localRw * lrX;
+					double qy = -localRx * lrZ + localRy * lrW + localRz * lrX + localRw * lrY;
+					double qz = localRx * lrY - localRy * lrX + localRz * lrW + localRw * lrZ;
+					double qw = -localRx * lrX - localRy * lrY - localRz * lrZ + localRw * lrW;
+					double dot = wrx*wrx + wry*wry + wrz*wrz + wrw*wrw;
+					double x = qx / dot; double y = qy / dot; double z = qz / dot; double w = qw / dot;
+					qx = x * wrw + y * -wrz - z * -wry + w * -wrx;
+					qy = -x * -wrz + y * wrw + z * -wrx + w * -wry;
+					qz = x * -wry - y * -wrx + z * wrw + w * -wrz;
+					qw = -x * -wrx - y * -wry - z * -wrz + w * wrw;
+					px[0] +=
+							+ 2.0 * ((0.5 - localRy * localRy - localRz * localRz) * localX + (localRx * localRy - localRw * localRz) * localY + (localRx * localRz + localRw * localRy) * localZ)
+							+ 2.0 * ((0.5 - qy * qy - qz * qz) * (node.wpx-wpx) + (qx * qy - qw * qz) * (node.wpy-wpy) + (qx * qz + qw * qy) * (node.wpz-wpz));
+					py[0] += 
+							+ 2.0 * ((localRx * localRy + localRw * localRz) * localX + (0.5 - localRx * localRx - localRz * localRz) * localY + (localRy * localRz - localRw * localRx) * localZ)
+							+ 2.0 * ((qx * qy + qw * qz) * (node.wpx-wpx) + (0.5 - qx * qx - qz * qz) * (node.wpy-wpy) + (qy * qz - qw * qx) * (node.wpz-wpz));
+					pz[0] += 
+							+ 2.0 * ((localRx * localRz - localRw * localRy) * localX + (localRy * localRz + localRw * localRx) * localY + (0.5 - (localRx * localRx + localRy * localRy)) * localZ)
+							+ 2.0 * ((qx * qz - qw * qy) * (node.wpx-wpx) + (qy * qz + qw * qx) * (node.wpy-wpy) + (0.5 - qx * qx - qy * qy) * (node.wpz-wpz));
+					rx[0] = qx * node.wrw + qy * node.wrz - qz * node.wry + qw * node.wrx;
+					ry[0] = -qx * node.wrz + qy * node.wrw + qz * node.wrx + qw * node.wry;
+					rz[0] = qx * node.wry - qy * node.wrx + qz * node.wrw + qw * node.wrz;
+					rw[0] = -qx * node.wrx - qy * node.wry - qz * node.wrz + qw * node.wrw;
+					_model._simulatedLosses[0] = _model._objectivePointer.objective.ComputeLoss(px[0], py[0], pz[0], rx[0], ry[0], rz[0], rw[0]);
+				}
+				else
+				{
+					px[0] = node.wpx;
+					py[0] = node.wpy;
+					pz[0] = node.wpz;
+					rx[0] = node.wrx;
+					ry[0] = node.wry;
+					rz[0] = node.wrz;
+					rw[0] = node.wrw;
+					_model._simulatedLosses[0] = _model._losses[0];
 				}
 			}
 

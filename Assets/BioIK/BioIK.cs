@@ -144,12 +144,9 @@ namespace BioIK
 				segment.joint.UpdateData();
 			}
 			
-			for (int i = 0; i < segment.objectives.Length; i++)
+			if (segment.objective != null && segment.objective.enabled)
 			{
-				if (segment.objectives[i].enabled)
-				{
-					segment.objectives[i].UpdateData();
-				}
+				segment.objective.UpdateData();
 			}
 			
 			for (int i = 0; i<segment.children.Length; i++)
@@ -186,7 +183,7 @@ namespace BioIK
 
 			DeInitialise();
 			Initialise();
-			solution = new double[this.evolution.GetModel().GetDoF()];
+			solution = new double[evolution.GetModel().GetDoF()];
 		}
 
 		private void Refresh(Transform t)
