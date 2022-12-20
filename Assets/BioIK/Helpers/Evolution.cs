@@ -64,7 +64,7 @@ namespace BioIK.Helpers
             for (int i = 0; i < _elites; i++)
             {
                 int index = i;
-                _models[index] = new(_model.GetCharacter());
+                _models[index] = new(_model.GetBioRobot());
                 _optimisers[index] = new(_dimensionality, x => _models[index].ComputeLoss(x), y => _models[index].ComputeGradient(y, 1e-5));
             }
         }

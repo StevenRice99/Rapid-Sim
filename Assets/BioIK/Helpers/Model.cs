@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using BioIK.Setup;
 using Unity.Mathematics;
 using UnityEngine;
@@ -56,13 +55,13 @@ namespace BioIK.Helpers
 			
 			double chainLength = 0.0;
 
-			AddNode(_root);
+			AddNode(_root, null);
 			BioSegment previous = _root;
 			BioSegment current = _root.child;
 
 			while (current != null)
 			{
-				AddNode(current);
+				AddNode(current, _nodes[^1]);
 				chainLength += Vector3.Distance(previous.transform.position, current.transform.position);
 				previous = current;
 				current = current.child;
@@ -98,7 +97,7 @@ namespace BioIK.Helpers
 			return _doF;
 		}
 
-		public BioRobot GetCharacter()
+		public BioRobot GetBioRobot()
 		{
 			return _bioRobot;
 		}
@@ -253,14 +252,9 @@ namespace BioIK.Helpers
 		}
 
 		//Adds a segment node into the model
-		private void AddNode(BioSegment segment)
+		private void AddNode(BioSegment segment, Node parent)
 		{
-			if (FindNode(segment.transform) != null)
-			{
-				return;
-			}
-
-			Node node = new(this, FindNode(segment.transform.parent), segment);
+			Node node = new(this, parent, segment);
 
 			if (node.joint != null)
 			{
@@ -301,29 +295,15 @@ namespace BioIK.Helpers
 			_nodes[^1] = node;
 		}
 
-		//Returns a node in the model
-		private Node FindNode(Transform t)
-		{
-			for (int i=0; i<_nodes.Length; i++)
-			{
-				if (_nodes[i].transform == t)
-				{
-					return _nodes[i];
-				}
-			}
-			return null;
-		}
-
 		//Subclass representing the single nodes for the OFKT data structure.
 		//Values are stored using primitive data types for faster access and efficient computation.
 		public class Node
 		{
 			private readonly Model _model;							//Reference to the kinematic model
 			public readonly Node parent;							//Reference to the parent of this node
-			private Node[] _children = Array.Empty<Node>();			//Reference to all child nodes
+			private Node _child;
 			public readonly Transform transform;					//Reference to the transform
 			public BioJoint joint;									//Reference to the joint
-			public readonly Transform[] chain;
 
 			public double wpx, wpy, wpz;				//World position
 			public double wrx, wry, wrz, wrw;			//World rotation
@@ -346,26 +326,13 @@ namespace BioIK.Helpers
 			{
 				_model = model;
 				this.parent = parent;
-				this.parent?.AddChild(this);
+				if (this.parent != null)
+				{
+					this.parent._child = this;
+				}
+
 				transform = segment.transform;
 				joint = segment.joint;
-
-				List<Transform> reverseChain = new() { transform };
-				Node p = parent;
-				while (p != null)
-				{
-					reverseChain.Add(p.transform);
-					p = p.parent;
-				}
-				reverseChain.Reverse();
-				chain = reverseChain.ToArray();
-			}
-
-			//Adds a child to this node
-			private void AddChild(Node child)
-			{
-				Array.Resize(ref _children, _children.Length+1);
-				_children[^1] = child;
 			}
 
 			//Recursively refreshes the current transform data
@@ -400,10 +367,7 @@ namespace BioIK.Helpers
 				ComputeWorldTransformation();
 
 				//Feed Forward
-				foreach (Node child in _children)
-				{
-					child.Refresh();
-				}
+				_child?.Refresh();
 			}
 
 			//Updates local and world transform, and feeds the joint variable configuration forward to all children
@@ -444,10 +408,7 @@ namespace BioIK.Helpers
 				}
 
 				//Feed forward the joint variable configuration
-				foreach (Node child in _children)
-				{
-					child.FeedForwardConfiguration(configuration, updateWorld);
-				}
+				_child?.FeedForwardConfiguration(configuration, updateWorld);
 			}
 
 			//Simulates a single transform modification while leaving the whole data structure unchanged
@@ -558,7 +519,7 @@ namespace BioIK.Helpers
 		}
 
 		//Data class to store pointers to the joint motions
-		public class MotionPtr
+		public struct MotionPtr
 		{
 			public readonly BioJoint.Motion motion;
 			public readonly Node node;
