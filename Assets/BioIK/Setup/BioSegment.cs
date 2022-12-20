@@ -58,9 +58,9 @@ namespace BioIK.Setup
 			return joint;
 		}
 
-		public BioObjective AddObjective(ObjectiveType type)
+		public BioObjective AddObjective()
 		{
-			BioObjective objective = Utility.AddObjective(this, type);
+			BioObjective objective = Utility.AddObjective(this);
 			if(objective == null)
 			{
 				Debug.Log("The objective could not be found.");

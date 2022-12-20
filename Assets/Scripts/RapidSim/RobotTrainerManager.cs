@@ -25,22 +25,22 @@ namespace RapidSim
 
         private static RobotTrainerManager _singleton;
 
-        private readonly List<RobotTrainer> _trainers = new();
+        private readonly List<Robot> _robots = new();
 
-        public static void Register(RobotTrainer robotTrainer)
+        public static void Register(Robot robot)
         {
-            if (Singleton._trainers.Contains(robotTrainer))
+            if (Singleton._robots.Contains(robot))
             {
                 return;
             }
         
-            Singleton._trainers.Add(robotTrainer);
+            Singleton._robots.Add(robot);
         }
 
-        public static void Unregister(RobotTrainer robotTrainer)
+        public static void Unregister(Robot robot)
         {
-            Singleton._trainers.Remove(robotTrainer);
-            if (Singleton._trainers.Count > 0)
+            Singleton._robots.Remove(robot);
+            if (Singleton._robots.Count > 0)
             {
                 return;
             }
@@ -67,11 +67,11 @@ namespace RapidSim
 
         private void Update()
         {
-            double[][] starting = new double[_trainers.Count][];
+            double[][] starting = new double[_robots.Count][];
         
-            for (int i = 0; i < _trainers.Count; i++)
+            for (int i = 0; i < _robots.Count; i++)
             {
-                float[] angles = _trainers[i].RandomOrientation();
+                float[] angles = _robots[i].RandomOrientation();
                 double[] start = new double[angles.Length];
                 for (int j = 0; j < start.Length; j++)
                 {
@@ -79,17 +79,17 @@ namespace RapidSim
                 }
 
                 starting[i] = start;
-                _trainers[i].SetRandomOrientation();
+                _robots[i].SetRandomOrientation();
             }
 
             Physics.Simulate(Time.fixedDeltaTime);
 
-            for (int i = 0; i < _trainers.Count; i++)
+            for (int i = 0; i < _robots.Count; i++)
             {
-                Vector3 goalPosition = _trainers[i].Objective.position;
-                Quaternion goalRotation = _trainers[i].Objective.rotation;
+                Vector3 goalPosition = _robots[i].Objective.position;
+                Quaternion goalRotation = _robots[i].Objective.rotation;
         
-                double[] expected = _trainers[i].RobotSolver.NetScaled(_trainers[i].BioIkSolve(goalPosition, goalRotation));
+                double[] expected = _robots[i].NetScaled(_robots[i].BioIkSolve(goalPosition, goalRotation));
 
                 /*
                 Debug.Log("Expected Values:");
@@ -99,7 +99,7 @@ namespace RapidSim
                 }
                 */
 
-                _trainers[i].Train(goalPosition, goalRotation, starting[i], expected);
+                _robots[i].Train(goalPosition, goalRotation, starting[i], expected);
             }
         }
     }

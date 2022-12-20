@@ -1,5 +1,4 @@
 ﻿using BioIK.Setup;
-using BioIK.Setup.Objectives;
 using UnityEditor;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -83,22 +82,16 @@ namespace BioIK.Helpers
 #endif
 		}
 
-		public static BioObjective AddObjective(BioSegment segment, ObjectiveType type)
+		public static BioObjective AddObjective(BioSegment segment)
 		{
 #if UNITY_EDITOR
 			if (Application.isPlaying)
 			{
-				switch(type) {
-					case ObjectiveType.Position:
-						return (segment.gameObject.AddComponent(typeof(Position)) as BioObjective)?.Create(segment);
-				}
+				return (segment.gameObject.AddComponent(typeof(BioObjective)) as BioObjective)?.Create(segment);
 			}
 			else
 			{
-				switch(type) {
-					case ObjectiveType.Position:
-						return (Undo.AddComponent(segment.gameObject, typeof(Position)) as BioObjective)?.Create(segment);
-				}
+				return (Undo.AddComponent(segment.gameObject, typeof(BioObjective)) as BioObjective)?.Create(segment);
 			}
 			return null;
 #else

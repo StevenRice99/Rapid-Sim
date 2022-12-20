@@ -6,37 +6,10 @@ namespace RapidSim.Testers
 {
     public class BioIkTester : RobotHomeTester
     {
-        [SerializeField]
-        private RobotTrainer robotTrainer;
-        
-        protected override void Awake()
-        {
-            base.Awake();
-            
-            if (robotTrainer != null)
-            {
-                return;
-            }
-        
-            robotTrainer = GetComponent<RobotTrainer>();
-            if (robotTrainer != null)
-            {
-                return;
-            }
-        
-            robotTrainer = GetComponentInChildren<RobotTrainer>();
-            if (robotTrainer != null)
-            {
-                return;
-            }
-
-            robotTrainer = FindObjectOfType<RobotTrainer>();
-        }
-
         protected override void Move()
         {
             Transform t = transform;
-            List<double> doubles = robotTrainer.BioIkSolve(t.position, t.rotation).ToList();
+            List<double> doubles = robot.BioIkSolve(t.position, t.rotation).ToList();
             List<float> joints = new();
             for (int i = 0; i < doubles.Count; i++)
             {
@@ -49,7 +22,7 @@ namespace RapidSim.Testers
         protected override void Snap()
         {
             Transform t = transform;
-            List<double> doubles = robotTrainer.BioIkSolve(t.position, t.rotation).ToList();
+            List<double> doubles = robot.BioIkSolve(t.position, t.rotation).ToList();
             List<float> joints = new();
             for (int i = 0; i < doubles.Count; i++)
             {

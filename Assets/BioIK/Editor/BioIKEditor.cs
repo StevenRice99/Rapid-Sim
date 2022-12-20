@@ -1,6 +1,5 @@
 ﻿using BioIK.Helpers;
 using BioIK.Setup;
-using BioIK.Setup.Objectives;
 using UnityEditor;
 using UnityEngine;
 
@@ -184,9 +183,9 @@ namespace BioIK.Editor {
 						SetGUIColor(Color6);
 						GUILayout.Box(" Joint ");
 					}
-					foreach(BioObjective objective in segment.objectives) {
+					foreach(BioObjective unused in segment.objectives) {
 						SetGUIColor(Color9);
-						GUILayout.Box(" " + objective.GetObjectiveType().ToString() + " ");
+						GUILayout.Box(" Position and Orientation ");
 					}
 					GUILayout.FlexibleSpace();
 					GUILayout.EndHorizontal();
@@ -250,14 +249,10 @@ namespace BioIK.Editor {
 					if(ChosingObjectiveType) {
 						SetGUIColor(Color8);
 						using(new EditorGUILayout.VerticalScope ("Box")) {
-							int count = System.Enum.GetValues(typeof(ObjectiveType)).Length;
-							string[] names = System.Enum.GetNames(typeof(ObjectiveType));
-							for(int i=0; i<count; i++) {
-								SetGUIColor(Color1);
-								if(GUILayout.Button(names[i])) {
-									ChosingObjectiveType = false;
-									segment.AddObjective((ObjectiveType)i);
-								}
+							SetGUIColor(Color1);
+							if(GUILayout.Button("Position and Orientation")) {
+								ChosingObjectiveType = false;
+								segment.AddObjective();
 							}
 						}
 					}
@@ -371,18 +366,14 @@ namespace BioIK.Editor {
 				SetGUIColor(Color5);
 				GUILayout.BeginHorizontal();
 				GUILayout.FlexibleSpace();
-				EditorGUILayout.HelpBox("                    Objective (" + objective.GetObjectiveType().ToString() + ")                    ", MessageType.None);
+				EditorGUILayout.HelpBox("                    Objective (Position and Orientation)                    ", MessageType.None);
 				GUILayout.FlexibleSpace();
 				GUILayout.EndHorizontal();
 				
 				SetGUIColor(Color1);
 				objective.enabled = EditorGUILayout.Toggle("Enabled", objective.enabled);
 
-				switch(objective.GetObjectiveType()) {
-					case ObjectiveType.Position:
-					InspectPosition((Position)objective);
-					break;
-				}
+				InspectPosition(objective);
 
 				GUI.skin.button.alignment = TextAnchor.MiddleCenter;
 				SetGUIColor(Color7);
@@ -400,7 +391,7 @@ namespace BioIK.Editor {
 			}
 		}
 
-		private void InspectPosition(Position objective) {
+		private void InspectPosition(BioObjective objective) {
 			SetGUIColor(Color1);
 			objective.SetTargetPosition(EditorGUILayout.Vector3Field("Target Position", objective.GetTargetPosition()));
 			objective.SetTargetRotation(EditorGUILayout.Vector3Field("Target Rotation", objective.GetTargetRotation()));
@@ -546,20 +537,16 @@ namespace BioIK.Editor {
 				return;
 			}
 
-			switch(objective.GetObjectiveType()) {
-				case ObjectiveType.Position:
-				DrawPosition((Position)objective);
-				DrawOrientation((Position)objective);
-				break;
-			}
+			DrawPosition(objective);
+			DrawOrientation(objective);
 		}
 
-		private void DrawPosition(Position objective) {
+		private void DrawPosition(BioObjective objective) {
 			DrawSphere(objective.GetTargetPosition(), 0.1f, new(1f, 0f, 0f, 0.75f));
 			Handles.Label(objective.GetTargetPosition(), "Target");
 		}
 
-		private void DrawOrientation(Position objective) {
+		private void DrawOrientation(BioObjective objective) {
 			Quaternion rotation = Quaternion.Euler(objective.GetTargetRotation());
 			Vector3 right = rotation * Vector3.right;
 			Vector3 up = rotation * Vector3.up;
