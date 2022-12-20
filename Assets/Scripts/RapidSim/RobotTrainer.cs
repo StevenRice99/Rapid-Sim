@@ -49,8 +49,6 @@ namespace RapidSim
 
         private Position _position;
 
-        private Orientation _orientation;
-
         private bool _train;
 
         private BioJoint.Motion[] _motions;
@@ -89,7 +87,7 @@ namespace RapidSim
             _bioIK.solution = new double[_bioIK.Evolution.GetModel().GetDoF()];
             
             _position.SetTargetPosition(position);
-            _orientation.SetTargetRotation(orientation);
+            _position.SetTargetRotation(orientation);
             
             List<float> joints = RobotController.GetJoints();
 
@@ -293,13 +291,6 @@ namespace RapidSim
                     {
                         _position.Create(segment);
                         _position.SetTargetPosition(segmentTransform.position);
-                    }
-
-                    _orientation = segment.AddObjective(ObjectiveType.Orientation) as Orientation;
-                    if (_orientation != null)
-                    {
-                        _orientation.Create(segment);
-                        _orientation.SetTargetRotation(segmentTransform.rotation);
                     }
                 }
 

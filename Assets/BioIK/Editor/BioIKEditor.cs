@@ -382,10 +382,6 @@ namespace BioIK.Editor {
 					case ObjectiveType.Position:
 					InspectPosition((Position)objective);
 					break;
-
-					case ObjectiveType.Orientation:
-					InspectOrientation((Orientation)objective);
-					break;
 				}
 
 				GUI.skin.button.alignment = TextAnchor.MiddleCenter;
@@ -407,10 +403,6 @@ namespace BioIK.Editor {
 		private void InspectPosition(Position objective) {
 			SetGUIColor(Color1);
 			objective.SetTargetPosition(EditorGUILayout.Vector3Field("Target Position", objective.GetTargetPosition()));
-		}
-
-		private void InspectOrientation(Orientation objective) {
-			SetGUIColor(Color1);
 			objective.SetTargetRotation(EditorGUILayout.Vector3Field("Target Rotation", objective.GetTargetRotation()));
 		}
 
@@ -557,10 +549,7 @@ namespace BioIK.Editor {
 			switch(objective.GetObjectiveType()) {
 				case ObjectiveType.Position:
 				DrawPosition((Position)objective);
-				break;
-
-				case ObjectiveType.Orientation:
-				DrawOrientation((Orientation)objective);
+				DrawOrientation((Position)objective);
 				break;
 			}
 		}
@@ -570,7 +559,7 @@ namespace BioIK.Editor {
 			Handles.Label(objective.GetTargetPosition(), "Target");
 		}
 
-		private void DrawOrientation(Orientation objective) {
+		private void DrawOrientation(Position objective) {
 			Quaternion rotation = Quaternion.Euler(objective.GetTargetRotation());
 			Vector3 right = rotation * Vector3.right;
 			Vector3 up = rotation * Vector3.up;

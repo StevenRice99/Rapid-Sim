@@ -91,8 +91,6 @@ namespace BioIK.Helpers
 				switch(type) {
 					case ObjectiveType.Position:
 						return (segment.gameObject.AddComponent(typeof(Position)) as BioObjective)?.Create(segment);
-					case ObjectiveType.Orientation:
-						return (segment.gameObject.AddComponent(typeof(Orientation)) as BioObjective)?.Create(segment);
 				}
 			}
 			else
@@ -100,8 +98,6 @@ namespace BioIK.Helpers
 				switch(type) {
 					case ObjectiveType.Position:
 						return (Undo.AddComponent(segment.gameObject, typeof(Position)) as BioObjective)?.Create(segment);
-					case ObjectiveType.Orientation:
-						return (Undo.AddComponent(segment.gameObject, typeof(Orientation)) as BioObjective)?.Create(segment);
 				}
 			}
 			return null;

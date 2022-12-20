@@ -166,7 +166,8 @@ namespace BioIK.Helpers
 				_losses[i] = model._losses[i];
 				_simulatedLosses[i] = model._simulatedLosses[i];
 			}
-			for (int i = 0; i < _nodes.Length; i++) {
+			for (int i = 0; i < _nodes.Length; i++)
+			{
 				_nodes[i].Wpx = model._nodes[i].Wpx;
 				_nodes[i].Wpy = model._nodes[i].Wpy;
 				_nodes[i].Wpz = model._nodes[i].Wpz;
@@ -197,7 +198,7 @@ namespace BioIK.Helpers
 		{
 			ForwardKinematics(configuration);
 			double loss = 0.0;
-			for (int i=0; i<_objectivePointers.Length; i++)
+			for (int i = 0; i < _objectivePointers.Length; i++)
 			{
 				Node node = _objectivePointers[i].Node;
 				_losses[i] = _objectivePointers[i].Objective.ComputeLoss(node.Wpx, node.Wpy, node.Wpz, node.Wrx, node.Wry, node.Wrz, node.Wrw);
@@ -216,7 +217,7 @@ namespace BioIK.Helpers
 				MotionPointers[j].Node.SimulateModification(_configuration);
 				_configuration[j] -= resolution;
 				double newLoss = 0.0;
-				for (int i = 0; i<_objectivePointers.Length; i++)
+				for (int i = 0; i < _objectivePointers.Length; i++)
 				{
 					newLoss += _simulatedLosses[i];
 				}
@@ -257,7 +258,7 @@ namespace BioIK.Helpers
 					if (node.Joint.x.IsEnabled())
 					{
 						MotionPtr motionPtr = new(node.Joint.x, node, MotionPointers.Length);
-						Array.Resize(ref MotionPointers, MotionPointers.Length+1);
+						Array.Resize(ref MotionPointers, MotionPointers.Length + 1);
 						MotionPointers[^1] = motionPtr;
 						node.XEnabled = true;
 						node.XIndex = motionPtr.Index;
@@ -265,7 +266,7 @@ namespace BioIK.Helpers
 					if (node.Joint.y.IsEnabled())
 					{
 						MotionPtr motionPtr = new(node.Joint.y, node, MotionPointers.Length);
-						Array.Resize(ref MotionPointers, MotionPointers.Length+1);
+						Array.Resize(ref MotionPointers, MotionPointers.Length + 1);
 						MotionPointers[^1] = motionPtr;
 						node.YEnabled = true;
 						node.YIndex = motionPtr.Index;
@@ -273,7 +274,7 @@ namespace BioIK.Helpers
 					if (node.Joint.z.IsEnabled())
 					{
 						MotionPtr motionPtr = new(node.Joint.z, node, MotionPointers.Length);
-						Array.Resize(ref MotionPointers, MotionPointers.Length+1);
+						Array.Resize(ref MotionPointers, MotionPointers.Length + 1);
 						MotionPointers[^1] = motionPtr;
 						node.ZEnabled = true;
 						node.ZIndex = motionPtr.Index;
@@ -286,26 +287,26 @@ namespace BioIK.Helpers
 			{
 				if (objectives[i].enabled)
 				{
-					Array.Resize(ref _objectivePointers, _objectivePointers.Length+1);
+					Array.Resize(ref _objectivePointers, _objectivePointers.Length + 1);
 					_objectivePointers[^1] = new(objectives[i], node);
 				}
 			}
 
-			Array.Resize(ref _nodes, _nodes.Length+1);
+			Array.Resize(ref _nodes, _nodes.Length + 1);
 			_nodes[^1] = node;
 		}
 
 		//Returns all objectives which are childs in the hierarcy, beginning from the root
 		private static BioObjective[] CollectObjectives(BioSegment segment, List<BioObjective> objectives)
 		{
-			for (int i=0; i<segment.objectives.Length; i++)
+			for (int i = 0; i < segment.objectives.Length; i++)
 			{
 				if (segment.objectives[i].enabled)
 				{
 					objectives.Add(segment.objectives[i]);
 				}
 			}
-			for (int i = 0; i<segment.children.Length; i++)
+			for (int i = 0; i < segment.children.Length; i++)
 			{
 				CollectObjectives(segment.children[i], objectives);
 			}
@@ -438,19 +439,19 @@ namespace BioIK.Helpers
 				//Assume no local update is required
 				bool updateLocal = false;
 
-				if (XEnabled && configuration[XIndex] != XValue)
+				if (XEnabled)
 				{
 					XValue = configuration[XIndex];
 					updateLocal = true;
 				}
 				
-				if (YEnabled && configuration[YIndex] != YValue)
+				if (YEnabled)
 				{
 					YValue = configuration[YIndex];
 					updateLocal = true;
 				}
 				
-				if (ZEnabled && configuration[ZIndex] != ZValue)
+				if (ZEnabled)
 				{
 					ZValue = configuration[ZIndex];
 					updateLocal = true;

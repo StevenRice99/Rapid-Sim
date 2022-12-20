@@ -134,7 +134,7 @@ GameObject:
   - component: {fileID: 1597178031}
   - component: {fileID: 1597178032}
   m_Layer: 0
-  m_Name: Trainer Communicator
+  m_Name: XOR
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -164,8 +164,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1597178030}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 65868c6fcf3446b3ac6f819ead82cffc, type: 3}
+  m_Script: {fileID: 11500000, guid: 610010045e6e4406a30c753c298435b7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  connectionIP: 127.0.0.1
-  connectionPort: 1234
+  data: {fileID: 11400000, guid: 3e62339ad02ac6041a3e09c0e7030857, type: 2}

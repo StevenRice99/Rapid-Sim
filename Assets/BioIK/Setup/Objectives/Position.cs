@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace BioIK.Setup.Objectives
 {
-	//This objective aims to minimise the translational distance between the transform and the target.
 	[AddComponentMenu("")]
 	public class Position : BioObjective
 	{
@@ -11,6 +10,8 @@ namespace BioIK.Setup.Objectives
 
 		private double _chainLength;
 		private double _rescaling;
+		
+		private double _trx, _try, _trz, _trw;
 
 		public override ObjectiveType GetObjectiveType()
 		{
@@ -35,7 +36,28 @@ namespace BioIK.Setup.Objectives
 
 		public override double ComputeLoss(double wpx, double wpy, double wpz, double wrx, double wry, double wrz, double wrw)
 		{
-			return _rescaling * ((_tpx-wpx)*(_tpx-wpx) + (_tpy-wpy)*(_tpy-wpy) + (_tpz-wpz)*(_tpz-wpz));
+			double pos = _rescaling * ((_tpx-wpx)*(_tpx-wpx) + (_tpy-wpy)*(_tpy-wpy) + (_tpz-wpz)*(_tpz-wpz));
+			
+			double d = wrx*_trx + wry*_try + wrz*_trz + wrw*_trw;
+			switch (d)
+			{
+				case < 0.0:
+				{
+					d = -d;
+					if(d > 1.0) {
+						d = 1.0;
+					}
+
+					break;
+				}
+				case > 1.0:
+					d = 1.0;
+					break;
+			}
+			double rot = 2.0 * System.Math.Acos(d);
+			rot *= rot;
+			
+			return pos + rot;
 		}
 
 		public void SetTargetPosition(Vector3 position)
@@ -48,6 +70,24 @@ namespace BioIK.Setup.Objectives
 		public Vector3 GetTargetPosition()
 		{
 			return new((float)_tpx, (float)_tpy, (float)_tpz);
+		}
+		
+		public void SetTargetRotation(Quaternion rotation)
+		{
+			_trx = rotation.x;
+			_try = rotation.y;
+			_trz = rotation.z;
+			_trw = rotation.w;
+		}
+		
+		public void SetTargetRotation(Vector3 angles)
+		{
+			SetTargetRotation(Quaternion.Euler(angles));
+		}
+		
+		public Vector3 GetTargetRotation()
+		{
+			return new Quaternion((float)_trx, (float)_try, (float)_trz, (float)_trw).eulerAngles;
 		}
 	}
 }
