@@ -7,7 +7,7 @@ using Unity.Mathematics;
 namespace BioIK
 {
 	[DisallowMultipleComponent]
-	public class BioIK : MonoBehaviour
+	public class BioRobot : MonoBehaviour
 	{
 		public const double Deg2Rad = 0.017453292;
 		public const double Rad2Deg = 57.29578049;
@@ -32,30 +32,6 @@ namespace BioIK
 		{
 			_destroyed = true;
 			DeInitialise();
-			Cleanup(transform);
-		}
-		
-		private static void Cleanup(Transform t)
-		{
-			foreach (BioJoint joint in t.GetComponents<BioJoint>())
-			{
-				joint.Erase();
-			}
-			
-			foreach(BioObjective objective in t.GetComponents<BioObjective>())
-			{
-				objective.Erase();
-			}
-			
-			foreach(BioSegment segment in t.GetComponents<BioSegment>())
-			{
-				Destroy(segment);
-			}
-			
-			for (int i = 0; i < t.childCount; i++)
-			{
-				Cleanup(t.GetChild(i));
-			}
 		}
 
 		private void OnEnable()
@@ -107,18 +83,6 @@ namespace BioIK
 			}
 		}
 
-		public BioSegment FindSegment(Transform t)
-		{
-			for (int i = 0; i < segments.Count; i++)
-			{
-				if (segments[i].transform == t)
-				{
-					return segments[i];
-				}
-			}
-			return null;
-		}
-
 		public List<BioSegment> GetChain(BioSegment end)
 		{
 			List<BioSegment> chain = new();
@@ -161,20 +125,44 @@ namespace BioIK
 			{
 				return;
 			}
-			
-			for (int i = 0; i < segments.Count; i++)
+
+			segments = new();
+
+			Transform t = transform;
+			while (t != null)
 			{
-				if (segments[i] != null)
+				BioSegment segment = t.GetComponent<BioSegment>();
+				if (segment == null)
 				{
-					continue;
+					segment = t.gameObject.AddComponent(typeof(BioSegment)) as BioSegment;
+					segment.bioRobot = this;
+					segments.Add(segment);
+				}
+			
+				segment.bioRobot = this;
+				
+				if (segment.transform.parent != null)
+				{
+					segment.parent = segment.transform.parent.GetComponent<BioSegment>();
+					if (segment.parent != null)
+					{
+						segment.parent.child = segment;
+					}
+				}
+				else
+				{
+					segment.parent = null;
 				}
 
-				segments.RemoveAt(i);
-				i--;
+				if (t.childCount == 0)
+				{
+					break;
+				}
+
+				t = t.GetChild(0);
 			}
 			
-			Refresh(transform);
-			root = FindSegment(transform);
+			root = GetComponent<BioSegment>();
 
 			if (!evolve || !Application.isPlaying)
 			{
@@ -184,24 +172,6 @@ namespace BioIK
 			DeInitialise();
 			Initialise();
 			solution = new double[evolution.GetModel().GetDoF()];
-		}
-
-		private void Refresh(Transform t)
-		{
-			BioSegment segment = FindSegment(t);
-			if (segment == null)
-			{
-				segment = (t.gameObject.AddComponent(typeof(BioSegment)) as BioSegment)?.Create(this);
-				segments.Add(segment);
-			}
-			
-			segment.controller = this;
-			segment.RenewRelations();
-			
-			for (int i = 0; i < t.childCount; i++)
-			{
-				Refresh(t.GetChild(i));
-			}
 		}
 
 		public static void ProcessMotion(BioSegment segment)
@@ -216,6 +186,5 @@ namespace BioIK
 				segment = segment.child;
 			}
 		}
-
 	}
 }

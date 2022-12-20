@@ -1,14 +1,13 @@
-﻿using BioIK.Helpers;
-using Unity.Mathematics;
+﻿using Unity.Mathematics;
 using UnityEngine;
 
 namespace BioIK.Setup
 {
-	[AddComponentMenu("")]
+	[DisallowMultipleComponent]
 	public class BioJoint : MonoBehaviour
 	{
 		public BioSegment segment;
-		public Motion x,y,z;
+		public Motion x, y, z;
 		public bool rotational = true;
 
 		[SerializeField] private Vector3 orientation = Vector3.zero;
@@ -20,13 +19,13 @@ namespace BioIK.Setup
 		{
 			if (segment != null)
 			{
-				segment.controller.Refresh();
+				segment.bioRobot.Refresh();
 			}
 		}
 
 		private void OnDisable()
 		{
-			segment.controller.Refresh();
+			segment.bioRobot.Refresh();
 		}
 
 		public BioJoint Create(BioSegment value)
@@ -50,18 +49,9 @@ namespace BioIK.Setup
 				forward = Quaternion.Inverse(segment.transform.localRotation) * segment.transform.localPosition;
 			}
 
-			SetOrientation(forward.magnitude != 0f
-				? Quaternion.LookRotation(forward, Vector3.up).eulerAngles
-				: orientation);
+			SetOrientation(forward.magnitude != 0f ? Quaternion.LookRotation(forward, Vector3.up).eulerAngles : orientation);
 
 			return this;
-		}
-
-		public void Erase()
-		{
-			RestoreDefaultFrame();
-			segment.transform.hideFlags = HideFlags.None;
-			Destroy(this);
 		}
 
 		public void UpdateData()
@@ -88,7 +78,7 @@ namespace BioIK.Setup
 			double lpX, lpY, lpZ, lrX, lrY, lrZ, lrW;
 			if(rotational)
 			{
-				ComputeLocalTransformation(BioIK.Deg2Rad*x.ProcessMotion(), BioIK.Deg2Rad*y.ProcessMotion(), BioIK.Deg2Rad*z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
+				ComputeLocalTransformation(BioRobot.Deg2Rad*x.ProcessMotion(), BioRobot.Deg2Rad*y.ProcessMotion(), BioRobot.Deg2Rad*z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
 			}
 			else
 			{
@@ -107,7 +97,7 @@ namespace BioIK.Setup
 		//Fast implementation to compute the local transform given the joint values (in radians / metres)
 		public void ComputeLocalTransformation(double valueX, double valueY, double valueZ, out double lpX, out double lpY, out double lpZ, out double lrX, out double lrY, out double lrZ, out double lrW)
 		{
-			if(!rotational)
+			if (!rotational)
 			{
 				Vector3 scale = transform.lossyScale;
 				valueX /= scale.x;
@@ -122,64 +112,29 @@ namespace BioIK.Setup
 				lpZ = dpz + _r3 * axisX + _r6 * axisY + _r9 * axisZ;
 				//Local rotation for translational motion
 				lrX = drx; lrY = dry; lrZ = drz; lrW = drw;
+				return;
 			}
-			else
+
+			double sin, x1, y1, z1, w1, x2, y2, z2, w2, qx, qy, qz, qw;
+			if (valueZ != 0.0)
 			{
-				double sin, x1, y1, z1, w1, x2, y2, z2, w2, qx, qy, qz, qw;
-				if (valueZ != 0.0)
-				{
-					sin = System.Math.Sin(valueZ / 2.0);
-					qx = z.axis.x * sin;
-					qy = z.axis.y * sin;
-					qz = z.axis.z * sin;
-					qw = System.Math.Cos(valueZ / 2.0);
-					if (valueX != 0.0)
-					{
-						sin = System.Math.Sin(valueX / 2.0);
-						x1 = x.axis.x * sin;
-						y1 = x.axis.y * sin;
-						z1 = x.axis.z * sin;
-						w1 = System.Math.Cos(valueX / 2.0);
-						x2 = qx; y2 = qy; z2 = qz; w2 = qw;
-						qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
-						qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
-						qz = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2;
-						qw = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
-						if (valueY != 0.0)
-						{
-							sin = System.Math.Sin(valueY / 2.0);
-							x1 = y.axis.x * sin;
-							y1 = y.axis.y * sin;
-							z1 = y.axis.z * sin;
-							w1 = System.Math.Cos(valueY / 2.0);
-							x2 = qx; y2 = qy; z2 = qz; w2 = qw;
-							qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
-							qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
-							qz = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2;
-							qw = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
-						}
-					}
-					else if (valueY != 0.0)
-					{
-						sin = System.Math.Sin(valueY / 2.0);
-						x1 = y.axis.x * sin;
-						y1 = y.axis.y * sin;
-						z1 = y.axis.z * sin;
-						w1 = System.Math.Cos(valueY / 2.0);
-						x2 = qx; y2 = qy; z2 = qz; w2 = qw;
-						qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
-						qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
-						qz = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2;
-						qw = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
-					}
-				}
-				else if (valueX != 0.0)
+				sin = System.Math.Sin(valueZ / 2.0);
+				qx = z.axis.x * sin;
+				qy = z.axis.y * sin;
+				qz = z.axis.z * sin;
+				qw = System.Math.Cos(valueZ / 2.0);
+				if (valueX != 0.0)
 				{
 					sin = System.Math.Sin(valueX / 2.0);
-					qx = x.axis.x * sin;
-					qy = x.axis.y * sin;
-					qz = x.axis.z * sin;
-					qw = System.Math.Cos(valueX / 2.0);
+					x1 = x.axis.x * sin;
+					y1 = x.axis.y * sin;
+					z1 = x.axis.z * sin;
+					w1 = System.Math.Cos(valueX / 2.0);
+					x2 = qx; y2 = qy; z2 = qz; w2 = qw;
+					qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
+					qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
+					qz = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2;
+					qw = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
 					if (valueY != 0.0)
 					{
 						sin = System.Math.Sin(valueY / 2.0);
@@ -194,43 +149,72 @@ namespace BioIK.Setup
 						qw = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
 					}
 				}
-				else if(valueY != 0.0)
+				else if (valueY != 0.0)
 				{
 					sin = System.Math.Sin(valueY / 2.0);
-					qx = y.axis.x * sin;
-					qy = y.axis.y * sin;
-					qz = y.axis.z * sin;
-					qw = System.Math.Cos(valueY / 2.0);
+					x1 = y.axis.x * sin;
+					y1 = y.axis.y * sin;
+					z1 = y.axis.z * sin;
+					w1 = System.Math.Cos(valueY / 2.0);
+					x2 = qx; y2 = qy; z2 = qz; w2 = qw;
+					qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
+					qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
+					qz = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2;
+					qw = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
 				}
-				else
+			}
+			else if (valueX != 0.0)
+			{
+				sin = System.Math.Sin(valueX / 2.0);
+				qx = x.axis.x * sin;
+				qy = x.axis.y * sin;
+				qz = x.axis.z * sin;
+				qw = System.Math.Cos(valueX / 2.0);
+				if (valueY != 0.0)
 				{
-					lpX = dpx;
-					lpY = dpy;
-					lpZ = dpz;
-					lrX = drx;
-					lrY = dry;
-					lrZ = drz;
-					lrW = drw;
-					return;
+					sin = System.Math.Sin(valueY / 2.0);
+					x1 = y.axis.x * sin;
+					y1 = y.axis.y * sin;
+					z1 = y.axis.z * sin;
+					w1 = System.Math.Cos(valueY / 2.0);
+					x2 = qx; y2 = qy; z2 = qz; w2 = qw;
+					qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
+					qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
+					qz = x1 * y2 - y1 * x2 + z1 * w2 + w1 * z2;
+					qw = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
 				}
-
-				//Local Rotation
-				//R' = R*Q
-				lrX = drx * qw + dry * qz - drz * qy + drw * qx;
-				lrY = -drx * qz + dry * qw + drz * qx + drw * qy;
-				lrZ = drx * qy - dry * qx + drz * qw + drw * qz;
-				lrW = -drx * qx - dry * qy - drz * qz + drw * qw;
-
-				//Local Position
+			}
+			else if(valueY != 0.0)
+			{
+				sin = System.Math.Sin(valueY / 2.0);
+				qx = y.axis.x * sin;
+				qy = y.axis.y * sin;
+				qz = y.axis.z * sin;
+				qw = System.Math.Cos(valueY / 2.0);
+			}
+			else
+			{
 				lpX = dpx;
 				lpY = dpy;
 				lpZ = dpz;
+				lrX = drx;
+				lrY = dry;
+				lrZ = drz;
+				lrW = drw;
+				return;
 			}
-		}
 
-		public Vector3 GetAnchorInWorldSpace()
-		{
-			return transform.position;
+			//Local Rotation
+			//R' = R*Q
+			lrX = drx * qw + dry * qz - drz * qy + drw * qx;
+			lrY = -drx * qz + dry * qw + drz * qx + drw * qy;
+			lrZ = drx * qy - dry * qx + drz * qw + drw * qz;
+			lrW = -drx * qx - dry * qy - drz * qz + drw * qw;
+
+			//Local Position
+			lpX = dpx;
+			lpY = dpy;
+			lpZ = dpz;
 		}
 
 		public void SetOrientation(Vector3 value)
@@ -242,33 +226,18 @@ namespace BioIK.Setup
 			z.axis = o * Vector3.forward;
 		}
 
-		public Vector3 GetOrientation()
-		{
-			return orientation;
-		}
-
-		public Vector3 GetDefaultPosition()
-		{
-			return new(dpx, dpy, dpz);
-		}
-
-		public Quaternion GetDefaultRotation()
-		{
-			return new(drx, dry, drz, drw);
-		}
-
 		public int GetDoF()
 		{
 			int dof = 0;
-			if(x.IsEnabled())
+			if (x.IsEnabled())
 			{
 				dof += 1;
 			}
-			if(y.IsEnabled())
+			if (y.IsEnabled())
 			{
 				dof += 1;
 			}
-			if(z.IsEnabled())
+			if (z.IsEnabled())
 			{
 				dof += 1;
 			}
@@ -284,13 +253,6 @@ namespace BioIK.Setup
 			dry = localRotation.y;
 			drz = localRotation.z;
 			drw = localRotation.w;
-		}
-
-		private void RestoreDefaultFrame()
-		{
-			Transform t = transform;
-			t.localPosition = new(dpx, dpy, dpz);
-			t.localRotation = new(drx, dry, drz, drw);
 		}
 
 		[System.Serializable]
@@ -324,7 +286,7 @@ namespace BioIK.Setup
 				}
 
 				enabled = value;
-				joint.segment.controller.Refresh();
+				joint.segment.bioRobot.Refresh();
 			}
 
 			public bool IsEnabled()
@@ -341,7 +303,7 @@ namespace BioIK.Setup
 			{
 				if (normalised && joint.rotational)
 				{
-					return BioIK.Deg2Rad * lowerLimit;
+					return BioRobot.Deg2Rad * lowerLimit;
 				}
 
 				return lowerLimit;
@@ -357,7 +319,7 @@ namespace BioIK.Setup
 			{
 				if (normalised && joint.rotational)
 				{
-					return BioIK.Deg2Rad * upperLimit;
+					return BioRobot.Deg2Rad * upperLimit;
 				}
 
 				return upperLimit;
@@ -368,7 +330,7 @@ namespace BioIK.Setup
 			{
 				if (normalised && joint.rotational)
 				{
-					value *= BioIK.Rad2Deg;
+					value *= BioRobot.Rad2Deg;
 				}
 
 				targetValue = math.clamp(value, lowerLimit, upperLimit);
@@ -378,7 +340,7 @@ namespace BioIK.Setup
 			{
 				if (normalised && joint.rotational)
 				{
-					return BioIK.Deg2Rad * targetValue;
+					return BioRobot.Deg2Rad * targetValue;
 				}
 
 				return targetValue;

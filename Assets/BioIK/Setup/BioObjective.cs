@@ -2,7 +2,7 @@
 
 namespace BioIK.Setup
 {
-	[AddComponentMenu("")]
+	[DisallowMultipleComponent]
 	public class BioObjective : MonoBehaviour
 	{
 		public BioSegment segment;
@@ -18,7 +18,7 @@ namespace BioIK.Setup
 		{
 			if (segment != null)
 			{
-				segment.controller.Refresh();
+				segment.bioRobot.Refresh();
 			}
 		}
 
@@ -26,35 +26,24 @@ namespace BioIK.Setup
 		{
 			if (segment != null)
 			{
-				segment.controller.Refresh();
+				segment.bioRobot.Refresh();
 			}
-		}
-
-		public BioObjective Create(BioSegment value)
-		{
-			segment = value;
-			return this;
-		}
-
-		public void Erase()
-		{
-			Destroy(this);
 		}
 
 		public void UpdateData()
 		{
-			if (segment.controller.evolution == null)
+			if (segment.bioRobot.evolution == null)
 			{
 				return;
 			}
 			
 			_chainLength = 0.0;
-			Transform[] chain = segment.controller.evolution.GetModel().FindObjectivePtr(this).node.chain;
+			Transform[] chain = segment.bioRobot.evolution.GetModel().FindObjectivePtr(this).node.chain;
 			for(int i = 0; i < chain.Length-1; i++)
 			{
 				_chainLength += Vector3.Distance(chain[i].position, chain[i+1].position);
 			}
-			_rescaling = BioIK.PI * BioIK.PI / (_chainLength * _chainLength);
+			_rescaling = BioRobot.PI * BioRobot.PI / (_chainLength * _chainLength);
 		}
 
 		public double ComputeLoss(double wpx, double wpy, double wpz, double wrx, double wry, double wrz, double wrw)
@@ -89,11 +78,6 @@ namespace BioIK.Setup
 			_tpy = position.y;
 			_tpz = position.z;
 		}
-
-		public Vector3 GetTargetPosition()
-		{
-			return new((float)_tpx, (float)_tpy, (float)_tpz);
-		}
 		
 		public void SetTargetRotation(Quaternion rotation)
 		{
@@ -101,16 +85,6 @@ namespace BioIK.Setup
 			_try = rotation.y;
 			_trz = rotation.z;
 			_trw = rotation.w;
-		}
-		
-		public void SetTargetRotation(Vector3 angles)
-		{
-			SetTargetRotation(Quaternion.Euler(angles));
-		}
-		
-		public Vector3 GetTargetRotation()
-		{
-			return new Quaternion((float)_trx, (float)_try, (float)_trz, (float)_trw).eulerAngles;
 		}
 	}
 }
