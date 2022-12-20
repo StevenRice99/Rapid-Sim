@@ -1,5 +1,4 @@
-﻿using BioIK.Helpers;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BioIK.Setup
 {

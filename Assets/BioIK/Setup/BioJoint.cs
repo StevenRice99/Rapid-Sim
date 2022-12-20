@@ -41,9 +41,9 @@ namespace BioIK.Setup
 			SetDefaultFrame(t.localPosition, t.localRotation);
 
 			Vector3 forward = Vector3.zero;
-			if (segment.children.Length == 1)
+			if (segment.child != null)
 			{
-				forward = segment.children[0].transform.localPosition;
+				forward = segment.child.transform.localPosition;
 			}
 			else if(segment.parent != null)
 			{

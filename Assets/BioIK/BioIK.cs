@@ -139,19 +139,19 @@ namespace BioIK
 
 		public static void UpdateData(BioSegment segment)
 		{
-			if (segment.joint != null && segment.joint.enabled)
+			while (segment != null)
 			{
-				segment.joint.UpdateData();
-			}
+				if (segment.joint != null)
+				{
+					segment.joint.UpdateData();
+				}
 			
-			if (segment.objective != null && segment.objective.enabled)
-			{
-				segment.objective.UpdateData();
-			}
-			
-			for (int i = 0; i<segment.children.Length; i++)
-			{
-				UpdateData(segment.children[i]);
+				if (segment.objective != null)
+				{
+					segment.objective.UpdateData();
+				}
+
+				segment = segment.child;
 			}
 		}
 
@@ -206,14 +206,14 @@ namespace BioIK
 
 		public static void ProcessMotion(BioSegment segment)
 		{
-			if (segment.joint != null && segment.joint.enabled)
+			while (segment != null)
 			{
-				segment.joint.ProcessMotion();
-			}
-			
-			for (int i = 0; i < segment.children.Length; i++)
-			{
-				ProcessMotion(segment.children[i]);
+				if (segment.joint != null)
+				{
+					segment.joint.ProcessMotion();
+				}
+
+				segment = segment.child;
 			}
 		}
 

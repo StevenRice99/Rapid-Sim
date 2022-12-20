@@ -53,10 +53,10 @@ namespace BioIK.Helpers
 			AddNode(_root);
 			
 			//Build Model
-			BioObjective[] objectives = CollectObjectives(_root, new());
-			for (int i = 0; i < objectives.Length; i++)
+			BioObjective objective = FindObjective(_root);
+			if (objective != null)
 			{
-				List<BioSegment> chain = _bioRobot.GetChain(objectives[i].segment);
+				List<BioSegment> chain = _bioRobot.GetChain(objective.segment);
 				for (int j = 1; j < chain.Count; j++)
 				{
 					AddNode(chain[j]);
@@ -234,7 +234,7 @@ namespace BioIK.Helpers
 
 			if (node.joint != null)
 			{
-				if (node.joint.GetDoF() == 0 || !node.joint.enabled)
+				if (node.joint.GetDoF() == 0)
 				{
 					node.joint = null;
 				}
@@ -268,7 +268,7 @@ namespace BioIK.Helpers
 			}
 
 			BioObjective objective = segment.objective;
-			if (objective != null && objective.enabled)
+			if (objective != null)
 			{
 				_objectivePointer = new(objective, node);
 			}
@@ -277,18 +277,19 @@ namespace BioIK.Helpers
 			_nodes[^1] = node;
 		}
 
-		//Returns all objectives which are childs in the hierarcy, beginning from the root
-		private static BioObjective[] CollectObjectives(BioSegment segment, List<BioObjective> objectives)
+		private static BioObjective FindObjective(BioSegment segment)
 		{
-			if (segment.objective != null && segment.objective.enabled)
+			while (segment != null)
 			{
-				objectives.Add(segment.objective);
+				if (segment.objective != null)
+				{
+					return segment.objective;
+				}
+
+				segment = segment.child;
 			}
-			for (int i = 0; i < segment.children.Length; i++)
-			{
-				CollectObjectives(segment.children[i], objectives);
-			}
-			return objectives.ToArray();
+
+			return null;
 		}
 
 		//Returns a node in the model

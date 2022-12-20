@@ -1,6 +1,4 @@
-﻿using System;
-using BioIK.Helpers;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BioIK.Setup
 {
@@ -9,7 +7,7 @@ namespace BioIK.Setup
 	{
 		public BioIK controller;
 		public BioSegment parent;
-		public BioSegment[] children = Array.Empty<BioSegment>();
+		public BioSegment child;
 		public BioJoint joint;
 		public BioObjective objective;
 
@@ -20,23 +18,16 @@ namespace BioIK.Setup
 			return this;
 		}
 
-		public void AddChild(BioSegment child)
-		{
-			Array.Resize(ref children, children.Length+1);
-			children[^1] = child;
-		}
-
 		public void RenewRelations()
 		{
 			parent = null;
-			Array.Resize(ref children, 0);
 			if (transform == controller.transform)
 			{
 				return;
 			}
 
 			parent = controller.FindSegment(transform.parent);
-			parent.AddChild(this);
+			parent.child = this;
 		}
 
 		public BioJoint AddJoint()
