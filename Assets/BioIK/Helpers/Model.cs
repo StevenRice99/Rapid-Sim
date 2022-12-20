@@ -300,9 +300,9 @@ namespace BioIK.Helpers
 		public class Node
 		{
 			private readonly Model _model;							//Reference to the kinematic model
-			public readonly Node parent;							//Reference to the parent of this node
+			private readonly Node _parent;							//Reference to the parent of this node
 			private Node _child;
-			public readonly Transform transform;					//Reference to the transform
+			private readonly Transform _transform;					//Reference to the transform
 			public BioJoint joint;									//Reference to the joint
 
 			public double wpx, wpy, wpz;				//World position
@@ -325,13 +325,13 @@ namespace BioIK.Helpers
 			public Node(Model model, Node parent, BioSegment segment)
 			{
 				_model = model;
-				this.parent = parent;
-				if (this.parent != null)
+				_parent = parent;
+				if (_parent != null)
 				{
-					this.parent._child = this;
+					_parent._child = this;
 				}
 
-				transform = segment.transform;
+				_transform = segment.transform;
 				joint = segment.joint;
 			}
 
@@ -341,8 +341,8 @@ namespace BioIK.Helpers
 				//Local
 				if (joint == null)
 				{
-					Vector3 lp = transform.localPosition;
-					Quaternion lr = transform.localRotation;
+					Vector3 lp = _transform.localPosition;
+					Quaternion lr = _transform.localRotation;
 					lpx = lp.x;
 					lpy = lp.y;
 					lpz = lp.z;
@@ -358,7 +358,7 @@ namespace BioIK.Helpers
 					zValue = joint.z.GetTargetValue();
 					joint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
 				}
-				Vector3 ws = transform.lossyScale;
+				Vector3 ws = _transform.lossyScale;
 				wsx = ws.x;
 				wsy = ws.y;
 				wsz = ws.z;
@@ -426,7 +426,7 @@ namespace BioIK.Helpers
 				double px;
 				double py;
 				double pz;
-				if (parent == null)
+				if (_parent == null)
 				{
 					px = _model._opx;
 					py = _model._opy;
@@ -441,16 +441,16 @@ namespace BioIK.Helpers
 				}
 				else
 				{
-					px = parent.wpx;
-					py = parent.wpy;
-					pz = parent.wpz;
-					localRx = parent.wrx;
-					localRy = parent.wry;
-					localRz = parent.wrz;
-					localRw = parent.wrw;
-					localX = parent.wsx*lpX;
-					localY = parent.wsy*lpY;
-					localZ = parent.wsz*lpZ;
+					px = _parent.wpx;
+					py = _parent.wpy;
+					pz = _parent.wpz;
+					localRx = _parent.wrx;
+					localRy = _parent.wry;
+					localRz = _parent.wrz;
+					localRw = _parent.wrw;
+					localX = _parent.wsx*lpX;
+					localY = _parent.wsy*lpY;
+					localZ = _parent.wsz*lpZ;
 				}
 				double qx = localRx * lrW + localRy * lrZ - localRz * lrY + localRw * lrX;
 				double qy = -localRx * lrZ + localRy * lrW + localRz * lrX + localRw * lrY;
@@ -482,7 +482,7 @@ namespace BioIK.Helpers
 			private void ComputeWorldTransformation()
 			{
 				double rx, ry, rz, rw, x, y, z;
-				if (parent == null)
+				if (_parent == null)
 				{
 					wpx = _model._opx;
 					wpy = _model._opy;
@@ -497,16 +497,16 @@ namespace BioIK.Helpers
 				}
 				else
 				{
-					wpx = parent.wpx;
-					wpy = parent.wpy;
-					wpz = parent.wpz;
-					rx = parent.wrx;
-					ry = parent.wry;
-					rz = parent.wrz;
-					rw = parent.wrw;
-					x = parent.wsx*lpx;
-					y = parent.wsy*lpy;
-					z = parent.wsz*lpz;
+					wpx = _parent.wpx;
+					wpy = _parent.wpy;
+					wpz = _parent.wpz;
+					rx = _parent.wrx;
+					ry = _parent.wry;
+					rz = _parent.wrz;
+					rw = _parent.wrw;
+					x = _parent.wsx*lpx;
+					y = _parent.wsy*lpy;
+					z = _parent.wsz*lpz;
 				}
 				wpx += 2.0 * ((0.5 - ry * ry - rz * rz) * x + (rx * ry - rw * rz) * y + (rx * rz + rw * ry) * z);
 				wpy += 2.0 * ((rx * ry + rw * rz) * x + (0.5 - rx * rx - rz * rz) * y + (ry * rz - rw * rx) * z);
