@@ -9,7 +9,7 @@ namespace BioIK.Helpers
 	//====================================================================================================
 	//----------------------------------------------------------------------------------------------------
 	public class Evolution
-    {		
+    {
 		private readonly Model _model;          //Reference to the kinematic model
 		private readonly int _populationSize;   //Number of individuals (population size)
 		private readonly int _elites;           //Number of elite individuals
@@ -68,6 +68,16 @@ namespace BioIK.Helpers
                 _optimisers[index] = new(_dimensionality, x => _models[index].ComputeLoss(x), y => _models[index].ComputeGradient(y, 1e-5));
             }
         }
+        
+        public static System.DateTime GetTimestamp()
+        {
+            return System.DateTime.Now;
+        }
+
+        public static double GetElapsedTime(System.DateTime timestamp)
+        {
+            return (System.DateTime.Now - timestamp).Duration().TotalSeconds;
+        }
 
 		public double[] Optimise(int generations, double[] seed)
         {
@@ -75,8 +85,8 @@ namespace BioIK.Helpers
             
 			for (int i = 0; i < _dimensionality; i++)
             {
-				_lowerBounds[i] = _model.MotionPointers[i].Motion.GetLowerLimit(true);
-				_upperBounds[i] = _model.MotionPointers[i].Motion.GetUpperLimit(true);
+				_lowerBounds[i] = _model.motionPointers[i].motion.GetLowerLimit(true);
+				_upperBounds[i] = _model.motionPointers[i].motion.GetUpperLimit(true);
 				_solution[i] = seed[i];
 			}
 			_fitness = _model.ComputeLoss(_solution);
@@ -85,8 +95,8 @@ namespace BioIK.Helpers
             for (int i = 0; i < _elites; i++)
             {
                 _models[i].CopyFrom(_model);
-                _optimisers[i].LowerBounds = _lowerBounds;
-                _optimisers[i].UpperBounds = _upperBounds;
+                _optimisers[i].lowerBounds = _lowerBounds;
+                _optimisers[i].upperBounds = _upperBounds;
             }
             for (int i = 0; i < generations; i++)
             {
@@ -101,10 +111,10 @@ namespace BioIK.Helpers
         {
 			for (int i = 0; i < _dimensionality; i++)
             {
-				_population[0].Genes[i] = seed[i];
-				_population[0].Momentum[i] = 0.0;
+				_population[0].genes[i] = seed[i];
+				_population[0].momentum[i] = 0.0;
 			}
-			_population[0].Fitness = _model.ComputeLoss(_population[0].Genes);
+			_population[0].fitness = _model.ComputeLoss(_population[0].genes);
 
 			for (int i=1; i < _populationSize; i++)
             {
@@ -127,7 +137,7 @@ namespace BioIK.Helpers
 			_poolCount = _populationSize;
             
             //Evolve offspring
-            System.DateTime timestamp = Utility.GetTimestamp();
+            System.DateTime timestamp = GetTimestamp();
             for (int i=_elites; i < _populationSize; i++)
             {
                 if (_poolCount > 0)
@@ -140,12 +150,12 @@ namespace BioIK.Helpers
                     Reproduce(_offspring[i], parentA, parentB, prototype);
 
                     //Pre-Selection Niching
-                    if (_offspring[i].Fitness < parentA.Fitness)
+                    if (_offspring[i].fitness < parentA.fitness)
                     {
                         _pool.Remove(parentA);
                         _poolCount -= 1;
                     }
-                    if (_offspring[i].Fitness < parentB.Fitness)
+                    if (_offspring[i].fitness < parentB.fitness)
                     {
                         _pool.Remove(parentB);
                         _poolCount -= 1;
@@ -157,7 +167,7 @@ namespace BioIK.Helpers
                     Reroll(_offspring[i]);
                 }
             }
-            double duration = Utility.GetElapsedTime(timestamp);
+            double duration = GetElapsedTime(timestamp);
 
             //Exploit elites sequentially
             for (int i = 0; i < _elites; i++)
@@ -194,7 +204,7 @@ namespace BioIK.Helpers
 		//Returns the mutation probability from two parents
 		private double GetMutationProbability(Individual parentA, Individual parentB)
         {
-			double extinction = 0.5 * (parentA.Extinction + parentB.Extinction);
+			double extinction = 0.5 * (parentA.extinction + parentB.extinction);
 			double inverse = 1.0 / _dimensionality;
 			return extinction * (1.0 - inverse) + inverse;
 		}
@@ -202,18 +212,18 @@ namespace BioIK.Helpers
 		//Returns the mutation strength from two parents
 		private static double GetMutationStrength(Individual parentA, Individual parentB)
         {
-			return 0.5 * (parentA.Extinction + parentB.Extinction);
+			return 0.5 * (parentA.extinction + parentB.extinction);
 		}
 
 		//Computes the extinction factors for all individuals
 		private void ComputeExtinctions()
         {
-			double min = _population[0].Fitness;
-			double max = _population[_populationSize-1].Fitness;
+			double min = _population[0].fitness;
+			double max = _population[_populationSize-1].fitness;
 			for (int i = 0; i < _populationSize; i++)
             {
 				double grading = i/((double) _populationSize - 1);
-				_population[i].Extinction = (_population[i].Fitness + min * (grading - 1.0)) / max;
+				_population[i].extinction = (_population[i].fitness + min * (grading - 1.0)) / max;
 			}
 		}
 
@@ -233,7 +243,7 @@ namespace BioIK.Helpers
 		//Tries to improve the evolutionary solution by the population, and returns whether it was successful
 		private bool TryUpdateSolution()
         {
-			double candidateFitness = _population[0].Fitness;
+			double candidateFitness = _population[0].fitness;
             if (candidateFitness >= _fitness)
             {
                 return false;
@@ -241,7 +251,7 @@ namespace BioIK.Helpers
 
             for (int i = 0; i < _dimensionality; i++)
             {
-                _solution[i] = _population[0].Genes[i];
+                _solution[i] = _population[0].genes[i];
             }
             _fitness = candidateFitness;
             return true;
@@ -254,26 +264,26 @@ namespace BioIK.Helpers
             Individual elite = _offspring[index];
             for (int i = 0; i < _dimensionality; i++)
             {
-                elite.Genes[i] = survivor.Genes[i];
-                elite.Momentum[i] = survivor.Momentum[i];
+                elite.genes[i] = survivor.genes[i];
+                elite.momentum[i] = survivor.momentum[i];
             }
 
             //Exploit
-            double fitness = _models[index].ComputeLoss(elite.Genes);
-            _optimisers[index].Minimise(elite.Genes, timeout);
-            if (_optimisers[index].Value < fitness)
+            double fitness = _models[index].ComputeLoss(elite.genes);
+            _optimisers[index].Minimise(elite.genes, timeout);
+            if (_optimisers[index].value < fitness)
             {
                 for (int i = 0; i < _dimensionality; i++)
                 {
-                    elite.Momentum[i] = _optimisers[index].Solution[i] - elite.Genes[i];
-                    elite.Genes[i] = _optimisers[index].Solution[i];
+                    elite.momentum[i] = _optimisers[index].solution[i] - elite.genes[i];
+                    elite.genes[i] = _optimisers[index].solution[i];
                 }
-                elite.Fitness = _optimisers[index].Value;        
+                elite.fitness = _optimisers[index].value;        
                 _improved[index] = true;
                 return;
             }
 
-            elite.Fitness = fitness;
+            elite.fitness = fitness;
             _improved[index] = false;
         }
 
@@ -287,40 +297,40 @@ namespace BioIK.Helpers
             {
 				//Recombination
 				_weight = Random.value;
-				double momentum = Random.value * parentA.Momentum[i] + Random.value * parentB.Momentum[i];
-				offspring.Genes[i] = _weight * parentA.Genes[i] + (1.0 - _weight)*parentB.Genes[i] + momentum;
+				double momentum = Random.value * parentA.momentum[i] + Random.value * parentB.momentum[i];
+				offspring.genes[i] = _weight * parentA.genes[i] + (1.0 - _weight)*parentB.genes[i] + momentum;
 
 				//Store
-				_gene = offspring.Genes[i];
+				_gene = offspring.genes[i];
 
 				//Mutation
                 if (Random.value < mutationProbability)
                 {
-                    offspring.Genes[i] += (Random.value * (_upperBounds[i] - _lowerBounds[i]) + _lowerBounds[i]) * mutationStrength;
+                    offspring.genes[i] += (Random.value * (_upperBounds[i] - _lowerBounds[i]) + _lowerBounds[i]) * mutationStrength;
                 }
 
 				//Adoption
 				_weight = Random.value;
-				offspring.Genes[i] += 
-					_weight * Random.value * (0.5 * (parentA.Genes[i] + parentB.Genes[i]) - offspring.Genes[i])
-					+ (1.0 - _weight) * Random.value * (prototype.Genes[i] - offspring.Genes[i]);
+				offspring.genes[i] += 
+					_weight * Random.value * (0.5 * (parentA.genes[i] + parentB.genes[i]) - offspring.genes[i])
+					+ (1.0 - _weight) * Random.value * (prototype.genes[i] - offspring.genes[i]);
 
 				//Project
-                if (offspring.Genes[i] < _lowerBounds[i])
+                if (offspring.genes[i] < _lowerBounds[i])
                 {
-                    offspring.Genes[i] = _lowerBounds[i];
+                    offspring.genes[i] = _lowerBounds[i];
                 }
-                else if (offspring.Genes[i] > _upperBounds[i])
+                else if (offspring.genes[i] > _upperBounds[i])
                 {
-                    offspring.Genes[i] = _upperBounds[i];
+                    offspring.genes[i] = _upperBounds[i];
                 }
 
 				//Momentum
-				offspring.Momentum[i] = Random.value * momentum + (offspring.Genes[i] - _gene);
+				offspring.momentum[i] = Random.value * momentum + (offspring.genes[i] - _gene);
 			}
 
 			//Fitness
-			offspring.Fitness = _model.ComputeLoss(offspring.Genes);
+			offspring.fitness = _model.ComputeLoss(offspring.genes);
 		}
 
 		//Generates a random individual
@@ -328,10 +338,10 @@ namespace BioIK.Helpers
         {
 			for (int i = 0; i < _dimensionality; i++)
             {
-                individual.Genes[i] = Random.Range((float)_lowerBounds[i], (float)_upperBounds[i]);
-                individual.Momentum[i] = 0.0;
+                individual.genes[i] = Random.Range((float)_lowerBounds[i], (float)_upperBounds[i]);
+                individual.momentum[i] = 0.0;
 			}
-			individual.Fitness = _model.ComputeLoss(individual.Genes);
+			individual.fitness = _model.ComputeLoss(individual.genes);
 		}
 
 		//Rank-based selection of an individual
@@ -368,7 +378,7 @@ namespace BioIK.Helpers
         //Sorts the population by their fitness values (descending)
 		private void SortByFitness()
         {
-			System.Array.Sort(_population, (a, b) => a.Fitness.CompareTo(b.Fitness));
+			System.Array.Sort(_population, (a, b) => a.fitness.CompareTo(b.fitness));
 		}
 
 		//In-place swap by references
@@ -385,17 +395,17 @@ namespace BioIK.Helpers
 		//Data class for the individuals
         private class Individual
         {
-			public readonly double[] Genes;
-			public readonly double[] Momentum;
-			public double Fitness;
-            public double Extinction;
+			public readonly double[] genes;
+			public readonly double[] momentum;
+			public double fitness;
+            public double extinction;
 
 			public Individual(int dimensionality)
             {
-				Genes = new double[dimensionality];
-				Momentum = new double[dimensionality];
-				Fitness = 0.0;
-                Extinction = 0.0;
+				genes = new double[dimensionality];
+				momentum = new double[dimensionality];
+				fitness = 0.0;
+                extinction = 0.0;
 			}
 		}
 	}
@@ -434,10 +444,10 @@ namespace BioIK.Helpers
         private readonly System.Func<double[], double> _function;
         private readonly System.Func<double[], double[]> _gradient;
         private readonly int _dimensionality;
-        public readonly double[] Solution;
-        public double Value;
-        public double[] LowerBounds;
-        public double[] UpperBounds;
+        public readonly double[] solution;
+        public double value;
+        public double[] lowerBounds;
+        public double[] upperBounds;
 
         private const int Corrections = 1;
         private const double Factor = 1e+5;
@@ -465,9 +475,9 @@ namespace BioIK.Helpers
             _dimensionality = dimensionality;
             _function = function;
             _gradient = gradient;
-            UpperBounds = new double[_dimensionality];
-            LowerBounds = new double[_dimensionality];
-            Solution = new double[_dimensionality];
+            upperBounds = new double[_dimensionality];
+            lowerBounds = new double[_dimensionality];
+            solution = new double[_dimensionality];
 
             int totalSize = 2 * Corrections * _dimensionality + 11 * Corrections * Corrections + 5 * _dimensionality + 8 * Corrections;
             _nbd = new int[_dimensionality];
@@ -493,7 +503,7 @@ namespace BioIK.Helpers
         {
             for (int i = 0; i < _dimensionality; i++)
             {
-                Solution[i] = values[i];
+                solution[i] = values[i];
             }
 
             _f = 0.0;
@@ -508,19 +518,19 @@ namespace BioIK.Helpers
             _newF = 0;
             _newG = null;
 
-            System.DateTime timestamp = Utility.GetTimestamp();
-            while(Utility.GetElapsedTime(timestamp) < timeout)
+            System.DateTime timestamp = Evolution.GetTimestamp();
+            while(Evolution.GetElapsedTime(timestamp) < timeout)
             {
                 Setulb(
-                    _dimensionality, Corrections, Solution, 0, LowerBounds, 0, UpperBounds, 0, _nbd, 0, ref _f, _g, 0,
+                    _dimensionality, Corrections, solution, 0, lowerBounds, 0, upperBounds, 0, _nbd, 0, ref _f, _g, 0,
                     Factor, Tolerance, _work, 0, _iwa, 0, ref _task, ref _cSave,
                     _lSave, 0, _save, 0, _dSave, 0
                     );
 
                 if (_task is Task.FgLN or Task.FgSt)
                 {
-                    _newF = _function(Solution);
-                    _newG = _gradient(Solution);
+                    _newF = _function(solution);
+                    _newG = _gradient(solution);
                     _f = _newF;
                     for (int i = 0; i < _dimensionality; i++)
                     {
@@ -529,7 +539,7 @@ namespace BioIK.Helpers
                 }
             }
 
-            Value = _function(Solution);
+            value = _function(solution);
         }
         
         // 

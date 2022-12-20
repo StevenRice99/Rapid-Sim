@@ -9,7 +9,7 @@ namespace BioIK.Setup
 	{
 		public BioSegment segment;
 		public Motion x,y,z;
-		public JointType jointType = JointType.Rotational;
+		public bool rotational = true;
 
 		[SerializeField] private Vector3 orientation = Vector3.zero;
 		[SerializeField] private float dpx, dpy, dpz, drx, dry, drz, drw;
@@ -32,8 +32,6 @@ namespace BioIK.Setup
 		public BioJoint Create(BioSegment value)
 		{
 			segment = value;
-			segment.transform.hideFlags = HideFlags.NotEditable;
-			hideFlags = HideFlags.HideInInspector;
 
 			x = new(this, Vector3.right);
 			y = new(this, Vector3.up);
@@ -59,26 +57,11 @@ namespace BioIK.Setup
 			return this;
 		}
 
-		public void Remove()
-		{
-			RestoreDefaultFrame();
-			segment.transform.hideFlags = HideFlags.None;
-			if (segment != null)
-			{
-				segment.joint = null;
-				if (segment.controller != null)
-				{
-					segment.controller.Refresh();
-				}
-			}
-			Utility.Destroy(this);
-		}
-
 		public void Erase()
 		{
 			RestoreDefaultFrame();
 			segment.transform.hideFlags = HideFlags.None;
-			Utility.Destroy(this);
+			Destroy(this);
 		}
 
 		public void UpdateData()
@@ -103,9 +86,9 @@ namespace BioIK.Setup
 
 			//Compute local transformation
 			double lpX, lpY, lpZ, lrX, lrY, lrZ, lrW;
-			if(jointType == JointType.Rotational)
+			if(rotational)
 			{
-				ComputeLocalTransformation(Utility.Deg2Rad*x.ProcessMotion(), Utility.Deg2Rad*y.ProcessMotion(), Utility.Deg2Rad*z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
+				ComputeLocalTransformation(BioIK.Deg2Rad*x.ProcessMotion(), BioIK.Deg2Rad*y.ProcessMotion(), BioIK.Deg2Rad*z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
 			}
 			else
 			{
@@ -124,7 +107,7 @@ namespace BioIK.Setup
 		//Fast implementation to compute the local transform given the joint values (in radians / metres)
 		public void ComputeLocalTransformation(double valueX, double valueY, double valueZ, out double lpX, out double lpY, out double lpZ, out double lrX, out double lrY, out double lrZ, out double lrW)
 		{
-			if(jointType == JointType.Translational)
+			if(!rotational)
 			{
 				Vector3 scale = transform.lossyScale;
 				valueX /= scale.x;
@@ -292,7 +275,7 @@ namespace BioIK.Setup
 			return dof;
 		}
 
-		public void SetDefaultFrame(Vector3 localPosition, Quaternion localRotation)
+		private void SetDefaultFrame(Vector3 localPosition, Quaternion localRotation)
 		{
 			dpx = localPosition.x;
 			dpy = localPosition.y;
@@ -356,9 +339,9 @@ namespace BioIK.Setup
 
 			public double GetLowerLimit(bool normalised = false)
 			{
-				if (normalised && joint.jointType == JointType.Rotational)
+				if (normalised && joint.rotational)
 				{
-					return Utility.Deg2Rad * lowerLimit;
+					return BioIK.Deg2Rad * lowerLimit;
 				}
 
 				return lowerLimit;
@@ -372,9 +355,9 @@ namespace BioIK.Setup
 
 			public double GetUpperLimit(bool normalised = false)
 			{
-				if (normalised && joint.jointType == JointType.Rotational)
+				if (normalised && joint.rotational)
 				{
-					return Utility.Deg2Rad * upperLimit;
+					return BioIK.Deg2Rad * upperLimit;
 				}
 
 				return upperLimit;
@@ -383,9 +366,9 @@ namespace BioIK.Setup
 
 			public void SetTargetValue(double value, bool normalised = false)
 			{
-				if (normalised && joint.jointType == JointType.Rotational)
+				if (normalised && joint.rotational)
 				{
-					value *= Utility.Rad2Deg;
+					value *= BioIK.Rad2Deg;
 				}
 
 				targetValue = math.clamp(value, lowerLimit, upperLimit);
@@ -393,9 +376,9 @@ namespace BioIK.Setup
 
 			public double GetTargetValue(bool normalised = false)
 			{
-				if (normalised && joint.jointType == JointType.Rotational)
+				if (normalised && joint.rotational)
 				{
-					return Utility.Deg2Rad * targetValue;
+					return BioIK.Deg2Rad * targetValue;
 				}
 
 				return targetValue;

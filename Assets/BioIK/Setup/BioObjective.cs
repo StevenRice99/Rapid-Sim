@@ -34,55 +34,28 @@ namespace BioIK.Setup
 		public BioObjective Create(BioSegment value)
 		{
 			segment = value;
-			hideFlags = HideFlags.HideInInspector;
 			return this;
-		}
-
-		public void Remove()
-		{
-			for (int i = 0; i < segment.objectives.Length; i++)
-			{
-				if (segment.objectives[i] != this)
-				{
-					continue;
-				}
-
-				for (int j = i; j < segment.objectives.Length - 1; j++)
-				{
-					segment.objectives[j] = segment.objectives[j+1];
-				}
-				
-				System.Array.Resize(ref segment.objectives, segment.objectives.Length-1);
-				break;
-			}
-			
-			if (segment != null && segment.controller != null)
-			{
-				segment.controller.Refresh();
-			}
-			
-			Utility.Destroy(this);
 		}
 
 		public void Erase()
 		{
-			Utility.Destroy(this);
+			Destroy(this);
 		}
 
 		public void UpdateData()
 		{
-			if (segment.controller.Evolution == null)
+			if (segment.controller.evolution == null)
 			{
 				return;
 			}
 			
 			_chainLength = 0.0;
-			Transform[] chain = segment.controller.Evolution.GetModel().FindObjectivePtr(this).Node.Chain;
+			Transform[] chain = segment.controller.evolution.GetModel().FindObjectivePtr(this).node.chain;
 			for(int i = 0; i < chain.Length-1; i++)
 			{
 				_chainLength += Vector3.Distance(chain[i].position, chain[i+1].position);
 			}
-			_rescaling = Utility.PI * Utility.PI / (_chainLength * _chainLength);
+			_rescaling = BioIK.PI * BioIK.PI / (_chainLength * _chainLength);
 		}
 
 		public double ComputeLoss(double wpx, double wpy, double wpz, double wrx, double wry, double wrz, double wrw)

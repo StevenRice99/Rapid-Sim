@@ -9,23 +9,19 @@ namespace BioIK
 	[DisallowMultipleComponent]
 	public class BioIK : MonoBehaviour
 	{
+		public const double Deg2Rad = 0.017453292;
+		public const double Rad2Deg = 57.29578049;
+		public const double PI = 3.14159265358979;
+		
+		public List<BioSegment> segments = new();
+		public BioSegment root;
+		public Evolution evolution;
+		public double[] solution;
 		public int generations = 2;
 		
-		public int PopulationSize { get; private set; } = 50;
-		
-		public int Elites { get; private set; } = 2;
-
-		public List<BioSegment> segments = new();
-
-		public BioSegment root;
-		public Evolution Evolution;
-		public double[] solution;
-
+		private int _populationSize = 50;
+		private int _elites = 2;
 		private bool _destroyed;
-
-		//Custom Inspector Helpers
-		public BioSegment selectedSegment;
-		public Vector2 scroll = Vector2.zero;
 
 		private void Awake()
 		{
@@ -36,7 +32,30 @@ namespace BioIK
 		{
 			_destroyed = true;
 			DeInitialise();
-			Utility.Cleanup(transform);
+			Cleanup(transform);
+		}
+		
+		private static void Cleanup(Transform t)
+		{
+			foreach (BioJoint joint in t.GetComponents<BioJoint>())
+			{
+				joint.Erase();
+			}
+			
+			foreach(BioObjective objective in t.GetComponents<BioObjective>())
+			{
+				objective.Erase();
+			}
+			
+			foreach(BioSegment segment in t.GetComponents<BioSegment>())
+			{
+				Destroy(segment);
+			}
+			
+			for (int i = 0; i < t.childCount; i++)
+			{
+				Cleanup(t.GetChild(i));
+			}
 		}
 
 		private void OnEnable()
@@ -51,23 +70,23 @@ namespace BioIK
 
 		public void Initialise()
 		{
-			Evolution ??= new(new(this), PopulationSize, Elites);
+			evolution ??= new(new(this), _populationSize, _elites);
 		}
 
 		public void DeInitialise()
 		{
-			Evolution = null;
+			evolution = null;
 		}
 
 		public void SetPopulationSize(int size)
 		{
-			if (PopulationSize == size)
+			if (_populationSize == size)
 			{
 				return;
 			}
 
-			PopulationSize = math.max(1, size);
-			Elites = math.min(size, Elites);
+			_populationSize = math.max(1, size);
+			_elites = math.min(size, _elites);
 			if (Application.isPlaying)
 			{
 				Refresh();
@@ -76,12 +95,12 @@ namespace BioIK
 
 		public void SetElites(int number)
 		{
-			if (Elites == number)
+			if (_elites == number)
 			{
 				return;
 			}
 
-			Elites = math.max(1, number);
+			_elites = math.max(1, number);
 			if (Application.isPlaying)
 			{
 				Refresh();
@@ -139,7 +158,7 @@ namespace BioIK
 			}
 		}
 
-		public void Refresh(bool evolution = true)
+		public void Refresh(bool evolve = true)
 		{
 			if (_destroyed)
 			{
@@ -160,14 +179,14 @@ namespace BioIK
 			Refresh(transform);
 			root = FindSegment(transform);
 
-			if (!evolution || !Application.isPlaying)
+			if (!evolve || !Application.isPlaying)
 			{
 				return;
 			}
 
 			DeInitialise();
 			Initialise();
-			solution = new double[Evolution.GetModel().GetDoF()];
+			solution = new double[this.evolution.GetModel().GetDoF()];
 		}
 
 		private void Refresh(Transform t)
@@ -175,7 +194,7 @@ namespace BioIK
 			BioSegment segment = FindSegment(t);
 			if (segment == null)
 			{
-				segment = Utility.AddBioSegment(this, t);
+				segment = (t.gameObject.AddComponent(typeof(BioSegment)) as BioSegment)?.Create(this);
 				segments.Add(segment);
 			}
 			

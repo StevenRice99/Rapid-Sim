@@ -7,22 +7,21 @@ namespace BioIK.Helpers
 {
 	public class Model
 	{
-		//Reference to the character
-		private readonly BioIK _character;
+		private readonly BioIK _bioRobot;
 
-		//Reference to root
+		// Reference to root
 		private readonly BioSegment _root;
 
-		//Offset to world
+		// Offset to world
 		private double _opx, _opy, _opz;
 		private double _orx, _ory, _orz, _orw;
 		private double _osx, _osy, _osz;
 		
-		//Linked list of nodes in the model
+		// Linked list of nodes in the model
 		private Node[] _nodes = Array.Empty<Node>();
 
 		//Global pointers to the IK setup
-		public MotionPtr[] MotionPointers = Array.Empty<MotionPtr>();
+		public MotionPtr[] motionPointers = Array.Empty<MotionPtr>();
 		private ObjectivePtr[] _objectivePointers = Array.Empty<ObjectivePtr>();
 
 		//Assigned Configuration
@@ -43,12 +42,12 @@ namespace BioIK.Helpers
 		//Degree of Freedom
 		private readonly int _doF;
 
-		public Model(BioIK character)
+		public Model(BioIK bioRobot)
 		{
-			_character = character;
+			_bioRobot = bioRobot;
 
 			//Set Root
-			_root = _character.FindSegment(_character.transform);
+			_root = _bioRobot.FindSegment(_bioRobot.transform);
 
 			//Create Root
 			AddNode(_root);
@@ -57,7 +56,7 @@ namespace BioIK.Helpers
 			BioObjective[] objectives = CollectObjectives(_root, new());
 			for (int i = 0; i < objectives.Length; i++)
 			{
-				List<BioSegment> chain = _character.GetChain(objectives[i].segment);
+				List<BioSegment> chain = _bioRobot.GetChain(objectives[i].segment);
 				for (int j = 1; j < chain.Count; j++)
 				{
 					AddNode(chain[j]);
@@ -65,12 +64,12 @@ namespace BioIK.Helpers
 			}
 
 			//Assign DoF
-			_doF = MotionPointers.Length;
+			_doF = motionPointers.Length;
 
 			//Initialise arrays for single transform modifications
 			for (int i = 0; i < _nodes.Length; i++)
 			{
-				_nodes[i].ObjectiveImpacts = new bool[_objectivePointers.Length];
+				_nodes[i].objectiveImpacts = new bool[_objectivePointers.Length];
 			}
 			_px = new double[_objectivePointers.Length];
 			_py = new double[_objectivePointers.Length];
@@ -79,19 +78,19 @@ namespace BioIK.Helpers
 			_ry = new double[_objectivePointers.Length];
 			_rz = new double[_objectivePointers.Length];
 			_rw = new double[_objectivePointers.Length];
-			_configuration = new double[MotionPointers.Length];
-			_gradient = new double[MotionPointers.Length];
+			_configuration = new double[motionPointers.Length];
+			_gradient = new double[motionPointers.Length];
 			_losses = new double[_objectivePointers.Length];
 			_simulatedLosses = new double[_objectivePointers.Length];
 
 			//Assigns references to all objective nodes that are affected by a parenting node
 			for (int i = 0; i < _objectivePointers.Length; i++)
 			{
-				Node node = _objectivePointers[i].Node;
+				Node node = _objectivePointers[i].node;
 				while (node != null)
 				{
-					node.ObjectiveImpacts[i] = true;
-					node = node.Parent;
+					node.objectiveImpacts[i] = true;
+					node = node.parent;
 				}
 			}
 
@@ -105,7 +104,7 @@ namespace BioIK.Helpers
 
 		public BioIK GetCharacter()
 		{
-			return _character;
+			return _bioRobot;
 		}
 
 		public void Refresh()
@@ -113,11 +112,11 @@ namespace BioIK.Helpers
 			//Updates configuration
 			for (int i = 0; i < _configuration.Length; i++)
 			{
-				_configuration[i] = MotionPointers[i].Motion.GetTargetValue(true);
+				_configuration[i] = motionPointers[i].motion.GetTargetValue(true);
 			}
 
 			//Update offset from world to root
-			if (_root.transform.root == _character.transform)
+			if (_root.transform.root == _bioRobot.transform)
 			{
 				_opx = _opy = _opz = _orx = _ory = _orz = 0.0;
 				_orw = _osx = _osy = _osz = 1.0;
@@ -168,28 +167,28 @@ namespace BioIK.Helpers
 			}
 			for (int i = 0; i < _nodes.Length; i++)
 			{
-				_nodes[i].Wpx = model._nodes[i].Wpx;
-				_nodes[i].Wpy = model._nodes[i].Wpy;
-				_nodes[i].Wpz = model._nodes[i].Wpz;
-				_nodes[i].Wrx = model._nodes[i].Wrx;
-				_nodes[i].Wry = model._nodes[i].Wry;
-				_nodes[i].Wrz = model._nodes[i].Wrz;
-				_nodes[i].Wrw = model._nodes[i].Wrw;
-				_nodes[i].Wsx = model._nodes[i].Wsx;
-				_nodes[i].Wsy = model._nodes[i].Wsy;
-				_nodes[i].Wsz = model._nodes[i].Wsz;
+				_nodes[i].wpx = model._nodes[i].wpx;
+				_nodes[i].wpy = model._nodes[i].wpy;
+				_nodes[i].wpz = model._nodes[i].wpz;
+				_nodes[i].wrx = model._nodes[i].wrx;
+				_nodes[i].wry = model._nodes[i].wry;
+				_nodes[i].wrz = model._nodes[i].wrz;
+				_nodes[i].wrw = model._nodes[i].wrw;
+				_nodes[i].wsx = model._nodes[i].wsx;
+				_nodes[i].wsy = model._nodes[i].wsy;
+				_nodes[i].wsz = model._nodes[i].wsz;
 
-				_nodes[i].Lpx = model._nodes[i].Lpx;
-				_nodes[i].Lpy = model._nodes[i].Lpy;
-				_nodes[i].Lpz = model._nodes[i].Lpz;
-				_nodes[i].Lrx = model._nodes[i].Lrx;
-				_nodes[i].Lry = model._nodes[i].Lry;
-				_nodes[i].Lrz = model._nodes[i].Lrz;
-				_nodes[i].Lrw = model._nodes[i].Lrw;
+				_nodes[i].lpx = model._nodes[i].lpx;
+				_nodes[i].lpy = model._nodes[i].lpy;
+				_nodes[i].lpz = model._nodes[i].lpz;
+				_nodes[i].lrx = model._nodes[i].lrx;
+				_nodes[i].lry = model._nodes[i].lry;
+				_nodes[i].lrz = model._nodes[i].lrz;
+				_nodes[i].lrw = model._nodes[i].lrw;
 				
-				_nodes[i].XValue = model._nodes[i].XValue;
-				_nodes[i].YValue = model._nodes[i].YValue;
-				_nodes[i].ZValue = model._nodes[i].ZValue;
+				_nodes[i].xValue = model._nodes[i].xValue;
+				_nodes[i].yValue = model._nodes[i].yValue;
+				_nodes[i].zValue = model._nodes[i].zValue;
 			}
 		}
 
@@ -200,8 +199,8 @@ namespace BioIK.Helpers
 			double loss = 0.0;
 			for (int i = 0; i < _objectivePointers.Length; i++)
 			{
-				Node node = _objectivePointers[i].Node;
-				_losses[i] = _objectivePointers[i].Objective.ComputeLoss(node.Wpx, node.Wpy, node.Wpz, node.Wrx, node.Wry, node.Wrz, node.Wrw);
+				Node node = _objectivePointers[i].node;
+				_losses[i] = _objectivePointers[i].objective.ComputeLoss(node.wpx, node.wpy, node.wpz, node.wrx, node.wry, node.wrz, node.wrw);
 				loss += _losses[i];
 			}
 			return Math.Sqrt(loss / _objectivePointers.Length);
@@ -214,7 +213,7 @@ namespace BioIK.Helpers
 			for (int j = 0; j < _doF; j++)
 			{
 				_configuration[j] += resolution;
-				MotionPointers[j].Node.SimulateModification(_configuration);
+				motionPointers[j].node.SimulateModification(_configuration);
 				_configuration[j] -= resolution;
 				double newLoss = 0.0;
 				for (int i = 0; i < _objectivePointers.Length; i++)
@@ -247,37 +246,37 @@ namespace BioIK.Helpers
 
 			Node node = new(this, FindNode(segment.transform.parent), segment);
 
-			if (node.Joint != null)
+			if (node.joint != null)
 			{
-				if (node.Joint.GetDoF() == 0 || !node.Joint.enabled)
+				if (node.joint.GetDoF() == 0 || !node.joint.enabled)
 				{
-					node.Joint = null;
+					node.joint = null;
 				}
 				else
 				{
-					if (node.Joint.x.IsEnabled())
+					if (node.joint.x.IsEnabled())
 					{
-						MotionPtr motionPtr = new(node.Joint.x, node, MotionPointers.Length);
-						Array.Resize(ref MotionPointers, MotionPointers.Length + 1);
-						MotionPointers[^1] = motionPtr;
-						node.XEnabled = true;
-						node.XIndex = motionPtr.Index;
+						MotionPtr motionPtr = new(node.joint.x, node, motionPointers.Length);
+						Array.Resize(ref motionPointers, motionPointers.Length + 1);
+						motionPointers[^1] = motionPtr;
+						node.xEnabled = true;
+						node.xIndex = motionPtr.index;
 					}
-					if (node.Joint.y.IsEnabled())
+					if (node.joint.y.IsEnabled())
 					{
-						MotionPtr motionPtr = new(node.Joint.y, node, MotionPointers.Length);
-						Array.Resize(ref MotionPointers, MotionPointers.Length + 1);
-						MotionPointers[^1] = motionPtr;
-						node.YEnabled = true;
-						node.YIndex = motionPtr.Index;
+						MotionPtr motionPtr = new(node.joint.y, node, motionPointers.Length);
+						Array.Resize(ref motionPointers, motionPointers.Length + 1);
+						motionPointers[^1] = motionPtr;
+						node.yEnabled = true;
+						node.yIndex = motionPtr.index;
 					}
-					if (node.Joint.z.IsEnabled())
+					if (node.joint.z.IsEnabled())
 					{
-						MotionPtr motionPtr = new(node.Joint.z, node, MotionPointers.Length);
-						Array.Resize(ref MotionPointers, MotionPointers.Length + 1);
-						MotionPointers[^1] = motionPtr;
-						node.ZEnabled = true;
-						node.ZIndex = motionPtr.Index;
+						MotionPtr motionPtr = new(node.joint.z, node, motionPointers.Length);
+						Array.Resize(ref motionPointers, motionPointers.Length + 1);
+						motionPointers[^1] = motionPtr;
+						node.zEnabled = true;
+						node.zIndex = motionPtr.index;
 					}
 				}
 			}
@@ -318,7 +317,7 @@ namespace BioIK.Helpers
 		{
 			for (int i=0; i<_nodes.Length; i++)
 			{
-				if (_nodes[i].Transform == t)
+				if (_nodes[i].transform == t)
 				{
 					return _nodes[i];
 				}
@@ -331,7 +330,7 @@ namespace BioIK.Helpers
 		{
 			for (int i = 0; i < _objectivePointers.Length; i++)
 			{
-				if (_objectivePointers[i].Objective == objective)
+				if (_objectivePointers[i].objective == objective)
 				{
 					return _objectivePointers[i];
 				}
@@ -344,48 +343,48 @@ namespace BioIK.Helpers
 		public class Node
 		{
 			private readonly Model _model;							//Reference to the kinematic model
-			public readonly Node Parent;							//Reference to the parent of this node
+			public readonly Node parent;							//Reference to the parent of this node
 			private Node[] _children = Array.Empty<Node>();			//Reference to all child nodes
-			public readonly Transform Transform;					//Reference to the transform
-			public BioJoint Joint;									//Reference to the joint
-			public readonly Transform[] Chain;
+			public readonly Transform transform;					//Reference to the transform
+			public BioJoint joint;									//Reference to the joint
+			public readonly Transform[] chain;
 
-			public double Wpx, Wpy, Wpz;				//World position
-			public double Wrx, Wry, Wrz, Wrw;			//World rotation
-			public double Wsx, Wsy, Wsz;				//World scale
-			public double Lpx, Lpy, Lpz;				//Local position
-			public double Lrx, Lry, Lrz, Lrw;			//Local rotation
+			public double wpx, wpy, wpz;				//World position
+			public double wrx, wry, wrz, wrw;			//World rotation
+			public double wsx, wsy, wsz;				//World scale
+			public double lpx, lpy, lpz;				//Local position
+			public double lrx, lry, lrz, lrw;			//Local rotation
 
-			public bool XEnabled;
-			public bool YEnabled;
-			public bool ZEnabled;
-			public int XIndex = -1;
-			public int YIndex = -1;
-			public int ZIndex = -1;
-			public double XValue;
-			public double YValue;
-			public double ZValue;
+			public bool xEnabled;
+			public bool yEnabled;
+			public bool zEnabled;
+			public int xIndex = -1;
+			public int yIndex = -1;
+			public int zIndex = -1;
+			public double xValue;
+			public double yValue;
+			public double zValue;
 		
-			public bool[] ObjectiveImpacts;				//Boolean values to represent which objective indices in the whole kinematic tree are affected
+			public bool[] objectiveImpacts;				//Boolean values to represent which objective indices in the whole kinematic tree are affected
 
 			//Setup for the node
 			public Node(Model model, Node parent, BioSegment segment)
 			{
 				_model = model;
-				Parent = parent;
-				Parent?.AddChild(this);
-				Transform = segment.transform;
-				Joint = segment.joint;
+				this.parent = parent;
+				this.parent?.AddChild(this);
+				transform = segment.transform;
+				joint = segment.joint;
 
-				List<Transform> reverseChain = new() { Transform };
+				List<Transform> reverseChain = new() { transform };
 				Node p = parent;
 				while (p != null)
 				{
-					reverseChain.Add(p.Transform);
-					p = p.Parent;
+					reverseChain.Add(p.transform);
+					p = p.parent;
 				}
 				reverseChain.Reverse();
-				Chain = reverseChain.ToArray();
+				chain = reverseChain.ToArray();
 			}
 
 			//Adds a child to this node
@@ -399,29 +398,29 @@ namespace BioIK.Helpers
 			public void Refresh()
 			{
 				//Local
-				if (Joint == null)
+				if (joint == null)
 				{
-					Vector3 lp = Transform.localPosition;
-					Quaternion lr = Transform.localRotation;
-					Lpx = lp.x;
-					Lpy = lp.y;
-					Lpz = lp.z;
-					Lrx = lr.x;
-					Lry = lr.y;
-					Lrz = lr.z;
-					Lrw = lr.w;
+					Vector3 lp = transform.localPosition;
+					Quaternion lr = transform.localRotation;
+					lpx = lp.x;
+					lpy = lp.y;
+					lpz = lp.z;
+					lrx = lr.x;
+					lry = lr.y;
+					lrz = lr.z;
+					lrw = lr.w;
 				}
 				else
 				{
-					XValue = Joint.x.GetTargetValue(true);
-					YValue = Joint.y.GetTargetValue(true);
-					ZValue = Joint.z.GetTargetValue(true);
-					Joint.ComputeLocalTransformation(XValue, YValue, ZValue, out Lpx, out Lpy, out Lpz, out Lrx, out Lry, out Lrz, out Lrw);
+					xValue = joint.x.GetTargetValue(true);
+					yValue = joint.y.GetTargetValue(true);
+					zValue = joint.z.GetTargetValue(true);
+					joint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
 				}
-				Vector3 ws = Transform.lossyScale;
-				Wsx = ws.x;
-				Wsy = ws.y;
-				Wsz = ws.z;
+				Vector3 ws = transform.lossyScale;
+				wsx = ws.x;
+				wsy = ws.y;
+				wsz = ws.z;
 
 				//World
 				ComputeWorldTransformation();
@@ -439,28 +438,28 @@ namespace BioIK.Helpers
 				//Assume no local update is required
 				bool updateLocal = false;
 
-				if (XEnabled)
+				if (xEnabled)
 				{
-					XValue = configuration[XIndex];
+					xValue = configuration[xIndex];
 					updateLocal = true;
 				}
 				
-				if (YEnabled)
+				if (yEnabled)
 				{
-					YValue = configuration[YIndex];
+					yValue = configuration[yIndex];
 					updateLocal = true;
 				}
 				
-				if (ZEnabled)
+				if (zEnabled)
 				{
-					ZValue = configuration[ZIndex];
+					zValue = configuration[zIndex];
 					updateLocal = true;
 				}
 				
 				//Only update local transformation if a joint value has changed
 				if (updateLocal)
 				{
-					Joint.ComputeLocalTransformation(XValue, YValue, ZValue, out Lpx, out Lpy, out Lpz, out Lrx, out Lry, out Lrz, out Lrw);
+					joint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
 					updateWorld = true;
 				}
 
@@ -484,17 +483,17 @@ namespace BioIK.Helpers
 				double[] px=_model._px; double[] py=_model._py; double[] pz=_model._pz;
 				double[] rx=_model._rx; double[] ry=_model._ry; double[] rz=_model._rz; double[] rw=_model._rw;
 				for(int i=0; i<_model._objectivePointers.Length; i++) {
-					Node node = _model._objectivePointers[i].Node;
-					if (ObjectiveImpacts[i])
+					Node node = _model._objectivePointers[i].node;
+					if (objectiveImpacts[i])
 					{
-						Joint.ComputeLocalTransformation(
-							XEnabled ? configuration[XIndex] : XValue,
-							YEnabled ? configuration[YIndex] : YValue, 
-							ZEnabled ? configuration[ZIndex] : ZValue, 
+						joint.ComputeLocalTransformation(
+							xEnabled ? configuration[xIndex] : xValue,
+							yEnabled ? configuration[yIndex] : yValue, 
+							zEnabled ? configuration[zIndex] : zValue, 
 							out double lpX, out double lpY, out double lpZ, out double lrX, out double lrY, out double lrZ, out double lrW
 						);
 						double localRx, localRy, localRz, localRw, localX, localY, localZ;
-						if (Parent == null)
+						if (parent == null)
 						{
 							px[i] = _model._opx;
 							py[i] = _model._opy;
@@ -509,51 +508,51 @@ namespace BioIK.Helpers
 						}
 						else
 						{
-							px[i] = Parent.Wpx;
-							py[i] = Parent.Wpy;
-							pz[i] = Parent.Wpz;
-							localRx = Parent.Wrx;
-							localRy = Parent.Wry;
-							localRz = Parent.Wrz;
-							localRw = Parent.Wrw;
-							localX = Parent.Wsx*lpX;
-							localY = Parent.Wsy*lpY;
-							localZ = Parent.Wsz*lpZ;
+							px[i] = parent.wpx;
+							py[i] = parent.wpy;
+							pz[i] = parent.wpz;
+							localRx = parent.wrx;
+							localRy = parent.wry;
+							localRz = parent.wrz;
+							localRw = parent.wrw;
+							localX = parent.wsx*lpX;
+							localY = parent.wsy*lpY;
+							localZ = parent.wsz*lpZ;
 						}
 						double qx = localRx * lrW + localRy * lrZ - localRz * lrY + localRw * lrX;
 						double qy = -localRx * lrZ + localRy * lrW + localRz * lrX + localRw * lrY;
 						double qz = localRx * lrY - localRy * lrX + localRz * lrW + localRw * lrZ;
 						double qw = -localRx * lrX - localRy * lrY - localRz * lrZ + localRw * lrW;
-						double dot = Wrx*Wrx + Wry*Wry + Wrz*Wrz + Wrw*Wrw;
+						double dot = wrx*wrx + wry*wry + wrz*wrz + wrw*wrw;
 						double x = qx / dot; double y = qy / dot; double z = qz / dot; double w = qw / dot;
-						qx = x * Wrw + y * -Wrz - z * -Wry + w * -Wrx;
-						qy = -x * -Wrz + y * Wrw + z * -Wrx + w * -Wry;
-						qz = x * -Wry - y * -Wrx + z * Wrw + w * -Wrz;
-						qw = -x * -Wrx - y * -Wry - z * -Wrz + w * Wrw;
+						qx = x * wrw + y * -wrz - z * -wry + w * -wrx;
+						qy = -x * -wrz + y * wrw + z * -wrx + w * -wry;
+						qz = x * -wry - y * -wrx + z * wrw + w * -wrz;
+						qw = -x * -wrx - y * -wry - z * -wrz + w * wrw;
 						px[i] +=
 								+ 2.0 * ((0.5 - localRy * localRy - localRz * localRz) * localX + (localRx * localRy - localRw * localRz) * localY + (localRx * localRz + localRw * localRy) * localZ)
-								+ 2.0 * ((0.5 - qy * qy - qz * qz) * (node.Wpx-Wpx) + (qx * qy - qw * qz) * (node.Wpy-Wpy) + (qx * qz + qw * qy) * (node.Wpz-Wpz));
+								+ 2.0 * ((0.5 - qy * qy - qz * qz) * (node.wpx-wpx) + (qx * qy - qw * qz) * (node.wpy-wpy) + (qx * qz + qw * qy) * (node.wpz-wpz));
 						py[i] += 
 								+ 2.0 * ((localRx * localRy + localRw * localRz) * localX + (0.5 - localRx * localRx - localRz * localRz) * localY + (localRy * localRz - localRw * localRx) * localZ)
-								+ 2.0 * ((qx * qy + qw * qz) * (node.Wpx-Wpx) + (0.5 - qx * qx - qz * qz) * (node.Wpy-Wpy) + (qy * qz - qw * qx) * (node.Wpz-Wpz));
+								+ 2.0 * ((qx * qy + qw * qz) * (node.wpx-wpx) + (0.5 - qx * qx - qz * qz) * (node.wpy-wpy) + (qy * qz - qw * qx) * (node.wpz-wpz));
 						pz[i] += 
 								+ 2.0 * ((localRx * localRz - localRw * localRy) * localX + (localRy * localRz + localRw * localRx) * localY + (0.5 - (localRx * localRx + localRy * localRy)) * localZ)
-								+ 2.0 * ((qx * qz - qw * qy) * (node.Wpx-Wpx) + (qy * qz + qw * qx) * (node.Wpy-Wpy) + (0.5 - qx * qx - qy * qy) * (node.Wpz-Wpz));
-						rx[i] = qx * node.Wrw + qy * node.Wrz - qz * node.Wry + qw * node.Wrx;
-						ry[i] = -qx * node.Wrz + qy * node.Wrw + qz * node.Wrx + qw * node.Wry;
-						rz[i] = qx * node.Wry - qy * node.Wrx + qz * node.Wrw + qw * node.Wrz;
-						rw[i] = -qx * node.Wrx - qy * node.Wry - qz * node.Wrz + qw * node.Wrw;
-						_model._simulatedLosses[i] = _model._objectivePointers[i].Objective.ComputeLoss(px[i], py[i], pz[i], rx[i], ry[i], rz[i], rw[i]);
+								+ 2.0 * ((qx * qz - qw * qy) * (node.wpx-wpx) + (qy * qz + qw * qx) * (node.wpy-wpy) + (0.5 - qx * qx - qy * qy) * (node.wpz-wpz));
+						rx[i] = qx * node.wrw + qy * node.wrz - qz * node.wry + qw * node.wrx;
+						ry[i] = -qx * node.wrz + qy * node.wrw + qz * node.wrx + qw * node.wry;
+						rz[i] = qx * node.wry - qy * node.wrx + qz * node.wrw + qw * node.wrz;
+						rw[i] = -qx * node.wrx - qy * node.wry - qz * node.wrz + qw * node.wrw;
+						_model._simulatedLosses[i] = _model._objectivePointers[i].objective.ComputeLoss(px[i], py[i], pz[i], rx[i], ry[i], rz[i], rw[i]);
 					}
 					else
 					{
-						px[i] = node.Wpx;
-						py[i] = node.Wpy;
-						pz[i] = node.Wpz;
-						rx[i] = node.Wrx;
-						ry[i] = node.Wry;
-						rz[i] = node.Wrz;
-						rw[i] = node.Wrw;
+						px[i] = node.wpx;
+						py[i] = node.wpy;
+						pz[i] = node.wpz;
+						rx[i] = node.wrx;
+						ry[i] = node.wry;
+						rz[i] = node.wrz;
+						rw[i] = node.wrw;
 						_model._simulatedLosses[i] = _model._losses[i];
 					}
 				}
@@ -563,67 +562,67 @@ namespace BioIK.Helpers
 			private void ComputeWorldTransformation()
 			{
 				double rx, ry, rz, rw, x, y, z;
-				if (Parent == null)
+				if (parent == null)
 				{
-					Wpx = _model._opx;
-					Wpy = _model._opy;
-					Wpz = _model._opz;
+					wpx = _model._opx;
+					wpy = _model._opy;
+					wpz = _model._opz;
 					rx = _model._orx;
 					ry = _model._ory;
 					rz = _model._orz;
 					rw = _model._orw;
-					x = _model._osx*Lpx;
-					y = _model._osy*Lpy;
-					z = _model._osz*Lpz;
+					x = _model._osx*lpx;
+					y = _model._osy*lpy;
+					z = _model._osz*lpz;
 				}
 				else
 				{
-					Wpx = Parent.Wpx;
-					Wpy = Parent.Wpy;
-					Wpz = Parent.Wpz;
-					rx = Parent.Wrx;
-					ry = Parent.Wry;
-					rz = Parent.Wrz;
-					rw = Parent.Wrw;
-					x = Parent.Wsx*Lpx;
-					y = Parent.Wsy*Lpy;
-					z = Parent.Wsz*Lpz;
+					wpx = parent.wpx;
+					wpy = parent.wpy;
+					wpz = parent.wpz;
+					rx = parent.wrx;
+					ry = parent.wry;
+					rz = parent.wrz;
+					rw = parent.wrw;
+					x = parent.wsx*lpx;
+					y = parent.wsy*lpy;
+					z = parent.wsz*lpz;
 				}
-				Wpx += 2.0 * ((0.5 - ry * ry - rz * rz) * x + (rx * ry - rw * rz) * y + (rx * rz + rw * ry) * z);
-				Wpy += 2.0 * ((rx * ry + rw * rz) * x + (0.5 - rx * rx - rz * rz) * y + (ry * rz - rw * rx) * z);
-				Wpz += 2.0 * ((rx * rz - rw * ry) * x + (ry * rz + rw * rx) * y + (0.5 - rx * rx - ry * ry) * z);
-				Wrx = rx * Lrw + ry * Lrz - rz * Lry + rw * Lrx;
-				Wry = -rx * Lrz + ry * Lrw + rz * Lrx + rw * Lry;
-				Wrz = rx * Lry - ry * Lrx + rz * Lrw + rw * Lrz;
-				Wrw = -rx * Lrx - ry * Lry - rz * Lrz + rw * Lrw;
+				wpx += 2.0 * ((0.5 - ry * ry - rz * rz) * x + (rx * ry - rw * rz) * y + (rx * rz + rw * ry) * z);
+				wpy += 2.0 * ((rx * ry + rw * rz) * x + (0.5 - rx * rx - rz * rz) * y + (ry * rz - rw * rx) * z);
+				wpz += 2.0 * ((rx * rz - rw * ry) * x + (ry * rz + rw * rx) * y + (0.5 - rx * rx - ry * ry) * z);
+				wrx = rx * lrw + ry * lrz - rz * lry + rw * lrx;
+				wry = -rx * lrz + ry * lrw + rz * lrx + rw * lry;
+				wrz = rx * lry - ry * lrx + rz * lrw + rw * lrz;
+				wrw = -rx * lrx - ry * lry - rz * lrz + rw * lrw;
 			}
 		}
 
 		//Data class to store pointers to the objectives
 		public class ObjectivePtr
 		{
-			public readonly BioObjective Objective;
-			public readonly Node Node;
+			public readonly BioObjective objective;
+			public readonly Node node;
 
 			public ObjectivePtr(BioObjective objective, Node node)
 			{
-				Objective = objective;
-				Node = node;
+				this.objective = objective;
+				this.node = node;
 			}
 		}
 
 		//Data class to store pointers to the joint motions
 		public class MotionPtr
 		{
-			public readonly BioJoint.Motion Motion;
-			public readonly Node Node;
-			public readonly int Index;
+			public readonly BioJoint.Motion motion;
+			public readonly Node node;
+			public readonly int index;
 			
 			public MotionPtr(BioJoint.Motion motion, Node node, int index)
 			{
-				Motion = motion;
-				Node = node;
-				Index = index;
+				this.motion = motion;
+				this.node = node;
+				this.index = index;
 			}
 		}
 	}

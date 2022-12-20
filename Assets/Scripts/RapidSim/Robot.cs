@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using BioIK.Helpers;
 using BioIK.Setup;
 using RapidSim.Networks;
 using Unity.Mathematics;
@@ -469,11 +468,11 @@ namespace RapidSim
     
         public Quaternion RelativeRotation(Quaternion rotation) => Quaternion.Inverse(Root.transform.rotation) * rotation;
         
-                public double[] BioIkSolve(Vector3 position, Quaternion orientation)
+        public double[] BioIkSolve(Vector3 position, Quaternion orientation)
         {
             _bioIK.DeInitialise();
             _bioIK.Initialise();
-            _bioIK.solution = new double[_bioIK.Evolution.GetModel().GetDoF()];
+            _bioIK.solution = new double[_bioIK.evolution.GetModel().GetDoF()];
             
             _position.SetTargetPosition(position);
             _position.SetTargetRotation(orientation);
@@ -508,14 +507,14 @@ namespace RapidSim
             
                 for (int i = 0; i < _bioIK.solution.Length; i++)
                 {
-                    _bioIK.solution[i] = _bioIK.Evolution.GetModel().MotionPointers[i].Motion.GetTargetValue(true);
+                    _bioIK.solution[i] = _bioIK.evolution.GetModel().motionPointers[i].motion.GetTargetValue(true);
                 }
             
-                _bioIK.solution = _bioIK.Evolution.Optimise(_bioIK.generations, _bioIK.solution);
+                _bioIK.solution = _bioIK.evolution.Optimise(_bioIK.generations, _bioIK.solution);
 
                 for (int i = 0; i< _bioIK.solution.Length; i++)
                 {
-                    BioJoint.Motion motion = _bioIK.Evolution.GetModel().MotionPointers[i].Motion;
+                    BioJoint.Motion motion = _bioIK.evolution.GetModel().motionPointers[i].motion;
                     motion.SetTargetValue(_bioIK.solution[i], true);
                 }
 
@@ -685,14 +684,14 @@ namespace RapidSim
 
                 BioJoint bioJoint = segment.AddJoint();
                 bioJoint.Create(segment);
-                bioJoint.jointType = Joints[i].Type == ArticulationJointType.PrismaticJoint ? JointType.Translational : JointType.Rotational;
+                bioJoint.rotational = Joints[i].Type != ArticulationJointType.PrismaticJoint;
                 bioJoint.SetOrientation(Vector3.zero);
 
                 if (Joints[i].XMotion)
                 {
                     motions.Add(bioJoint.y);
                     bioJoint.y.SetEnabled(true);
-                    if (bioJoint.jointType == JointType.Translational)
+                    if (!bioJoint.rotational)
                     {
                         bioJoint.y.SetLowerLimit(Joints[i].LimitX.Lower);
                         bioJoint.y.SetUpperLimit(Joints[i].LimitX.Upper);
@@ -712,7 +711,7 @@ namespace RapidSim
                 {
                     motions.Add(bioJoint.z);
                     bioJoint.z.SetEnabled(true);
-                    if (bioJoint.jointType == JointType.Translational)
+                    if (!bioJoint.rotational)
                     {
                         bioJoint.z.SetLowerLimit(Joints[i].LimitY.Lower);
                         bioJoint.z.SetUpperLimit(Joints[i].LimitY.Upper);
@@ -732,7 +731,7 @@ namespace RapidSim
                 {
                     motions.Add(bioJoint.x);
                     bioJoint.x.SetEnabled(true);
-                    if (bioJoint.jointType == JointType.Translational)
+                    if (!bioJoint.rotational)
                     {
                         bioJoint.x.SetLowerLimit(Joints[i].LimitZ.Lower);
                         bioJoint.x.SetUpperLimit(Joints[i].LimitZ.Upper);

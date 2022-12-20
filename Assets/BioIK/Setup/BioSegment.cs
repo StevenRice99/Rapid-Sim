@@ -20,11 +20,6 @@ namespace BioIK.Setup
 			return this;
 		}
 
-		public Vector3 GetAnchoredPosition()
-		{
-			return joint == null ? transform.position : joint.GetAnchorInWorldSpace();
-		}
-
 		public void AddChild(BioSegment child)
 		{
 			Array.Resize(ref children, children.Length+1);
@@ -52,7 +47,7 @@ namespace BioIK.Setup
 			}
 			else
 			{
-				joint = Utility.AddBioJoint(this);
+				joint = (gameObject.AddComponent(typeof(BioJoint)) as BioJoint)?.Create(this);
 				controller.Refresh();
 			}
 			return joint;
@@ -60,13 +55,7 @@ namespace BioIK.Setup
 
 		public BioObjective AddObjective()
 		{
-			BioObjective objective = Utility.AddObjective(this);
-			if(objective == null)
-			{
-				Debug.Log("The objective could not be found.");
-				return null;
-			}
-
+			BioObjective objective = (gameObject.AddComponent(typeof(BioObjective)) as BioObjective)?.Create(this);
 			Array.Resize(ref objectives, objectives.Length+1);
 			objectives[^1] = objective;
 			controller.Refresh();
