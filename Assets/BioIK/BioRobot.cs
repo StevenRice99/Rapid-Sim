@@ -109,11 +109,6 @@ namespace BioIK
 				{
 					segment.joint.UpdateData();
 				}
-			
-				if (segment.objective != null)
-				{
-					segment.objective.UpdateData();
-				}
 
 				segment = segment.child;
 			}

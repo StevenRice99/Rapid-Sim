@@ -70,8 +70,6 @@ namespace RapidSim
 
         private BioIK.BioRobot _bioRobot;
 
-        private BioObjective _objective;
-
         private bool _train;
 
         private BioJoint.Motion[] _motions;
@@ -417,7 +415,7 @@ namespace RapidSim
 
             for (int i = 0; i < results.Length; i++)
             {
-                joints.Add((float) math.clamp(results[i], Limits[i].Lower, Limits[i].Upper));;
+                joints.Add((float) math.clamp(results[i], Limits[i].Lower, Limits[i].Upper));
             }
         
             // TODO: Finalize movement with Hybrid IK.
@@ -474,8 +472,7 @@ namespace RapidSim
             _bioRobot.Initialise();
             _bioRobot.solution = new double[_bioRobot.evolution.GetModel().GetDoF()];
             
-            _objective.SetTargetPosition(position);
-            _objective.SetTargetRotation(orientation);
+            // TODO - Define how we will move
             
             List<float> joints = GetJoints();
 
@@ -507,12 +504,12 @@ namespace RapidSim
             
                 for (int i = 0; i < _bioRobot.solution.Length; i++)
                 {
-                    _bioRobot.solution[i] = _bioRobot.evolution.GetModel().motionPointers[i].motion.GetTargetValue(true);
+                    _bioRobot.solution[i] = _bioRobot.evolution.GetModel().motionPointers[i].motion.GetTargetValue();
                 }
             
-                _bioRobot.solution = _bioRobot.evolution.Optimise(_bioRobot.generations, _bioRobot.solution);
+                _bioRobot.solution = _bioRobot.evolution.Optimise(_bioRobot.generations, _bioRobot.solution, position, orientation);
 
-                for (int i = 0; i< _bioRobot.solution.Length; i++)
+                for (int i = 0; i < _bioRobot.solution.Length; i++)
                 {
                     BioJoint.Motion motion = _bioRobot.evolution.GetModel().motionPointers[i].motion;
                     motion.SetTargetValue(_bioRobot.solution[i], true);
@@ -523,7 +520,7 @@ namespace RapidSim
                 double[] ending = new double[_motions.Length];
                 for (int i = 0; i < _motions.Length; i++)
                 {
-                    ending[i] = _motions[i].GetTargetValue(true);
+                    ending[i] = _motions[i].GetTargetValue();
                 }
 
                 double accuracy = Accuracy(_lastBioSegment.position, position, Root.transform.rotation, _lastBioSegment.rotation, orientation);
@@ -544,6 +541,8 @@ namespace RapidSim
                     bestTime = time;
                 }
             }
+            
+            Debug.Log(bestAccuracy);
 
             return best;
         }
@@ -667,15 +666,6 @@ namespace RapidSim
                 segment.bioRobot = _bioRobot;
                 _lastBioSegment = segment.transform;
                 parent = go.transform;
-
-                if (i == Joints.Length - 1)
-                {
-                    Transform segmentTransform = segment.transform;
-                    _objective = segment.gameObject.AddComponent<BioObjective>();
-                    _objective.segment = segment;
-                    segment.objective = _objective;
-                    _objective.SetTargetPosition(segmentTransform.position);
-                }
                 
                 BioJoint bioJoint = (segment.gameObject.AddComponent(typeof(BioJoint)) as BioJoint)?.Create(segment);
                 segment.joint = bioJoint;

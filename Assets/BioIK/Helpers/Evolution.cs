@@ -79,8 +79,11 @@ namespace BioIK.Helpers
             return (System.DateTime.Now - timestamp).Duration().TotalSeconds;
         }
 
-		public double[] Optimise(int generations, double[] seed)
+		public double[] Optimise(int generations, double[] seed, Vector3 position, Quaternion orientation)
         {
+            _model.SetTargetPosition(position);
+            _model.SetTargetRotation(orientation);
+            
             _model.Refresh();
             
 			for (int i = 0; i < _dimensionality; i++)

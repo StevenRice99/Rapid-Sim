@@ -9,6 +9,5 @@ namespace BioIK.Setup
 		public BioSegment parent;
 		public BioSegment child;
 		public BioJoint joint;
-		public BioObjective objective;
 	}
 }

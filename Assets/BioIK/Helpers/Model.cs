@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using BioIK.Setup;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace BioIK.Helpers
@@ -22,12 +23,11 @@ namespace BioIK.Helpers
 
 		//Global pointers to the IK setup
 		public MotionPtr[] motionPointers = Array.Empty<MotionPtr>();
-		private ObjectivePtr _objectivePointer;
 
 		//Assigned Configuration
 		private readonly double[] _configuration;
 		private readonly double[] _gradient;
-		private double _losses;
+		private double _loss;
 
 		//Simulated Configuration
 		private double _px;
@@ -37,10 +37,15 @@ namespace BioIK.Helpers
 		private double _ry;
 		private double _rz;
 		private double _rw;
-		private double _simulatedLosses;
+		private double _simulatedLoss;
 
 		//Degree of Freedom
 		private readonly int _doF;
+		
+		private double _tpx, _tpy, _tpz;
+		private double _trx, _try, _trz, _trw;
+		private double _rescaling;
+		
 
 		public Model(BioRobot bioRobot)
 		{
@@ -48,20 +53,22 @@ namespace BioIK.Helpers
 
 			//Set Root
 			_root = _bioRobot.root;
-
-			//Create Root
-			AddNode(_root);
 			
-			//Build Model
-			BioObjective objective = FindObjective(_root);
-			if (objective != null)
+			double chainLength = 0.0;
+
+			AddNode(_root);
+			BioSegment previous = _root;
+			BioSegment current = _root.child;
+
+			while (current != null)
 			{
-				List<BioSegment> chain = _bioRobot.GetChain(objective.segment);
-				for (int j = 1; j < chain.Count; j++)
-				{
-					AddNode(chain[j]);
-				}
+				AddNode(current);
+				chainLength += Vector3.Distance(previous.transform.position, current.transform.position);
+				previous = current;
+				current = current.child;
 			}
+			
+			_rescaling = BioRobot.PI * BioRobot.PI / (chainLength * chainLength);
 
 			//Assign DoF
 			_doF = motionPointers.Length;
@@ -69,6 +76,21 @@ namespace BioIK.Helpers
 			_gradient = new double[motionPointers.Length];
 
 			Refresh();
+		}
+		
+		public void SetTargetPosition(Vector3 position)
+		{
+			_tpx = position.x;
+			_tpy = position.y;
+			_tpz = position.z;
+		}
+		
+		public void SetTargetRotation(Quaternion rotation)
+		{
+			_trx = rotation.x;
+			_try = rotation.y;
+			_trz = rotation.z;
+			_trw = rotation.w;
 		}
 
 		public int GetDoF()
@@ -86,7 +108,7 @@ namespace BioIK.Helpers
 			//Updates configuration
 			for (int i = 0; i < _configuration.Length; i++)
 			{
-				_configuration[i] = motionPointers[i].motion.GetTargetValue(true);
+				_configuration[i] = motionPointers[i].motion.GetTargetValue();
 			}
 
 			//Update offset from world to root
@@ -134,8 +156,8 @@ namespace BioIK.Helpers
 			_ry = model._ry;
 			_rz = model._rz;
 			_rw = model._rw;
-			_losses = model._losses;
-			_simulatedLosses = model._simulatedLosses;
+			_loss = model._loss;
+			_simulatedLoss = model._simulatedLoss;
 			for (int i = 0; i < _nodes.Length; i++)
 			{
 				_nodes[i].wpx = model._nodes[i].wpx;
@@ -161,15 +183,49 @@ namespace BioIK.Helpers
 				_nodes[i].yValue = model._nodes[i].yValue;
 				_nodes[i].zValue = model._nodes[i].zValue;
 			}
+			_rescaling = model._rescaling;
+			_tpx = model._tpx;
+			_tpy = model._tpy;
+			_tpz = model._tpz;
+			_trx = model._trx;
+			_try = model._try;
+			_trz = model._trz;
+			_trw = model._trw;
 		}
 
 		//Computes the loss as the RMSE over all objectives
 		public double ComputeLoss(double[] configuration)
 		{
 			ForwardKinematics(configuration);
-			Node node = _objectivePointer.node;
-			_losses = _objectivePointer.objective.ComputeLoss(node.wpx, node.wpy, node.wpz, node.wrx, node.wry, node.wrz, node.wrw);
-			return Math.Sqrt(_losses);
+			Node node = motionPointers[^1].node;
+			_loss = ComputeLoss(node.wpx, node.wpy, node.wpz, node.wrx, node.wry, node.wrz, node.wrw);
+			return Math.Sqrt(_loss);
+		}
+		
+		private double ComputeLoss(double wpx, double wpy, double wpz, double wrx, double wry, double wrz, double wrw)
+		{
+			double pos = _rescaling * ((_tpx - wpx) * (_tpx - wpx) + (_tpy - wpy) * (_tpy - wpy) + (_tpz - wpz) * (_tpz - wpz));
+			
+			double d = wrx * _trx + wry * _try + wrz * _trz + wrw * _trw;
+			switch (d)
+			{
+				case < 0.0:
+				{
+					d = -d;
+					if(d > 1.0) {
+						d = 1.0;
+					}
+
+					break;
+				}
+				case > 1.0:
+					d = 1.0;
+					break;
+			}
+			double rot = 2.0 * math.acos(d);
+			rot *= rot;
+			
+			return pos + rot;
 		}
 
 		//Computes the gradient
@@ -181,7 +237,7 @@ namespace BioIK.Helpers
 				_configuration[j] += resolution;
 				motionPointers[j].node.SimulateModification(_configuration);
 				_configuration[j] -= resolution;
-				_gradient[j] = (Math.Sqrt(_simulatedLosses) - oldLoss) / resolution;
+				_gradient[j] = (Math.Sqrt(_simulatedLoss) - oldLoss) / resolution;
 			}
 			return _gradient;
 		}
@@ -241,29 +297,8 @@ namespace BioIK.Helpers
 				}
 			}
 
-			BioObjective objective = segment.objective;
-			if (objective != null)
-			{
-				_objectivePointer = new(objective, node);
-			}
-
 			Array.Resize(ref _nodes, _nodes.Length + 1);
 			_nodes[^1] = node;
-		}
-
-		private static BioObjective FindObjective(BioSegment segment)
-		{
-			while (segment != null)
-			{
-				if (segment.objective != null)
-				{
-					return segment.objective;
-				}
-
-				segment = segment.child;
-			}
-
-			return null;
 		}
 
 		//Returns a node in the model
@@ -277,12 +312,6 @@ namespace BioIK.Helpers
 				}
 			}
 			return null;
-		}
-
-		//Returns the pointer to the objective
-		public ObjectivePtr FindObjectivePtr(BioObjective objective)
-		{
-			return _objectivePointer.objective == objective ? _objectivePointer : null;
 		}
 
 		//Subclass representing the single nodes for the OFKT data structure.
@@ -357,9 +386,9 @@ namespace BioIK.Helpers
 				}
 				else
 				{
-					xValue = joint.x.GetTargetValue(true);
-					yValue = joint.y.GetTargetValue(true);
-					zValue = joint.z.GetTargetValue(true);
+					xValue = joint.x.GetTargetValue();
+					yValue = joint.y.GetTargetValue();
+					zValue = joint.z.GetTargetValue();
 					joint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
 				}
 				Vector3 ws = transform.lossyScale;
@@ -425,7 +454,7 @@ namespace BioIK.Helpers
 			//Returns the resulting Cartesian posture transformations in the out values
 			public void SimulateModification(double[] configuration)
 			{
-				Node node = _model._objectivePointer.node;
+				Node node = _model.motionPointers[^1].node;
 				joint.ComputeLocalTransformation(
 					xEnabled ? configuration[xIndex] : xValue,
 					yEnabled ? configuration[yIndex] : yValue, 
@@ -485,7 +514,7 @@ namespace BioIK.Helpers
 				double ry = -qx * node.wrz + qy * node.wrw + qz * node.wrx + qw * node.wry;
 				double rz = qx * node.wry - qy * node.wrx + qz * node.wrw + qw * node.wrz;
 				double rw = -qx * node.wrx - qy * node.wry - qz * node.wrz + qw * node.wrw;
-				_model._simulatedLosses = _model._objectivePointer.objective.ComputeLoss(px, py, pz, rx, ry, rz, rw);
+				_model._simulatedLoss = _model.ComputeLoss(px, py, pz, rx, ry, rz, rw);
 			}
 
 			//Computes the world transformation using the current joint variable configuration
@@ -525,19 +554,6 @@ namespace BioIK.Helpers
 				wry = -rx * lrz + ry * lrw + rz * lrx + rw * lry;
 				wrz = rx * lry - ry * lrx + rz * lrw + rw * lrz;
 				wrw = -rx * lrx - ry * lry - rz * lrz + rw * lrw;
-			}
-		}
-
-		//Data class to store pointers to the objectives
-		public class ObjectivePtr
-		{
-			public readonly BioObjective objective;
-			public readonly Node node;
-
-			public ObjectivePtr(BioObjective objective, Node node)
-			{
-				this.objective = objective;
-				this.node = node;
 			}
 		}
 

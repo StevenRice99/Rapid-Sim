@@ -336,9 +336,9 @@ namespace BioIK.Setup
 				targetValue = math.clamp(value, lowerLimit, upperLimit);
 			}
 
-			public double GetTargetValue(bool normalised = false)
+			public double GetTargetValue()
 			{
-				if (normalised && joint.rotational)
+				if (joint.rotational)
 				{
 					return BioRobot.Deg2Rad * targetValue;
 				}
