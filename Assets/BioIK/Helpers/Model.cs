@@ -15,7 +15,6 @@ namespace BioIK.Helpers
 		// Offset to world
 		private double _opx, _opy, _opz;
 		private double _orx, _ory, _orz, _orw;
-		private double _osx, _osy, _osz;
 		
 		// Linked list of nodes in the model
 		private Node[] _nodes = Array.Empty<Node>();
@@ -44,7 +43,6 @@ namespace BioIK.Helpers
 		private double _tpx, _tpy, _tpz;
 		private double _trx, _try, _trz, _trw;
 		private double _rescaling;
-		
 
 		public Model(BioRobot bioRobot)
 		{
@@ -75,6 +73,11 @@ namespace BioIK.Helpers
 			_gradient = new double[motionPointers.Length];
 
 			Refresh();
+		}
+
+		public void SetRescaling(double rescaling)
+		{
+			_rescaling = rescaling;
 		}
 		
 		public void SetTargetPosition(Vector3 position)
@@ -114,17 +117,15 @@ namespace BioIK.Helpers
 			if (_root.transform.root == _bioRobot.transform)
 			{
 				_opx = _opy = _opz = _orx = _ory = _orz = 0.0;
-				_orw = _osx = _osy = _osz = 1.0;
+				_orw = 1.0;
 			}
 			else
 			{
 				Transform parent = _root.transform.parent;
 				Vector3 p = parent.position;
 				Quaternion r = parent.rotation;
-				Vector3 s = parent.lossyScale;
 				_opx = p.x; _opy = p.y; _opz = p.z;
 				_orx = r.x; _ory = r.y; _orz = r.z; _orw = r.w;
-				_osx = s.x; _osy = s.y; _osz = s.z;
 			}
 
 			//Updates the nodes
@@ -140,9 +141,6 @@ namespace BioIK.Helpers
 			_ory = model._ory;
 			_orz = model._orz;
 			_orw = model._orw;
-			_osx = model._osx;
-			_osy = model._osy;
-			_osz = model._osz;
 			for (int i = 0; i < _doF; i++)
 			{
 				_configuration[i] = model._configuration[i];
@@ -190,6 +188,7 @@ namespace BioIK.Helpers
 			_try = model._try;
 			_trz = model._trz;
 			_trw = model._trw;
+			_rescaling = model._rescaling;
 		}
 
 		//Computes the loss as the RMSE over all objectives
@@ -201,11 +200,11 @@ namespace BioIK.Helpers
 			return Math.Sqrt(_loss);
 		}
 		
-		private double ComputeLoss(double wpx, double wpy, double wpz, double wrx, double wry, double wrz, double wrw)
+		public double ComputeLoss(double apx, double apy, double apz, double arx, double ary, double arz, double arw)
 		{
-			double pos = _rescaling * ((_tpx - wpx) * (_tpx - wpx) + (_tpy - wpy) * (_tpy - wpy) + (_tpz - wpz) * (_tpz - wpz));
+			double pos = _rescaling * ((_tpx - apx) * (_tpx - apx) + (_tpy - apy) * (_tpy - apy) + (_tpz - apz) * (_tpz - apz));
 			
-			double d = wrx * _trx + wry * _try + wrz * _trz + wrw * _trw;
+			double d = arx * _trx + ary * _try + arz * _trz + arw * _trw;
 			switch (d)
 			{
 				case < 0.0:
@@ -225,6 +224,13 @@ namespace BioIK.Helpers
 			rot *= rot;
 			
 			return pos + rot;
+		}
+
+		public bool CheckConvergence(double[] configuration, double repeatability)
+		{
+			ForwardKinematics(configuration);
+			Node node = motionPointers[^1].node;
+			return ComputeLoss(node.wpx, node.wpy, node.wpz, node.wrx, node.wry, node.wrz, node.wrw) <= repeatability;
 		}
 
 		//Computes the gradient
@@ -435,9 +441,9 @@ namespace BioIK.Helpers
 					localRy = _model._ory;
 					localRz = _model._orz;
 					localRw = _model._orw;
-					localX = _model._osx*lpX;
-					localY = _model._osy*lpY;
-					localZ = _model._osz*lpZ;
+					localX = lpX;
+					localY = lpY;
+					localZ = lpZ;
 				}
 				else
 				{
@@ -448,9 +454,9 @@ namespace BioIK.Helpers
 					localRy = _parent.wry;
 					localRz = _parent.wrz;
 					localRw = _parent.wrw;
-					localX = _parent.wsx*lpX;
-					localY = _parent.wsy*lpY;
-					localZ = _parent.wsz*lpZ;
+					localX = _parent.wsx * lpX;
+					localY = _parent.wsy * lpY;
+					localZ = _parent.wsz * lpZ;
 				}
 				double qx = localRx * lrW + localRy * lrZ - localRz * lrY + localRw * lrX;
 				double qy = -localRx * lrZ + localRy * lrW + localRz * lrX + localRw * lrY;
@@ -491,9 +497,9 @@ namespace BioIK.Helpers
 					ry = _model._ory;
 					rz = _model._orz;
 					rw = _model._orw;
-					x = _model._osx*lpx;
-					y = _model._osy*lpy;
-					z = _model._osz*lpz;
+					x = lpx;
+					y = lpy;
+					z = lpz;
 				}
 				else
 				{
@@ -504,9 +510,9 @@ namespace BioIK.Helpers
 					ry = _parent.wry;
 					rz = _parent.wrz;
 					rw = _parent.wrw;
-					x = _parent.wsx*lpx;
-					y = _parent.wsy*lpy;
-					z = _parent.wsz*lpz;
+					x = _parent.wsx * lpx;
+					y = _parent.wsy * lpy;
+					z = _parent.wsz * lpz;
 				}
 				wpx += 2.0 * ((0.5 - ry * ry - rz * rz) * x + (rx * ry - rw * rz) * y + (rx * rz + rw * ry) * z);
 				wpy += 2.0 * ((rx * ry + rw * rz) * x + (0.5 - rx * rx - rz * rz) * y + (ry * rz - rw * rx) * z);

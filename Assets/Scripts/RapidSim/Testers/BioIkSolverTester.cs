@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace RapidSim.Testers
 {
-    public class BioIkTester : RobotHomeTester
+    public class BioIkSolverTester : RobotHomeTester
     {
         protected override void Move()
         {

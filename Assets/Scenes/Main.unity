@@ -1484,6 +1484,7 @@ GameObject:
   - component: {fileID: 1291932670}
   - component: {fileID: 1291932669}
   - component: {fileID: 1291932676}
+  - component: {fileID: 1291932677}
   - component: {fileID: 1291932672}
   - component: {fileID: 1291932675}
   - component: {fileID: 1291932674}
@@ -1644,6 +1645,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c626fbef7f9540a5b3a09e5a1e57cb7b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  robot: {fileID: 1634662496}
+  move: 0
+  snap: 0
+--- !u!114 &1291932677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1291932666}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f390c1555df44d2a10fb6830fcfee0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   robot: {fileID: 1634662496}
@@ -1881,9 +1897,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   repeatability: 0.00008
-  bioIkAttempts: 100
   bioIkGenerations: 5
   bioIkPopulationSize: 120
+  optimizeAttempts: 100
   bioIkElites: 3
   maxSteps: 1
   train: 0

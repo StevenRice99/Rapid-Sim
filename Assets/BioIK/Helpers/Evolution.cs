@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace BioIK.Helpers
 {
@@ -79,10 +80,11 @@ namespace BioIK.Helpers
             return (System.DateTime.Now - timestamp).Duration().TotalSeconds;
         }
 
-		public double[] Optimise(int generations, double[] seed, Vector3 position, Quaternion orientation)
+		public double[] Optimise(int generations, double[] seed, Vector3 position, Quaternion orientation, double rescaling)
         {
             _model.SetTargetPosition(position);
             _model.SetTargetRotation(orientation);
+            _model.SetRescaling(rescaling);
             
             _model.Refresh();
             
@@ -101,13 +103,14 @@ namespace BioIK.Helpers
                 _optimisers[i].lowerBounds = _lowerBounds;
                 _optimisers[i].upperBounds = _upperBounds;
             }
+
             for (int i = 0; i < generations; i++)
             {
                 Evolve();
             }
-
-			return _solution;
-		}
+            
+            return _solution;
+        }
 
 		//Initialises the population with the seed
 		private void Initialise(double[] seed)
