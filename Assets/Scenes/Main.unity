@@ -1901,9 +1901,9 @@ MonoBehaviour:
   bioIkPopulationSize: 120
   optimizeAttempts: 100
   bioIkElites: 3
-  maxSteps: 1
+  maxSteps: 10
+  json: 
   train: 0
-  data: {fileID: 0}
 --- !u!1 &1898101831
 GameObject:
   m_ObjectHideFlags: 0

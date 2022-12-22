@@ -2,14 +2,14 @@
 {
     public struct JointLimit
     {
-        public float Lower;
+        public readonly float lower;
 
-        public float Upper;
+        public readonly float upper;
 
         public JointLimit(float lower, float upper)
         {
-            Lower = lower;
-            Upper = upper;
+            this.lower = lower;
+            this.upper = upper;
         }
     }
 }
