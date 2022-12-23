@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using BioIK;
 using BioIK.Setup;
@@ -37,9 +36,6 @@ namespace RapidSim
         [Min(1)]
         [SerializeField]
         private int maxSteps = 1;
-
-        [SerializeField]
-        private string json;
         
         [SerializeField]
         private bool generate;
@@ -160,26 +156,9 @@ namespace RapidSim
                 layers[i] = s;
             }
 
-            if (!string.IsNullOrWhiteSpace(json))
-            {
-                try
-                {
-                    _network = JsonUtility.FromJson<NeuralNetwork>(json);
-                }
-                catch
-                {
-                    Debug.LogError("Could not load Neural Network.");
-                    _network = new(layers);
-                }
-            }
-            else
-            {
-                _network = new(layers);
-            }
-
             SetupBioIk();
             
-            CountCsv();
+            // SETUP NETWORK
         }
         
         private void OnDestroy()
@@ -455,7 +434,7 @@ namespace RapidSim
         {
             for (int i = 0; i < joints.Length; i++)
             {
-                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
+                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower) * 2 - 1;
             }
 
             return joints;
@@ -465,7 +444,7 @@ namespace RapidSim
         {
             for (int i = 0; i < joints.Length; i++)
             {
-                joints[i] = math.clamp(joints[i] * (_limits[i].upper - _limits[i].lower) + _limits[i].lower, _limits[i].lower, _limits[i].upper);
+                joints[i] = math.clamp((joints[i] + 1) / 2 * (_limits[i].upper - _limits[i].lower) + _limits[i].lower, _limits[i].lower, _limits[i].upper);
             }
 
             return joints;
@@ -683,27 +662,29 @@ namespace RapidSim
             inputs[angles.Length + 5] = relativeRotation.z;
             inputs[angles.Length + 6] = relativeRotation.w;
     
-            double[] outputs = NetScaled(BioIkOptimize(position, rotation));
-
-            string s = "\n";
+            double[] expected = NetScaled(BioIkOptimize(position, rotation));
+            
+            // TRAIN NETWORK
+            string s = "INPUTS: ";
             for (int i = 0; i < inputs.Length; i++)
             {
-                s += $"{inputs[i]},";
+                s += $"{inputs[i]}";
+                s += i < inputs.Length - 1 ? "," : "\nOUTPUTS: ";
             }
-
-            for (int i = 0; i < outputs.Length; i++)
+            
+            for (int i = 0; i < expected.Length; i++)
             {
-                s += $"{outputs[i]}";
-                if (i < outputs.Length - 1)
+                s += $"{expected[i]}";
+                if (i < expected.Length - 1)
                 {
                     s += ",";
                 }
             }
             
-            WriteToCsv(s);
+            Debug.Log(s);
 
             _currentStep++;
-            Debug.Log($"Generated pose {_currentStep} of {maxSteps} - {(float)_currentStep / maxSteps * 100}%.");
+            Debug.Log($"Training {_currentStep} of {maxSteps} - {(float)_currentStep / maxSteps * 100}%.");
         }
 
         private void SetupBioIk()
@@ -827,88 +808,6 @@ namespace RapidSim
             _bioRobot.Refresh();
 
             _motions = motions.ToArray();
-        }
-
-        private void CountCsv()
-        {
-            DirectoryInfo full = Directory.GetParent(Application.dataPath);
-            if (full == null)
-            {
-                Debug.LogError("Directory does not exist, this should not be possible!");
-                _currentStep = 0;
-                return;
-            }
-            
-            string path = Path.Combine(full.FullName, Path.Combine("IK-Trainer", Path.Combine("Data", $"{name}.csv")));
-            if (!File.Exists(path))
-            {
-                _currentStep = 0;
-                return;
-            }
-
-            _currentStep = -1;
-            using StreamReader reader = File.OpenText(path);
-            while (reader.ReadLine() != null)
-            {
-                _currentStep++;
-            }
-        }
-
-        private void WriteToCsv(string s)
-        {
-            DirectoryInfo full = Directory.GetParent(Application.dataPath);
-            if (full == null)
-            {
-                Debug.LogError("Directory does not exist, this should not be possible!");
-                return;
-            }
-            
-            string path = Path.Combine(full.FullName, "IK-Trainer");
-            if (!Directory.Exists(path))
-            {
-                Debug.LogError("Cannot find IK-Trainer directory.");
-                return;
-            }
-
-            path = Path.Combine(path, "Data");
-            if (!Directory.Exists(path))
-            {
-                DirectoryInfo result = Directory.CreateDirectory(path);
-                if (!result.Exists)
-                {
-                    Debug.LogError("Cannot create data directory to save to.");
-                    return;
-                }
-            }
-
-            path = Path.Combine(path, $"{name}.csv");
-
-            if (!File.Exists(path))
-            {
-                string h = string.Empty;
-                for (int i = 0; i < _limits.Length + 7; i++)
-                {
-                    h += $"I{i + 1},";
-                }
-                
-                for (int i = 0; i < _limits.Length; i++)
-                {
-                    h += $"O{i + 1}";
-                    if (i < _limits.Length - 1)
-                    {
-                        h += ",";
-                    }
-                }
-                
-                File.WriteAllText(path, h);
-            }
-
-            if (string.IsNullOrWhiteSpace(s))
-            {
-                return;
-            }
-            
-            File.AppendAllText(path, s);
         }
     }
 }
