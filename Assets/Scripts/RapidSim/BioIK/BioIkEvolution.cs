@@ -2,16 +2,16 @@
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace BioIK.Helpers
+namespace RapidSim.BioIK
 {
     //----------------------------------------------------------------------------------------------------
 	//====================================================================================================
 	//Memetic Evolutionary Optimisation
 	//====================================================================================================
 	//----------------------------------------------------------------------------------------------------
-	public class Evolution
+	public class BioIkEvolution
     {
-		private readonly Model _model;          //Reference to the kinematic model
+		private readonly BioIkModel _bioIkModel;          //Reference to the kinematic model
 		private readonly int _populationSize;   //Number of individuals (population size)
 		private readonly int _elites;           //Number of elite individuals
 		private readonly int _dimensionality;   //Search space dimensionality
@@ -31,7 +31,7 @@ namespace BioIK.Helpers
         //Variables for elitism exploitation
         private bool _evolving;
         private readonly bool[] _improved;
-        private readonly Model[] _models;
+        private readonly BioIkModel[] _models;
         private readonly Bfgs[] _optimisers;
 
         //Variables for optimisation queries
@@ -39,12 +39,12 @@ namespace BioIK.Helpers
 		private double _fitness;                //Evolutionary fitness
 
 		//Initialises the algorithm
-		public Evolution(Model model, int populationSize, int elites)
+		public BioIkEvolution(BioIkModel bioIkModel, int populationSize, int elites)
         {
-			_model = model;
+			_bioIkModel = bioIkModel;
 			_populationSize = populationSize;
 			_elites = elites;
-			_dimensionality = model.GetDoF();
+			_dimensionality = bioIkModel.GetDoF();
 
 			_population = new Individual[_populationSize];
 			_offspring = new Individual[_populationSize];
@@ -59,13 +59,13 @@ namespace BioIK.Helpers
 			_probabilities = new double[_populationSize];
 			_solution = new double[_dimensionality];
 
-            _models = new Model[_elites];
+            _models = new BioIkModel[_elites];
             _optimisers = new Bfgs[_elites];
             _improved = new bool[_elites];
             for (int i = 0; i < _elites; i++)
             {
                 int index = i;
-                _models[index] = new(_model.GetBioRobot());
+                _models[index] = new(_bioIkModel.GetBioRobot());
                 _optimisers[index] = new(_dimensionality, x => _models[index].ComputeLoss(x), y => _models[index].ComputeGradient(y, 1e-5));
             }
         }
@@ -82,24 +82,24 @@ namespace BioIK.Helpers
 
 		public double[] Optimise(int generations, double[] seed, Vector3 position, Quaternion orientation, double rescaling)
         {
-            _model.SetTargetPosition(position);
-            _model.SetTargetRotation(orientation);
-            _model.SetRescaling(rescaling);
+            _bioIkModel.SetTargetPosition(position);
+            _bioIkModel.SetTargetRotation(orientation);
+            _bioIkModel.SetRescaling(rescaling);
             
-            _model.Refresh();
+            _bioIkModel.Refresh();
             
 			for (int i = 0; i < _dimensionality; i++)
             {
-				_lowerBounds[i] = _model.motionPointers[i].motion.GetLowerLimit(true);
-				_upperBounds[i] = _model.motionPointers[i].motion.GetUpperLimit(true);
+				_lowerBounds[i] = _bioIkModel.motionPointers[i].motion.GetLowerLimit(true);
+				_upperBounds[i] = _bioIkModel.motionPointers[i].motion.GetUpperLimit(true);
 				_solution[i] = seed[i];
 			}
-			_fitness = _model.ComputeLoss(_solution);
+			_fitness = _bioIkModel.ComputeLoss(_solution);
 
             Initialise(seed);
             for (int i = 0; i < _elites; i++)
             {
-                _models[i].CopyFrom(_model);
+                _models[i].CopyFrom(_bioIkModel);
                 _optimisers[i].lowerBounds = _lowerBounds;
                 _optimisers[i].upperBounds = _upperBounds;
             }
@@ -120,7 +120,7 @@ namespace BioIK.Helpers
 				_population[0].genes[i] = seed[i];
 				_population[0].momentum[i] = 0.0;
 			}
-			_population[0].fitness = _model.ComputeLoss(_population[0].genes);
+			_population[0].fitness = _bioIkModel.ComputeLoss(_population[0].genes);
 
 			for (int i=1; i < _populationSize; i++)
             {
@@ -336,7 +336,7 @@ namespace BioIK.Helpers
 			}
 
 			//Fitness
-			offspring.fitness = _model.ComputeLoss(offspring.genes);
+			offspring.fitness = _bioIkModel.ComputeLoss(offspring.genes);
 		}
 
 		//Generates a random individual
@@ -347,7 +347,7 @@ namespace BioIK.Helpers
                 individual.genes[i] = Random.Range((float)_lowerBounds[i], (float)_upperBounds[i]);
                 individual.momentum[i] = 0.0;
 			}
-			individual.fitness = _model.ComputeLoss(individual.genes);
+			individual.fitness = _bioIkModel.ComputeLoss(individual.genes);
 		}
 
 		//Rank-based selection of an individual
@@ -393,9 +393,9 @@ namespace BioIK.Helpers
 			(a, b) = (b, a);
         }
 
-        public Model GetModel()
+        public BioIkModel GetModel()
         {
-            return _model;
+            return _bioIkModel;
         }
 
 		//Data class for the individuals
@@ -524,8 +524,8 @@ namespace BioIK.Helpers
             _newF = 0;
             _newG = null;
 
-            System.DateTime timestamp = Evolution.GetTimestamp();
-            while(Evolution.GetElapsedTime(timestamp) < timeout)
+            System.DateTime timestamp = BioIkEvolution.GetTimestamp();
+            while(BioIkEvolution.GetElapsedTime(timestamp) < timeout)
             {
                 Setulb(
                     _dimensionality, Corrections, solution, 0, lowerBounds, 0, upperBounds, 0, _nbd, 0, ref _f, _g, 0,

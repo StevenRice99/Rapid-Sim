@@ -1,16 +1,15 @@
 ﻿using System;
-using BioIK.Setup;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace BioIK.Helpers
+namespace RapidSim.BioIK
 {
-	public class Model
+	public class BioIkModel
 	{
-		private readonly BioRobot _bioRobot;
+		private readonly BioIkRobot _bioIkRobot;
 
 		// Reference to root
-		private readonly BioSegment _root;
+		private readonly BioIkSegment _root;
 
 		// Offset to world
 		private double _opx, _opy, _opz;
@@ -44,18 +43,18 @@ namespace BioIK.Helpers
 		private double _trx, _try, _trz, _trw;
 		private double _rescaling;
 
-		public Model(BioRobot bioRobot)
+		public BioIkModel(BioIkRobot bioIkRobot)
 		{
-			_bioRobot = bioRobot;
+			_bioIkRobot = bioIkRobot;
 
 			//Set Root
-			_root = _bioRobot.root;
+			_root = _bioIkRobot.root;
 			
 			double chainLength = 0.0;
 
 			AddNode(_root, null);
-			BioSegment previous = _root;
-			BioSegment current = _root.child;
+			BioIkSegment previous = _root;
+			BioIkSegment current = _root.child;
 
 			while (current != null)
 			{
@@ -65,7 +64,7 @@ namespace BioIK.Helpers
 				current = current.child;
 			}
 			
-			_rescaling = BioRobot.PI * BioRobot.PI / (chainLength * chainLength);
+			_rescaling = BioIkRobot.PI * BioIkRobot.PI / (chainLength * chainLength);
 
 			//Assign DoF
 			_doF = motionPointers.Length;
@@ -100,9 +99,9 @@ namespace BioIK.Helpers
 			return _doF;
 		}
 
-		public BioRobot GetBioRobot()
+		public BioIkRobot GetBioRobot()
 		{
-			return _bioRobot;
+			return _bioIkRobot;
 		}
 
 		public void Refresh()
@@ -114,7 +113,7 @@ namespace BioIK.Helpers
 			}
 
 			//Update offset from world to root
-			if (_root.transform.root == _bioRobot.transform)
+			if (_root.transform.root == _bioIkRobot.transform)
 			{
 				_opx = _opy = _opz = _orx = _ory = _orz = 0.0;
 				_orw = 1.0;
@@ -132,63 +131,63 @@ namespace BioIK.Helpers
 			_nodes[0].Refresh();
 		}
 
-		public void CopyFrom(Model model)
+		public void CopyFrom(BioIkModel bioIkModel)
 		{
-			_opx = model._opx;
-			_opy = model._opy;
-			_opz = model._opz;
-			_orx = model._orx;
-			_ory = model._ory;
-			_orz = model._orz;
-			_orw = model._orw;
+			_opx = bioIkModel._opx;
+			_opy = bioIkModel._opy;
+			_opz = bioIkModel._opz;
+			_orx = bioIkModel._orx;
+			_ory = bioIkModel._ory;
+			_orz = bioIkModel._orz;
+			_orw = bioIkModel._orw;
 			for (int i = 0; i < _doF; i++)
 			{
-				_configuration[i] = model._configuration[i];
-				_gradient[i] = model._gradient[i];
+				_configuration[i] = bioIkModel._configuration[i];
+				_gradient[i] = bioIkModel._gradient[i];
 			}
-			_px = model._px;
-			_py = model._py;
-			_pz = model._pz;
-			_rx = model._rx;
-			_ry = model._ry;
-			_rz = model._rz;
-			_rw = model._rw;
-			_loss = model._loss;
-			_simulatedLoss = model._simulatedLoss;
+			_px = bioIkModel._px;
+			_py = bioIkModel._py;
+			_pz = bioIkModel._pz;
+			_rx = bioIkModel._rx;
+			_ry = bioIkModel._ry;
+			_rz = bioIkModel._rz;
+			_rw = bioIkModel._rw;
+			_loss = bioIkModel._loss;
+			_simulatedLoss = bioIkModel._simulatedLoss;
 			for (int i = 0; i < _nodes.Length; i++)
 			{
-				_nodes[i].wpx = model._nodes[i].wpx;
-				_nodes[i].wpy = model._nodes[i].wpy;
-				_nodes[i].wpz = model._nodes[i].wpz;
-				_nodes[i].wrx = model._nodes[i].wrx;
-				_nodes[i].wry = model._nodes[i].wry;
-				_nodes[i].wrz = model._nodes[i].wrz;
-				_nodes[i].wrw = model._nodes[i].wrw;
-				_nodes[i].wsx = model._nodes[i].wsx;
-				_nodes[i].wsy = model._nodes[i].wsy;
-				_nodes[i].wsz = model._nodes[i].wsz;
+				_nodes[i].wpx = bioIkModel._nodes[i].wpx;
+				_nodes[i].wpy = bioIkModel._nodes[i].wpy;
+				_nodes[i].wpz = bioIkModel._nodes[i].wpz;
+				_nodes[i].wrx = bioIkModel._nodes[i].wrx;
+				_nodes[i].wry = bioIkModel._nodes[i].wry;
+				_nodes[i].wrz = bioIkModel._nodes[i].wrz;
+				_nodes[i].wrw = bioIkModel._nodes[i].wrw;
+				_nodes[i].wsx = bioIkModel._nodes[i].wsx;
+				_nodes[i].wsy = bioIkModel._nodes[i].wsy;
+				_nodes[i].wsz = bioIkModel._nodes[i].wsz;
 
-				_nodes[i].lpx = model._nodes[i].lpx;
-				_nodes[i].lpy = model._nodes[i].lpy;
-				_nodes[i].lpz = model._nodes[i].lpz;
-				_nodes[i].lrx = model._nodes[i].lrx;
-				_nodes[i].lry = model._nodes[i].lry;
-				_nodes[i].lrz = model._nodes[i].lrz;
-				_nodes[i].lrw = model._nodes[i].lrw;
+				_nodes[i].lpx = bioIkModel._nodes[i].lpx;
+				_nodes[i].lpy = bioIkModel._nodes[i].lpy;
+				_nodes[i].lpz = bioIkModel._nodes[i].lpz;
+				_nodes[i].lrx = bioIkModel._nodes[i].lrx;
+				_nodes[i].lry = bioIkModel._nodes[i].lry;
+				_nodes[i].lrz = bioIkModel._nodes[i].lrz;
+				_nodes[i].lrw = bioIkModel._nodes[i].lrw;
 				
-				_nodes[i].xValue = model._nodes[i].xValue;
-				_nodes[i].yValue = model._nodes[i].yValue;
-				_nodes[i].zValue = model._nodes[i].zValue;
+				_nodes[i].xValue = bioIkModel._nodes[i].xValue;
+				_nodes[i].yValue = bioIkModel._nodes[i].yValue;
+				_nodes[i].zValue = bioIkModel._nodes[i].zValue;
 			}
-			_rescaling = model._rescaling;
-			_tpx = model._tpx;
-			_tpy = model._tpy;
-			_tpz = model._tpz;
-			_trx = model._trx;
-			_try = model._try;
-			_trz = model._trz;
-			_trw = model._trw;
-			_rescaling = model._rescaling;
+			_rescaling = bioIkModel._rescaling;
+			_tpx = bioIkModel._tpx;
+			_tpy = bioIkModel._tpy;
+			_tpz = bioIkModel._tpz;
+			_trx = bioIkModel._trx;
+			_try = bioIkModel._try;
+			_trz = bioIkModel._trz;
+			_trw = bioIkModel._trw;
+			_rescaling = bioIkModel._rescaling;
 		}
 
 		//Computes the loss as the root mean error squared over all objectives
@@ -258,37 +257,37 @@ namespace BioIK.Helpers
 		}
 
 		//Adds a segment node into the model
-		private void AddNode(BioSegment segment, Node parent)
+		private void AddNode(BioIkSegment ikSegment, Node parent)
 		{
-			Node node = new(this, parent, segment);
+			Node node = new(this, parent, ikSegment);
 
-			if (node.joint != null)
+			if (node.ikJoint != null)
 			{
-				if (node.joint.GetDoF() == 0)
+				if (node.ikJoint.GetDoF() == 0)
 				{
-					node.joint = null;
+					node.ikJoint = null;
 				}
 				else
 				{
-					if (node.joint.x.IsEnabled())
+					if (node.ikJoint.x.enabled)
 					{
-						MotionPtr motionPtr = new(node.joint.x, node, motionPointers.Length);
+						MotionPtr motionPtr = new(node.ikJoint.x, node, motionPointers.Length);
 						Array.Resize(ref motionPointers, motionPointers.Length + 1);
 						motionPointers[^1] = motionPtr;
 						node.xEnabled = true;
 						node.xIndex = motionPtr.index;
 					}
-					if (node.joint.y.IsEnabled())
+					if (node.ikJoint.y.enabled)
 					{
-						MotionPtr motionPtr = new(node.joint.y, node, motionPointers.Length);
+						MotionPtr motionPtr = new(node.ikJoint.y, node, motionPointers.Length);
 						Array.Resize(ref motionPointers, motionPointers.Length + 1);
 						motionPointers[^1] = motionPtr;
 						node.yEnabled = true;
 						node.yIndex = motionPtr.index;
 					}
-					if (node.joint.z.IsEnabled())
+					if (node.ikJoint.z.enabled)
 					{
-						MotionPtr motionPtr = new(node.joint.z, node, motionPointers.Length);
+						MotionPtr motionPtr = new(node.ikJoint.z, node, motionPointers.Length);
 						Array.Resize(ref motionPointers, motionPointers.Length + 1);
 						motionPointers[^1] = motionPtr;
 						node.zEnabled = true;
@@ -305,11 +304,11 @@ namespace BioIK.Helpers
 		// Values are stored using primitive data types for faster access and efficient computation.
 		public class Node
 		{
-			private readonly Model _model;							//Reference to the kinematic model
+			private readonly BioIkModel _bioIkModel;							//Reference to the kinematic model
 			private readonly Node _parent;							//Reference to the parent of this node
 			private Node _child;
 			private readonly Transform _transform;					//Reference to the transform
-			public BioJoint joint;									//Reference to the joint
+			public BioIkJoint ikJoint;									//Reference to the joint
 
 			public double wpx, wpy, wpz;				//World position
 			public double wrx, wry, wrz, wrw;			//World rotation
@@ -328,24 +327,24 @@ namespace BioIK.Helpers
 			public double zValue;
 
 			//Setup for the node
-			public Node(Model model, Node parent, BioSegment segment)
+			public Node(BioIkModel bioIkModel, Node parent, BioIkSegment ikSegment)
 			{
-				_model = model;
+				_bioIkModel = bioIkModel;
 				_parent = parent;
 				if (_parent != null)
 				{
 					_parent._child = this;
 				}
 
-				_transform = segment.transform;
-				joint = segment.joint;
+				_transform = ikSegment.transform;
+				ikJoint = ikSegment.joint;
 			}
 
 			//Recursively refreshes the current transform data
 			public void Refresh()
 			{
 				//Local
-				if (joint == null)
+				if (ikJoint == null)
 				{
 					Vector3 lp = _transform.localPosition;
 					Quaternion lr = _transform.localRotation;
@@ -359,10 +358,10 @@ namespace BioIK.Helpers
 				}
 				else
 				{
-					xValue = joint.x.GetTargetValue();
-					yValue = joint.y.GetTargetValue();
-					zValue = joint.z.GetTargetValue();
-					joint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
+					xValue = ikJoint.x.GetTargetValue();
+					yValue = ikJoint.y.GetTargetValue();
+					zValue = ikJoint.z.GetTargetValue();
+					ikJoint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
 				}
 				Vector3 ws = _transform.lossyScale;
 				wsx = ws.x;
@@ -403,7 +402,7 @@ namespace BioIK.Helpers
 				//Only update local transformation if a joint value has changed
 				if (updateLocal)
 				{
-					joint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
+					ikJoint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
 					updateWorld = true;
 				}
 
@@ -421,8 +420,8 @@ namespace BioIK.Helpers
 			//Returns the resulting Cartesian posture transformations in the out values
 			public void SimulateModification(double[] configuration)
 			{
-				Node node = _model.motionPointers[^1].node;
-				joint.ComputeLocalTransformation(
+				Node node = _bioIkModel.motionPointers[^1].node;
+				ikJoint.ComputeLocalTransformation(
 					xEnabled ? configuration[xIndex] : xValue,
 					yEnabled ? configuration[yIndex] : yValue, 
 					zEnabled ? configuration[zIndex] : zValue, 
@@ -434,13 +433,13 @@ namespace BioIK.Helpers
 				double pz;
 				if (_parent == null)
 				{
-					px = _model._opx;
-					py = _model._opy;
-					pz = _model._opz;
-					localRx = _model._orx;
-					localRy = _model._ory;
-					localRz = _model._orz;
-					localRw = _model._orw;
+					px = _bioIkModel._opx;
+					py = _bioIkModel._opy;
+					pz = _bioIkModel._opz;
+					localRx = _bioIkModel._orx;
+					localRy = _bioIkModel._ory;
+					localRz = _bioIkModel._orz;
+					localRw = _bioIkModel._orw;
 					localX = lpX;
 					localY = lpY;
 					localZ = lpZ;
@@ -481,7 +480,7 @@ namespace BioIK.Helpers
 				double ry = -qx * node.wrz + qy * node.wrw + qz * node.wrx + qw * node.wry;
 				double rz = qx * node.wry - qy * node.wrx + qz * node.wrw + qw * node.wrz;
 				double rw = -qx * node.wrx - qy * node.wry - qz * node.wrz + qw * node.wrw;
-				_model._simulatedLoss = _model.ComputeLoss(px, py, pz, rx, ry, rz, rw);
+				_bioIkModel._simulatedLoss = _bioIkModel.ComputeLoss(px, py, pz, rx, ry, rz, rw);
 			}
 
 			//Computes the world transformation using the current joint variable configuration
@@ -490,13 +489,13 @@ namespace BioIK.Helpers
 				double rx, ry, rz, rw, x, y, z;
 				if (_parent == null)
 				{
-					wpx = _model._opx;
-					wpy = _model._opy;
-					wpz = _model._opz;
-					rx = _model._orx;
-					ry = _model._ory;
-					rz = _model._orz;
-					rw = _model._orw;
+					wpx = _bioIkModel._opx;
+					wpy = _bioIkModel._opy;
+					wpz = _bioIkModel._opz;
+					rx = _bioIkModel._orx;
+					ry = _bioIkModel._ory;
+					rz = _bioIkModel._orz;
+					rw = _bioIkModel._orw;
 					x = lpx;
 					y = lpy;
 					z = lpz;
@@ -527,11 +526,11 @@ namespace BioIK.Helpers
 		//Data class to store pointers to the joint motions
 		public struct MotionPtr
 		{
-			public readonly BioJoint.Motion motion;
+			public readonly BioIkJoint.Motion motion;
 			public readonly Node node;
 			public readonly int index;
 			
-			public MotionPtr(BioJoint.Motion motion, Node node, int index)
+			public MotionPtr(BioIkJoint.Motion motion, Node node, int index)
 			{
 				this.motion = motion;
 				this.node = node;

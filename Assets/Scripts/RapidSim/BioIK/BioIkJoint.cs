@@ -1,34 +1,33 @@
 ﻿using Unity.Mathematics;
 using UnityEngine;
 
-namespace BioIK.Setup
+namespace RapidSim.BioIK
 {
 	[DisallowMultipleComponent]
-	public class BioJoint : MonoBehaviour
+	public class BioIkJoint : MonoBehaviour
 	{
-		public BioSegment segment;
-		public Motion x, y, z;
-		public bool rotational = true;
+		[Tooltip("The segment this joint is attached to.")]
+		public BioIkSegment segment;
 
-		[SerializeField] private Vector3 orientation = Vector3.zero;
-		[SerializeField] private float dpx, dpy, dpz, drx, dry, drz, drw;
+		[Tooltip("The motion along the X axis.")]
+		public Motion x;
+		
+		[Tooltip("The motion along the Y axis.")]
+		public Motion y;
+		
+		[Tooltip("The motion along the Z axis.")]
+		public Motion z;
+		
+		[Tooltip("True if this joint is rotational, false if it is Prismatic.")]
+		public bool rotational = true;
+		
+		private Vector3 _orientation = Vector3.zero;
+		
+		private float _dpx, _dpy, _dpz, _drx, _dry, _drz, _drw;
 
 		private double _r1, _r2, _r3, _r4, _r5, _r6, _r7, _r8, _r9;
 
-		private void OnEnable()
-		{
-			if (segment != null)
-			{
-				segment.bioRobot.Refresh();
-			}
-		}
-
-		private void OnDisable()
-		{
-			segment.bioRobot.Refresh();
-		}
-
-		public BioJoint Create(BioSegment value)
+		public BioIkJoint Create(BioIkSegment value)
 		{
 			segment = value;
 
@@ -49,22 +48,22 @@ namespace BioIK.Setup
 				forward = Quaternion.Inverse(segment.transform.localRotation) * segment.transform.localPosition;
 			}
 
-			SetOrientation(forward.magnitude != 0f ? Quaternion.LookRotation(forward, Vector3.up).eulerAngles : orientation);
+			SetOrientation(forward.magnitude != 0f ? Quaternion.LookRotation(forward, Vector3.up).eulerAngles : _orientation);
 
 			return this;
 		}
 
 		public void UpdateData()
 		{
-			_r1 = 1.0 - 2.0 * (dry * dry + drz * drz);
-			_r2 = 2.0 * (drx * dry + drw * drz);
-			_r3 = 2.0 * (drx * drz - drw * dry);
-			_r4 = 2.0 * (drx * dry - drw * drz);
-			_r5 = 1.0 - 2.0 * (drx * drx + drz * drz);
-			_r6 = 2.0 * (dry * drz + drw * drx);
-			_r7 = 2.0 * (drx * drz + drw * dry);
-			_r8 = 2.0 * (dry * drz - drw * drx);
-			_r9 = 1.0 - 2.0 * (drx * drx + dry * dry);
+			_r1 = 1.0 - 2.0 * (_dry * _dry + _drz * _drz);
+			_r2 = 2.0 * (_drx * _dry + _drw * _drz);
+			_r3 = 2.0 * (_drx * _drz - _drw * _dry);
+			_r4 = 2.0 * (_drx * _dry - _drw * _drz);
+			_r5 = 1.0 - 2.0 * (_drx * _drx + _drz * _drz);
+			_r6 = 2.0 * (_dry * _drz + _drw * _drx);
+			_r7 = 2.0 * (_drx * _drz + _drw * _dry);
+			_r8 = 2.0 * (_dry * _drz - _drw * _drx);
+			_r9 = 1.0 - 2.0 * (_drx * _drx + _dry * _dry);
 		}
 
 		public void ProcessMotion()
@@ -78,7 +77,7 @@ namespace BioIK.Setup
 			double lpX, lpY, lpZ, lrX, lrY, lrZ, lrW;
 			if(rotational)
 			{
-				ComputeLocalTransformation(BioRobot.Deg2Rad*x.ProcessMotion(), BioRobot.Deg2Rad*y.ProcessMotion(), BioRobot.Deg2Rad*z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
+				ComputeLocalTransformation(BioIkRobot.Deg2Rad*x.ProcessMotion(), BioIkRobot.Deg2Rad*y.ProcessMotion(), BioIkRobot.Deg2Rad*z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
 			}
 			else
 			{
@@ -107,11 +106,11 @@ namespace BioIK.Setup
 				double axisY = valueX * x.axis.y + valueY * y.axis.y + valueZ * z.axis.y;
 				double axisZ = valueX * x.axis.z + valueY * y.axis.z + valueZ * z.axis.z;
 				//Local position for translational motion
-				lpX = dpx + _r1 * axisX + _r4 * axisY + _r7 * axisZ;
-				lpY = dpy + _r2 * axisX + _r5 * axisY + _r8 * axisZ;
-				lpZ = dpz + _r3 * axisX + _r6 * axisY + _r9 * axisZ;
+				lpX = _dpx + _r1 * axisX + _r4 * axisY + _r7 * axisZ;
+				lpY = _dpy + _r2 * axisX + _r5 * axisY + _r8 * axisZ;
+				lpZ = _dpz + _r3 * axisX + _r6 * axisY + _r9 * axisZ;
 				//Local rotation for translational motion
-				lrX = drx; lrY = dry; lrZ = drz; lrW = drw;
+				lrX = _drx; lrY = _dry; lrZ = _drz; lrW = _drw;
 				return;
 			}
 
@@ -194,33 +193,33 @@ namespace BioIK.Setup
 			}
 			else
 			{
-				lpX = dpx;
-				lpY = dpy;
-				lpZ = dpz;
-				lrX = drx;
-				lrY = dry;
-				lrZ = drz;
-				lrW = drw;
+				lpX = _dpx;
+				lpY = _dpy;
+				lpZ = _dpz;
+				lrX = _drx;
+				lrY = _dry;
+				lrZ = _drz;
+				lrW = _drw;
 				return;
 			}
 
 			//Local Rotation
 			//R' = R*Q
-			lrX = drx * qw + dry * qz - drz * qy + drw * qx;
-			lrY = -drx * qz + dry * qw + drz * qx + drw * qy;
-			lrZ = drx * qy - dry * qx + drz * qw + drw * qz;
-			lrW = -drx * qx - dry * qy - drz * qz + drw * qw;
+			lrX = _drx * qw + _dry * qz - _drz * qy + _drw * qx;
+			lrY = -_drx * qz + _dry * qw + _drz * qx + _drw * qy;
+			lrZ = _drx * qy - _dry * qx + _drz * qw + _drw * qz;
+			lrW = -_drx * qx - _dry * qy - _drz * qz + _drw * qw;
 
 			//Local Position
-			lpX = dpx;
-			lpY = dpy;
-			lpZ = dpz;
+			lpX = _dpx;
+			lpY = _dpy;
+			lpZ = _dpz;
 		}
 
 		public void SetOrientation(Vector3 value)
 		{
-			orientation = value;
-			Quaternion o = Quaternion.Euler(orientation);
+			_orientation = value;
+			Quaternion o = Quaternion.Euler(_orientation);
 			x.axis = o * Vector3.right;
 			y.axis = o * Vector3.up;
 			z.axis = o * Vector3.forward;
@@ -229,15 +228,15 @@ namespace BioIK.Setup
 		public int GetDoF()
 		{
 			int dof = 0;
-			if (x.IsEnabled())
+			if (x.enabled)
 			{
 				dof += 1;
 			}
-			if (y.IsEnabled())
+			if (y.enabled)
 			{
 				dof += 1;
 			}
-			if (z.IsEnabled())
+			if (z.enabled)
 			{
 				dof += 1;
 			}
@@ -246,27 +245,37 @@ namespace BioIK.Setup
 
 		private void SetDefaultFrame(Vector3 localPosition, Quaternion localRotation)
 		{
-			dpx = localPosition.x;
-			dpy = localPosition.y;
-			dpz = localPosition.z;
-			drx = localRotation.x;
-			dry = localRotation.y;
-			drz = localRotation.z;
-			drw = localRotation.w;
+			_dpx = localPosition.x;
+			_dpy = localPosition.y;
+			_dpz = localPosition.z;
+			_drx = localRotation.x;
+			_dry = localRotation.y;
+			_drz = localRotation.z;
+			_drw = localRotation.w;
 		}
 
 		[System.Serializable]
 		public class Motion
 		{
-			public BioJoint joint;
-
-			public bool enabled;
-			public double lowerLimit;
-			public double upperLimit;
-			public double targetValue;
+			[Tooltip("The joint this motion is attached to.")]
+			public BioIkJoint joint;
+			
+			[Tooltip("The axis this movement controls.")]
 			public Vector3 axis;
 
-			public Motion(BioJoint joint, Vector3 axis)
+			[Tooltip("True if this joint has movement along this axis, false otherwise.")]
+			public bool enabled;
+			
+			[Tooltip("The lower limit of this joint in meters (for prismatic joints) or radians (for rotational joints).")]
+			public double lowerLimit;
+			
+			[Tooltip("The upper limit of this joint in meters (for prismatic joints) or radians (for rotational joints).")]
+			public double upperLimit;
+
+			[Tooltip("The target value for this joint in meters (for prismatic joints) or radians (for rotational joints).")]
+			public double targetValue;
+
+			public Motion(BioIkJoint joint, Vector3 axis)
 			{
 				this.joint = joint;
 				this.axis = axis;
@@ -278,22 +287,6 @@ namespace BioIK.Setup
 				return !enabled ? 0.0 : targetValue;
 			}
 
-			public void SetEnabled(bool value)
-			{
-				if (enabled == value)
-				{
-					return;
-				}
-
-				enabled = value;
-				joint.segment.bioRobot.Refresh();
-			}
-
-			public bool IsEnabled()
-			{
-				return enabled;
-			}
-
 			public void SetLowerLimit(double value)
 			{
 				lowerLimit = System.Math.Min(0.0, value);
@@ -303,7 +296,7 @@ namespace BioIK.Setup
 			{
 				if (normalised && joint.rotational)
 				{
-					return BioRobot.Deg2Rad * lowerLimit;
+					return BioIkRobot.Deg2Rad * lowerLimit;
 				}
 
 				return lowerLimit;
@@ -319,7 +312,7 @@ namespace BioIK.Setup
 			{
 				if (normalised && joint.rotational)
 				{
-					return BioRobot.Deg2Rad * upperLimit;
+					return BioIkRobot.Deg2Rad * upperLimit;
 				}
 
 				return upperLimit;
@@ -330,7 +323,7 @@ namespace BioIK.Setup
 			{
 				if (normalised && joint.rotational)
 				{
-					value *= BioRobot.Rad2Deg;
+					value *= BioIkRobot.Rad2Deg;
 				}
 
 				targetValue = math.clamp(value, lowerLimit, upperLimit);
@@ -340,7 +333,7 @@ namespace BioIK.Setup
 			{
 				if (joint.rotational)
 				{
-					return BioRobot.Deg2Rad * targetValue;
+					return BioIkRobot.Deg2Rad * targetValue;
 				}
 
 				return targetValue;

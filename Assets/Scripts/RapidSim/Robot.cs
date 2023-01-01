@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using BioIK;
-using BioIK.Setup;
+using RapidSim.BioIK;
 using RapidSim.Networks;
 using Unity.Mathematics;
 using UnityEngine;
@@ -71,9 +70,9 @@ namespace RapidSim
 
         private RobotJoint[] _joints;
 
-        private BioRobot _bioRobot;
+        private BioIkRobot _bioIkRobot;
 
-        private BioJoint.Motion[] _motions;
+        private BioIkJoint.Motion[] _motions;
 
         private Transform Objective => LastJoint.transform;
 
@@ -169,9 +168,9 @@ namespace RapidSim
         
         private void OnDestroy()
         {
-            if (_bioRobot != null)
+            if (_bioIkRobot != null)
             {
-                Destroy(_bioRobot.gameObject);
+                Destroy(_bioIkRobot.gameObject);
             }
         }
         
@@ -460,9 +459,8 @@ namespace RapidSim
 
         public double[] BioIkOptimize(Vector3 position, Quaternion orientation)
         {
-            _bioRobot.DeInitialise();
-            _bioRobot.Initialise();
-            _bioRobot.solution = new double[_bioRobot.evolution.GetModel().GetDoF()];
+            _bioIkRobot.Initialise(populationSize, elites);
+            _bioIkRobot.solution = new double[_bioIkRobot.Evolution.GetModel().GetDoF()];
             
             List<float> joints = GetJoints();
 
@@ -491,22 +489,21 @@ namespace RapidSim
                     _motions[i].SetTargetValue(starting[i]);
                 }
             
-                BioRobot.UpdateData(_bioRobot.root);
-            
-                for (int i = 0; i < _bioRobot.solution.Length; i++)
+                _bioIkRobot.UpdateData();
+                for (int i = 0; i < _bioIkRobot.solution.Length; i++)
                 {
-                    _bioRobot.solution[i] = _bioRobot.evolution.GetModel().motionPointers[i].motion.GetTargetValue();
+                    _bioIkRobot.solution[i] = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion.GetTargetValue();
                 }
             
-                _bioRobot.solution = _bioRobot.evolution.Optimise(_bioRobot.generations, _bioRobot.solution, position, orientation, rescaling);
+                _bioIkRobot.solution = _bioIkRobot.Evolution.Optimise(generations, _bioIkRobot.solution, position, orientation, rescaling);
 
-                for (int i = 0; i < _bioRobot.solution.Length; i++)
+                for (int i = 0; i < _bioIkRobot.solution.Length; i++)
                 {
-                    BioJoint.Motion motion = _bioRobot.evolution.GetModel().motionPointers[i].motion;
-                    motion.SetTargetValue(_bioRobot.solution[i], true);
+                    BioIkJoint.Motion motion = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion;
+                    motion.SetTargetValue(_bioIkRobot.solution[i], true);
                 }
 
-                BioRobot.ProcessMotion(_bioRobot.root);
+                _bioIkRobot.ProcessMotion();
 
                 double[] ending = new double[_motions.Length];
                 for (int i = 0; i < _motions.Length; i++)
@@ -538,9 +535,8 @@ namespace RapidSim
         
         public double[] BioIkSolve(Vector3 position, Quaternion orientation)
         {
-            _bioRobot.DeInitialise();
-            _bioRobot.Initialise();
-            _bioRobot.solution = new double[_bioRobot.evolution.GetModel().GetDoF()];
+            _bioIkRobot.Initialise(populationSize, elites);
+            _bioIkRobot.solution = new double[_bioIkRobot.Evolution.GetModel().GetDoF()];
             
             List<float> joints = GetJoints();
 
@@ -557,22 +553,21 @@ namespace RapidSim
                 _motions[i].SetTargetValue(starting[i]);
             }
             
-            BioRobot.UpdateData(_bioRobot.root);
-            
-            for (int i = 0; i < _bioRobot.solution.Length; i++)
+            _bioIkRobot.UpdateData();
+            for (int i = 0; i < _bioIkRobot.solution.Length; i++)
             {
-                _bioRobot.solution[i] = _bioRobot.evolution.GetModel().motionPointers[i].motion.GetTargetValue();
+                _bioIkRobot.solution[i] = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion.GetTargetValue();
             }
             
-            _bioRobot.solution = _bioRobot.evolution.Optimise(_bioRobot.generations, _bioRobot.solution, position, orientation, Rescaling);
+            _bioIkRobot.solution = _bioIkRobot.Evolution.Optimise(generations, _bioIkRobot.solution, position, orientation, Rescaling);
 
-            for (int i = 0; i < _bioRobot.solution.Length; i++)
+            for (int i = 0; i < _bioIkRobot.solution.Length; i++)
             {
-                BioJoint.Motion motion = _bioRobot.evolution.GetModel().motionPointers[i].motion;
-                motion.SetTargetValue(_bioRobot.solution[i], true);
+                BioIkJoint.Motion motion = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion;
+                motion.SetTargetValue(_bioIkRobot.solution[i], true);
             }
 
-            BioRobot.ProcessMotion(_bioRobot.root);
+            _bioIkRobot.ProcessMotion();
 
             double[] ending = new double[_motions.Length];
             for (int i = 0; i < _motions.Length; i++)
@@ -583,7 +578,7 @@ namespace RapidSim
             return ending;
         }
         
-        private double Rescaling => BioRobot.PI * BioRobot.PI / (_chainLength * _chainLength);
+        private double Rescaling => BioIkRobot.PI * BioIkRobot.PI / (_chainLength * _chainLength);
 
         private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
         {
@@ -668,24 +663,7 @@ namespace RapidSim
     
             double[] expected = NetScaled(BioIkOptimize(position, rotation));
             
-            // TRAIN NETWORK
-            string s = "INPUTS: ";
-            for (int i = 0; i < inputs.Length; i++)
-            {
-                s += $"{inputs[i]}";
-                s += i < inputs.Length - 1 ? "," : "\nOUTPUTS: ";
-            }
-            
-            for (int i = 0; i < expected.Length; i++)
-            {
-                s += $"{expected[i]}";
-                if (i < expected.Length - 1)
-                {
-                    s += ",";
-                }
-            }
-            
-            Debug.Log(s);
+            // TODO - Train neural network.
 
             Debug.Log($"Training {network.step} of {network.maxSteps} - {(float)network.step / network.maxSteps * 100}%.");
         }
@@ -702,19 +680,13 @@ namespace RapidSim
                     rotation = rootTransform.rotation
                 }
             };
-            _bioRobot = bioIkHolder.AddComponent<BioRobot>();
-            _bioRobot.generations = generations;
-            _bioRobot.SetPopulationSize(populationSize);
-            _bioRobot.SetElites(elites);
+            _bioIkRobot = bioIkHolder.AddComponent<BioIkRobot>();
 
-            _bioRobot.Refresh(false);
-            BioSegment rootSegment = bioIkHolder.GetComponent<BioSegment>();
-            _lastBioSegment = rootSegment.transform;
-            rootSegment.bioRobot = _bioRobot;
+            BioIkSegment previousSegment = null;
 
-            List<BioJoint.Motion> motions = new();
+            List<BioIkJoint.Motion> motions = new();
 
-            Transform parent = _bioRobot.transform;
+            Transform parent = _bioIkRobot.transform;
 
             int jointNumber = 1;
 
@@ -735,80 +707,85 @@ namespace RapidSim
                     }
                 };
 
-                _bioRobot.Refresh(false);
-                BioSegment segment = go.GetComponent<BioSegment>();
+                BioIkSegment segment = go.AddComponent<BioIkSegment>();
+                if (previousSegment == null)
+                {
+                    _bioIkRobot.root = segment;
+                }
+                else
+                {
+                    segment.parent = previousSegment;
+                    previousSegment.child = segment;
+                }
+                previousSegment = segment;
                 _lastBioSegment = segment.transform;
-                segment.bioRobot = _bioRobot;
                 parent = go.transform;
                 
-                BioJoint bioJoint = segment.gameObject.AddComponent<BioJoint>().Create(segment);
-                segment.joint = bioJoint;
-                _bioRobot.Refresh();
-                bioJoint.rotational = _joints[i].Type != ArticulationJointType.PrismaticJoint;
-                bioJoint.SetOrientation(Vector3.zero);
+                BioIkJoint bioIkJoint = segment.gameObject.AddComponent<BioIkJoint>().Create(segment);
+                segment.joint = bioIkJoint;
+                bioIkJoint.rotational = _joints[i].Type != ArticulationJointType.PrismaticJoint;
+                bioIkJoint.SetOrientation(Vector3.zero);
 
                 if (_joints[i].XMotion)
                 {
-                    motions.Add(bioJoint.y);
-                    bioJoint.y.SetEnabled(true);
-                    if (!bioJoint.rotational)
+                    motions.Add(bioIkJoint.y);
+                    bioIkJoint.y.enabled = true;
+                    if (!bioIkJoint.rotational)
                     {
-                        bioJoint.y.SetLowerLimit(_joints[i].LimitX.lower);
-                        bioJoint.y.SetUpperLimit(_joints[i].LimitX.upper);
+                        bioIkJoint.y.SetLowerLimit(_joints[i].LimitX.lower);
+                        bioIkJoint.y.SetUpperLimit(_joints[i].LimitX.upper);
                     }
                     else
                     {
-                        bioJoint.y.SetLowerLimit(_joints[i].LimitX.lower * Mathf.Rad2Deg);
-                        bioJoint.y.SetUpperLimit(_joints[i].LimitX.upper * Mathf.Rad2Deg);
+                        bioIkJoint.y.SetLowerLimit(_joints[i].LimitX.lower * Mathf.Rad2Deg);
+                        bioIkJoint.y.SetUpperLimit(_joints[i].LimitX.upper * Mathf.Rad2Deg);
                     }
                 }
                 else
                 {
-                    bioJoint.y.SetEnabled(false);
+                    bioIkJoint.y.enabled = false;
                 }
 
                 if (_joints[i].YMotion)
                 {
-                    motions.Add(bioJoint.z);
-                    bioJoint.z.SetEnabled(true);
-                    if (!bioJoint.rotational)
+                    motions.Add(bioIkJoint.z);
+                    bioIkJoint.z.enabled = true;
+                    if (!bioIkJoint.rotational)
                     {
-                        bioJoint.z.SetLowerLimit(_joints[i].LimitY.lower);
-                        bioJoint.z.SetUpperLimit(_joints[i].LimitY.upper);
+                        bioIkJoint.z.SetLowerLimit(_joints[i].LimitY.lower);
+                        bioIkJoint.z.SetUpperLimit(_joints[i].LimitY.upper);
                     }
                     else
                     {
-                        bioJoint.z.SetLowerLimit(_joints[i].LimitY.lower * Mathf.Rad2Deg);
-                        bioJoint.z.SetUpperLimit(_joints[i].LimitY.upper * Mathf.Rad2Deg);
+                        bioIkJoint.z.SetLowerLimit(_joints[i].LimitY.lower * Mathf.Rad2Deg);
+                        bioIkJoint.z.SetUpperLimit(_joints[i].LimitY.upper * Mathf.Rad2Deg);
                     }
                 }
                 else
                 {
-                    bioJoint.z.SetEnabled(false);
+                    bioIkJoint.z.enabled = false;
                 }
                 
                 if (_joints[i].ZMotion)
                 {
-                    motions.Add(bioJoint.x);
-                    bioJoint.x.SetEnabled(true);
-                    if (!bioJoint.rotational)
+                    motions.Add(bioIkJoint.x);
+                    bioIkJoint.x.enabled = true;
+                    if (!bioIkJoint.rotational)
                     {
-                        bioJoint.x.SetLowerLimit(_joints[i].LimitZ.lower);
-                        bioJoint.x.SetUpperLimit(_joints[i].LimitZ.upper);
+                        bioIkJoint.x.SetLowerLimit(_joints[i].LimitZ.lower);
+                        bioIkJoint.x.SetUpperLimit(_joints[i].LimitZ.upper);
                     }
                     else
                     {
-                        bioJoint.x.SetLowerLimit(_joints[i].LimitZ.lower * Mathf.Rad2Deg);
-                        bioJoint.x.SetUpperLimit(_joints[i].LimitZ.upper * Mathf.Rad2Deg);
+                        bioIkJoint.x.SetLowerLimit(_joints[i].LimitZ.lower * Mathf.Rad2Deg);
+                        bioIkJoint.x.SetUpperLimit(_joints[i].LimitZ.upper * Mathf.Rad2Deg);
                     }
                 }
                 else
                 {
-                    bioJoint.x.SetEnabled(false);
+                    bioIkJoint.x.enabled = false;
                 }
             }
-
-            _bioRobot.Refresh();
 
             _motions = motions.ToArray();
         }

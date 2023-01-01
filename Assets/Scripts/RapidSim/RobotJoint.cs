@@ -8,7 +8,7 @@ namespace RapidSim
     [RequireComponent(typeof(ArticulationBody))]
     public class RobotJoint : MonoBehaviour
     {
-        [Tooltip("The speed in meters per second (for prismatic joints) or in degrees per second for each joint axis.")]
+        [Tooltip("The speed in meters per second (for prismatic joints) or in degrees per second (for rotational joints).")]
         [SerializeField]
         private float3 speed;
         

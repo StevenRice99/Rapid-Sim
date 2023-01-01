@@ -1,5 +1,6 @@
 ﻿using System;
 using Unity.Mathematics;
+using UnityEngine;
 using Random = Unity.Mathematics.Random;
 
 namespace RapidSim.Networks
@@ -7,23 +8,53 @@ namespace RapidSim.Networks
     [Serializable]
     public struct Layer
     {
+        [Header("Layer Size")]
+        [Tooltip("Number of inputs to the layer.")]
+        [Min(1)]
         public int numberOfInputs;
+        
+        [Tooltip("Number of outputs from the layer.")]
+        [Min(1)]
         public int numberOfOutputs;
         
+        [Header("Passed Values")]
+        [Tooltip("The last inputs passed into the layer.")]
         public double[] inputs;
+        
+        [Tooltip("The last outputs run through the layer.")]
         public double[] outputs;
         
+        [Header("Weights and Bias")]
+        [Tooltip("The weights of the layer.")]
         public WrappedArray[] weights;
-        public double[] bias;
         
-        public WrappedArray[] deltaWeights;
+        [Tooltip("The bias of the layer.")]
+        [SerializeField]
+        private double[] bias;
+        
+        [Header("ADAM Optimizer Parameters")]
+        [Tooltip("Delta weight values.")]
+        [SerializeField]
+        private WrappedArray[] deltaWeights;
+        
+        [Tooltip("Delta bias values.")]
         public double[] deltaBias;
         
-        public WrappedArray[] velocityDeltaWeights;
-        public double[] velocityDeltaBias;
+        [Tooltip("Velocity delta weight values.")]
+        [SerializeField]
+        private WrappedArray[] velocityDeltaWeights;
         
-        public WrappedArray[] momentumDeltaWeights;
-        public double[] momentumDeltaBias;
+        [Tooltip("Velocity delta bias values.")]
+        [SerializeField]
+        private double[] velocityDeltaBias;
+        
+        [Tooltip("Momentum delta weight values.")]
+        [SerializeField]
+        private WrappedArray[] momentumDeltaWeights;
+        
+        [Tooltip("Momentum delta bias values.")]
+        [SerializeField]
+        private double[] momentumDeltaBias;
 
         public int NumberOfParameters => numberOfInputs * numberOfOutputs + numberOfOutputs;
 
@@ -164,12 +195,9 @@ namespace RapidSim.Networks
 
         public override string ToString()
         {
-            if (inputs == null || outputs == null)
-            {
-                return $"Layer not setup";
-            }
-            
-            return $"Inputs: {inputs.Length} | Outputs: {outputs.Length} | Parameters: {NumberOfParameters}";
+            return inputs == null || outputs == null
+                ? "Layer not setup"
+                : $"Inputs: {inputs.Length} | Outputs: {outputs.Length} | Parameters: {NumberOfParameters}";
         }
     }
 }

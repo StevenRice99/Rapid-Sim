@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace RapidSim.Testers
+﻿namespace RapidSim.Testers
 {
     public class RobotHomeTester : RobotTester
     {

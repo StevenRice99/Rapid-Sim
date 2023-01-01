@@ -4,14 +4,19 @@ namespace RapidSim.Testers
 {
     public abstract class RobotTester : MonoBehaviour
     {
-        [SerializeField]
-        protected Robot robot;
-        
+        [Header("Controls")]
+        [Tooltip("Move the robot over time.")]
         [SerializeField]
         protected bool move;
 
+        [Tooltip("Instantly snap the robot.")]
         [SerializeField]
         protected bool snap;
+        
+        [Header("Configuration")]
+        [Tooltip("The robot to control.")]
+        [SerializeField]
+        protected Robot robot;
 
         private void Awake()
         {
