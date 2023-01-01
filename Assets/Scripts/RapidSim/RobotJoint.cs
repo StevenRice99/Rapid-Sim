@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace RapidSim
@@ -7,14 +8,9 @@ namespace RapidSim
     [RequireComponent(typeof(ArticulationBody))]
     public class RobotJoint : MonoBehaviour
     {
+        [Tooltip("The speed in meters per second (for prismatic joints) or in degrees per second for each joint axis.")]
         [SerializeField]
-        private float speedX;
-        
-        [SerializeField]
-        private float speedY;
-        
-        [SerializeField]
-        private float speedZ;
+        private float3 speed;
         
         public ArticulationBody Joint { get; private set; }
         
@@ -32,11 +28,11 @@ namespace RapidSim
 
         public bool ZMotion => ZDrive.lowerLimit != 0 && ZDrive.upperLimit != 0;
 
-        public float SpeedX => Type == ArticulationJointType.PrismaticJoint ? speedX : speedX * Mathf.Deg2Rad;
+        public float SpeedX => Type == ArticulationJointType.PrismaticJoint ? speed.x : speed.x * Mathf.Deg2Rad;
 
-        public float SpeedY => Type == ArticulationJointType.PrismaticJoint ? speedY : speedY * Mathf.Deg2Rad;
+        public float SpeedY => Type == ArticulationJointType.PrismaticJoint ? speed.y : speed.y * Mathf.Deg2Rad;
 
-        public float SpeedZ => Type == ArticulationJointType.PrismaticJoint ? speedZ : speedZ * Mathf.Deg2Rad;
+        public float SpeedZ => Type == ArticulationJointType.PrismaticJoint ? speed.z : speed.z * Mathf.Deg2Rad;
 
         public ArticulationJointType Type => Joint.jointType;
 

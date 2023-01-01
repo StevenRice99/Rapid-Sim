@@ -7,19 +7,23 @@ namespace RapidSim.Networks
     [Serializable]
     public struct Layer
     {
-        public double[] outputs;
-        public WrappedArray[] weights;
-        public double[] deltaBias;
-
-        public double[] inputs;
         public int numberOfInputs;
         public int numberOfOutputs;
+        
+        public double[] inputs;
+        public double[] outputs;
+        
+        public WrappedArray[] weights;
         public double[] bias;
+        
         public WrappedArray[] deltaWeights;
-        public WrappedArray[] momentumDeltaWeights;
+        public double[] deltaBias;
+        
         public WrappedArray[] velocityDeltaWeights;
-        public double[] momentumDeltaBias;
         public double[] velocityDeltaBias;
+        
+        public WrappedArray[] momentumDeltaWeights;
+        public double[] momentumDeltaBias;
 
         public int NumberOfParameters => numberOfInputs * numberOfOutputs + numberOfOutputs;
 

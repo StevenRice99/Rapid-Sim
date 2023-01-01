@@ -221,9 +221,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speedX: 55
-  speedY: 0
-  speedZ: 0
+  speed:
+    x: 55
+    y: 0
+    z: 0
 --- !u!1 &180788173
 GameObject:
   m_ObjectHideFlags: 0
@@ -543,9 +544,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speedX: 0
-  speedY: 0
-  speedZ: 0
+  speed:
+    x: 0
+    y: 0
+    z: 0
 --- !u!1 &297292206
 GameObject:
   m_ObjectHideFlags: 0
@@ -814,9 +816,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speedX: 50
-  speedY: 0
-  speedZ: 0
+  speed:
+    x: 50
+    y: 0
+    z: 0
 --- !u!1 &618374064
 GameObject:
   m_ObjectHideFlags: 0
@@ -1085,9 +1088,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speedX: 160
-  speedY: 0
-  speedZ: 0
+  speed:
+    x: 160
+    y: 0
+    z: 0
 --- !u!1 &766827063
 GameObject:
   m_ObjectHideFlags: 0
@@ -1469,9 +1473,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speedX: 75
-  speedY: 0
-  speedZ: 0
+  speed:
+    x: 75
+    y: 0
+    z: 0
 --- !u!1 &1291932666
 GameObject:
   m_ObjectHideFlags: 0
@@ -1763,9 +1768,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speedX: 100
-  speedY: 0
-  speedZ: 0
+  speed:
+    x: 100
+    y: 0
+    z: 0
 --- !u!1 &1382872281
 GameObject:
   m_ObjectHideFlags: 0
@@ -1897,12 +1903,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   repeatability: 0.00008
-  bioIkGenerations: 5
-  bioIkPopulationSize: 120
-  bioIkElites: 3
-  bioIkOptimizeAttempts: 100
-  train: 0
+  generations: 5
+  populationSize: 120
+  elites: 3
+  optimizeAttempts: 100
   network: {fileID: 11400000, guid: 716b7929ffe21d34db3fe54066eb8adc, type: 2}
+  train: 0
 --- !u!1 &1898101831
 GameObject:
   m_ObjectHideFlags: 0
@@ -2001,6 +2007,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dcc76cb464fc4f4190ec4c1671eba747, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speedX: 100
-  speedY: 0
-  speedZ: 0
+  speed:
+    x: 100
+    y: 0
+    z: 0

@@ -13,31 +13,41 @@ namespace RapidSim
     [DisallowMultipleComponent]
     public class Robot : MonoBehaviour
     {
+        [Header("Robot Settings")]
+        [Tooltip("How accurate in meters the robot can repeat a movement.")]
         [Min(0)]
         [SerializeField]
         private double repeatability = 8e-5;
         
+        [Header("Bio IK Settings")]
+        [Tooltip("The number of generations for a Bio IK evolution.")]
         [Min(1)]
         [SerializeField]
-        private int bioIkGenerations = 5;
+        private int generations = 5;
         
         [Min(1)]
+        [Tooltip("The population size of each generation during Bio IK evolution.")]
         [SerializeField]
-        private int bioIkPopulationSize = 120;
+        private int populationSize = 120;
         
         [Min(1)]
+        [Tooltip("The number of elites in each generation during Bio IK evolution.")]
         [SerializeField]
-        private int bioIkElites = 3;
-
-        [Min(1)]
-        [SerializeField]
-        private int bioIkOptimizeAttempts = 100;
+        private int elites = 3;
         
+        [Min(1)]
+        [Tooltip("The number of times to run the Bio IK algorithm when attempting to find an optimal move.")]
         [SerializeField]
-        private bool train;
-
+        private int optimizeAttempts = 100;
+        
+        [Header("Neural Network Settings")]
+        [Tooltip("The neural network to control the robot.")]
         [SerializeField]
         private NeuralNetwork network;
+        
+        [Tooltip("Click to train the neural network to control the robot.")]
+        [SerializeField]
+        private bool train;
 
         private ArticulationBody Root => _joints[0].Joint;
 
@@ -68,6 +78,14 @@ namespace RapidSim
         private Transform Objective => LastJoint.transform;
 
         private Transform _lastBioSegment;
+
+        private void OnValidate()
+        {
+            if (elites > populationSize)
+            {
+                elites = populationSize;
+            }
+        }
 
         public void Start()
         {
@@ -478,7 +496,7 @@ namespace RapidSim
             double bestTime = 0;
             double rescaling = Rescaling;
 
-            for (int attempt = 0; attempt < bioIkOptimizeAttempts; attempt++)
+            for (int attempt = 0; attempt < optimizeAttempts; attempt++)
             {
                 for (int i = 0; i < starting.Length; i++)
                 {
@@ -697,9 +715,9 @@ namespace RapidSim
                 }
             };
             _bioRobot = bioIkHolder.AddComponent<BioRobot>();
-            _bioRobot.generations = bioIkGenerations;
-            _bioRobot.SetPopulationSize(bioIkPopulationSize);
-            _bioRobot.SetElites(bioIkElites);
+            _bioRobot.generations = generations;
+            _bioRobot.SetPopulationSize(populationSize);
+            _bioRobot.SetElites(elites);
 
             _bioRobot.Refresh(false);
             BioSegment rootSegment = bioIkHolder.GetComponent<BioSegment>();

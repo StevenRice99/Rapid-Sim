@@ -5,16 +5,16 @@ namespace RapidSim.Networks.Testers
     public class XorTester : MonoBehaviour
     {
         [SerializeField]
-        private NeuralNetwork net; // = new(new[] { 3, 25, 25, 25, 1 }, 800);
+        [Tooltip("The neural network which should have an input of three and a final output of one.")]
+        private NeuralNetwork net;
         
         private void Start()
         {
-            if (net == null)
+            if (!NeuralNetwork.Validate(this, net, 3, 1))
             {
-                Destroy(gameObject);
                 return;
             }
-            
+
             bool result = true;
             while (result)
             {
@@ -110,7 +110,6 @@ namespace RapidSim.Networks.Testers
             };
 
             Debug.Log($"Accuracy: {net.Test(inputs, outputs)}");
-            Debug.Log(net);
 
             Destroy(gameObject);
         }
