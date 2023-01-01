@@ -98,7 +98,7 @@ namespace RapidSim
                 if (children.Length == 0)
                 {
                     Debug.LogError($"No articulation bodies attached to {name}.");
-                    Destroy(this);
+                    Destroy(gameObject);
                     return;
                 }
 
@@ -139,6 +139,8 @@ namespace RapidSim
             if (_home.Count != _limits.Length)
             {
                 Debug.LogError($"Ensure all joints on {name} have limits defined.");
+                Destroy(gameObject);
+                return;
             }
         
             _zeros = new();
@@ -156,35 +158,21 @@ namespace RapidSim
             if (_home.Count != _maxSpeeds.Length)
             {
                 Debug.LogError($"{name} has {_home.Count} degrees of freedom but {_maxSpeeds.Length} speeds defined.");
-            }
-
-            int s = GetJoints().Count;
-            int[] layers = new int[s + 2];
-            layers[^1] = s;
-            s += 7;
-            layers[0] = s;
-            s *= 2;
-            for (int i = 1; i < layers.Length - 1; i++)
-            {
-                layers[i] = s;
+                Destroy(gameObject);
+                return;
             }
 
             SetupBioIk();
 
-            if (network == null)
-            {
-                
-            }
+            NeuralNetwork.Validate(this, network, _limits.Length + 7, _limits.Length);
         }
         
         private void OnDestroy()
         {
-            if (_bioRobot == null)
+            if (_bioRobot != null)
             {
-                return;
+                Destroy(_bioRobot.gameObject);
             }
-            
-            Destroy(_bioRobot.gameObject);
         }
         
         public void Move(GameObject target)
