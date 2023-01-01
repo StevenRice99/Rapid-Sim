@@ -4,10 +4,19 @@ namespace RapidSim.Networks.Testers
 {
     public class XorTester : MonoBehaviour
     {
+        [SerializeField]
+        private NeuralNetwork net; // = new(new[] { 3, 25, 25, 25, 1 }, 800);
+        
         private void Start()
         {
-            NeuralNetwork net = new(new[] { 3, 25, 25, 25, 1 });
-            for (int i = 0; i < 100; i++)
+            if (net == null)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            
+            bool result = true;
+            while (result)
             {
                 net.Train(new double[] { 0, 0, 0 }, new double[] { 0 });
                 net.Train(new double[] { 0, 0, 1 }, new double[] { 1 });
@@ -16,7 +25,7 @@ namespace RapidSim.Networks.Testers
                 net.Train(new double[] { 1, 0, 0 }, new double[] { 1 });
                 net.Train(new double[] { 1, 0, 1 }, new double[] { 0 });
                 net.Train(new double[] { 1, 1, 0 }, new double[] { 0 });
-                net.Train(new double[] { 1, 1, 1 }, new double[] { 1 });
+                result = net.Train(new double[] { 1, 1, 1 }, new double[] { 1 });
             }
 
             Debug.Log($"Expected: 0 | Predicted: {net.Forward(new double[] { 0, 0, 0 })[0]}");

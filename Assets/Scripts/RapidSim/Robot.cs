@@ -24,23 +24,20 @@ namespace RapidSim
         [Min(1)]
         [SerializeField]
         private int bioIkPopulationSize = 120;
-
-        [Min(1)]
-        [SerializeField]
-        private int optimizeAttempts = 100;
         
         [Min(1)]
         [SerializeField]
         private int bioIkElites = 3;
-        
+
         [Min(1)]
         [SerializeField]
-        private int maxSteps = 1;
+        private int bioIkOptimizeAttempts = 100;
         
         [SerializeField]
-        private bool generate;
+        private bool train;
 
-        private NeuralNetwork _network;
+        [SerializeField]
+        private NeuralNetwork network;
 
         private ArticulationBody Root => _joints[0].Joint;
 
@@ -71,8 +68,6 @@ namespace RapidSim
         private Transform Objective => LastJoint.transform;
 
         private Transform _lastBioSegment;
-
-        private int _currentStep;
 
         public void Start()
         {
@@ -157,8 +152,11 @@ namespace RapidSim
             }
 
             SetupBioIk();
-            
-            // SETUP NETWORK
+
+            if (network == null)
+            {
+                
+            }
         }
         
         private void OnDestroy()
@@ -397,7 +395,7 @@ namespace RapidSim
                 starting[i] = original[i];
             }
             
-            double[] results = JointsScaled(_network.Forward(PrepareInputs(NetScaled(starting), position, rotation)));
+            double[] results = JointsScaled(network.Forward(PrepareInputs(NetScaled(starting), position, rotation)));
 
             List<float> joints = new();
 
@@ -480,7 +478,7 @@ namespace RapidSim
             double bestTime = 0;
             double rescaling = Rescaling;
 
-            for (int attempt = 0; attempt < optimizeAttempts; attempt++)
+            for (int attempt = 0; attempt < bioIkOptimizeAttempts; attempt++)
             {
                 for (int i = 0; i < starting.Length; i++)
                 {
@@ -619,14 +617,14 @@ namespace RapidSim
 
         private void Update()
         {
-            if (!generate)
+            if (!train)
             {
                 return;
             }
 
-            if (_currentStep >= maxSteps)
+            if (network == null || network.step >= network.maxSteps)
             {
-                generate = false;
+                train = false;
                 return;
             }
 
@@ -683,8 +681,7 @@ namespace RapidSim
             
             Debug.Log(s);
 
-            _currentStep++;
-            Debug.Log($"Training {_currentStep} of {maxSteps} - {(float)_currentStep / maxSteps * 100}%.");
+            Debug.Log($"Training {network.step} of {network.maxSteps} - {(float)network.step / network.maxSteps * 100}%.");
         }
 
         private void SetupBioIk()

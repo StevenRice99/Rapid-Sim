@@ -35,20 +35,38 @@ namespace RapidSim.Networks
             deltaWeights = new WrappedArray[this.numberOfOutputs];
             momentumDeltaWeights = new WrappedArray[this.numberOfOutputs];
             velocityDeltaWeights = new WrappedArray[this.numberOfOutputs];
+            
+            bias = new double[this.numberOfOutputs];
+            deltaBias = new double[this.numberOfOutputs];
+            momentumDeltaBias = new double[this.numberOfOutputs];
+            velocityDeltaBias = new double[this.numberOfOutputs];
+            
+            uint seed = (uint) DateTime.UtcNow.Ticks;
+            if (seed == 0)
+            {
+                seed = 1;
+            }
+
+            Random random = new(seed);
+            
             for (int i = 0; i < this.numberOfOutputs; i++)
             {
                 weights[i].data = new double[this.numberOfInputs];
                 deltaWeights[i].data = new double[this.numberOfInputs];
                 momentumDeltaWeights[i].data = new double[this.numberOfInputs];
                 velocityDeltaWeights[i].data = new double[this.numberOfInputs];
+                
+                for (int j = 0; j < this.numberOfInputs; j++)
+                {
+                    weights[i].data[j] = random.NextFloat(-0.5f, 0.5f);
+                    momentumDeltaWeights[i].data[j] = 0;
+                    velocityDeltaWeights[i].data[j] = 0;
+                }
+            
+                bias[i] = random.NextFloat(-0.5f, 0.5f);
+                momentumDeltaBias[i] = 0;
+                velocityDeltaBias[i] = 0;
             }
-
-            bias = new double[this.numberOfOutputs];
-            deltaBias = new double[this.numberOfOutputs];
-            momentumDeltaBias = new double[this.numberOfOutputs];
-            velocityDeltaBias = new double[this.numberOfOutputs];
-
-            Reset();
         }
 
         public double[] Forward(double[] input)
@@ -130,46 +148,6 @@ namespace RapidSim.Networks
             }
         }
 
-        public void Reset()
-        {
-            uint seed = (uint) DateTime.UtcNow.Ticks;
-            if (seed == 0)
-            {
-                seed = 1;
-            }
-
-            Random random = new(seed);
-
-            for (int i = 0; i < numberOfOutputs; i++)
-            {
-                for (int j = 0; j < numberOfInputs; j++)
-                {
-                    weights[i].data[j] = random.NextFloat(-0.5f, 0.5f);
-                    momentumDeltaWeights[i].data[j] = 0;
-                    velocityDeltaWeights[i].data[j] = 0;
-                }
-            
-                bias[i] = random.NextFloat(-0.5f, 0.5f);
-                momentumDeltaBias[i] = 0;
-                velocityDeltaBias[i] = 0;
-            }
-        }
-
-        public void ResetOptimization()
-        {
-            for (int i = 0; i < numberOfOutputs; i++)
-            {
-                for (int j = 0; j < numberOfInputs; j++)
-                {
-                    momentumDeltaWeights[i].data[j] = 0;
-                    velocityDeltaWeights[i].data[j] = 0;
-                }
-            
-                momentumDeltaBias[i] = 0;
-                velocityDeltaBias[i] = 0;
-            }
-        }
-
         private static double Activation(double value)
         {
             return math.tanh(value);
@@ -182,6 +160,11 @@ namespace RapidSim.Networks
 
         public override string ToString()
         {
+            if (inputs == null || outputs == null)
+            {
+                return $"Layer not setup";
+            }
+            
             return $"Inputs: {inputs.Length} | Outputs: {outputs.Length} | Parameters: {NumberOfParameters}";
         }
     }

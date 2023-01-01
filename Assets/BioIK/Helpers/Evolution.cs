@@ -5061,17 +5061,11 @@ namespace BioIK.Helpers
         // *     ..
         // *     .. Intrinsic Functions ..
         // *     ..
-        private static void Daxpy(int n, double da,
-             double[] dx, int dxOffset, int incx, double[] dy, int dyOffset, int incy)
+        private static void Daxpy(int n, double da, double[] dx, int dxOffset, int incx, double[] dy, int dyOffset, int incy)
         {
 
             int i;
-            if (n <= 0)
-            {
-                return;
-            }
-
-            if (da == 0.0e0)
+            if (n <= 0 || da == 0.0e0)
             {
                 return;
             }
@@ -5099,40 +5093,38 @@ namespace BioIK.Helpers
                 }
 
                 int mp1 = m + 1;
+                const int iInc = 4;
+                for (i = mp1; i <= n; i += iInc)
                 {
-                    const int iInc = 4;
-                    for (i = mp1; i <= n; i += iInc)
-                    {
-                        dy[i - 1 + dyOffset] += da * dx[i - 1 + dxOffset];
-                        dy[i + 1 - 1 + dyOffset] += da * dx[i + 1 - 1 + dxOffset];
-                        dy[i + 2 - 1 + dyOffset] += da * dx[i + 2 - 1 + dxOffset];
-                        dy[i + 3 - 1 + dyOffset] += da * dx[i + 3 - 1 + dxOffset];
-                    }
-                }
-            }
-            else
-            {
-                // *
-                // *        code for unequal increments or equal increments
-                // *          not equal to 1
-                // *
-                int ix = 1;
-                int iy = 1;
-                if (incx < 0)
-                {
-                    ix = (-n + 1) * incx + 1;
-                }
-                if (incy < 0)
-                {
-                    iy = (-n + 1) * incy + 1;
+                    dy[i - 1 + dyOffset] += da * dx[i - 1 + dxOffset];
+                    dy[i + 1 - 1 + dyOffset] += da * dx[i + 1 - 1 + dxOffset];
+                    dy[i + 2 - 1 + dyOffset] += da * dx[i + 2 - 1 + dxOffset];
+                    dy[i + 3 - 1 + dyOffset] += da * dx[i + 3 - 1 + dxOffset];
                 }
 
-                for (i = 1; i <= n; i++)
-                {
-                    dy[iy - 1 + dyOffset] += da * dx[ix - 1 + dxOffset];
-                    ix += incx;
-                    iy += incy;
-                }
+                return;
+            }
+
+            // *
+            // *        code for unequal increments or equal increments
+            // *          not equal to 1
+            // *
+            int ix = 1;
+            int iy = 1;
+            if (incx < 0)
+            {
+                ix = (-n + 1) * incx + 1;
+            }
+            if (incy < 0)
+            {
+                iy = (-n + 1) * incy + 1;
+            }
+
+            for (i = 1; i <= n; i++)
+            {
+                dy[iy - 1 + dyOffset] += da * dx[ix - 1 + dxOffset];
+                ix += incx;
+                iy += incy;
             }
         }
     }

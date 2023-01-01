@@ -1,48 +1,102 @@
-﻿using System;
+﻿using UnityEngine;
 
 namespace RapidSim.Networks
 {
-    [Serializable]
-    public struct NeuralNetwork
+    [CreateAssetMenu(fileName = "Neural Network", menuName = "Neural Network", order = 0)]
+    public class NeuralNetwork : ScriptableObject
     {
-        public Layer[] layers;
-        public double beta1;
-        public double beta2;
-        public double epsilon;
-        public double eta;
-        public int step;
-    
-        public NeuralNetwork(int[] layer, double eta = 0.01, double beta1 = 0.9, double beta2 = 0.999, double epsilon = 0.00000001)
-        {
-            layers = new Layer[layer.Length - 1];
-
-            for (int i = 0; i < layers.Length; i++)
-            {
-                layers[i] = new(layer[i], layer[i + 1]);
-            }
+        public int[] layers = {1, 1};
         
-            this.beta1 = beta1;
-            this.beta2 = beta2;
-            this.epsilon = epsilon;
-            this.eta = eta;
+        [Header("ADAM Optimizer")]
+        [Range(0, 1)]
+        public double learningRate = 0.001;
+        [Range(0, 1)]
+        public double beta1 = 0.9;
+        [Range(0, 1)]
+        public double beta2 = 0.999;
+        [Range(0, 1)]
+        public double epsilon = 1e-08;
+        
+        [Header("Training")]
+        [Min(1)]
+        public int maxSteps = 100;
+        [Min(0)]
+        public int step;
+        
+        private bool Setup => _layers is not {Length: 0};
+        
+        private Layer[] _layers;
+
+        private void OnEnable()
+        {
+            OnValidate();
+        }
+
+        private void OnValidate()
+        {
+            if (step > maxSteps)
+            {
+                step = maxSteps;
+            }
+            
+            bool create = _layers == null || _layers.Length != layers.Length - 1;
+
+            if (!create)
+            {
+                for (int i = 0; i < _layers.Length; i++)
+                {
+                    if (_layers[i].numberOfInputs == layers[i] && _layers[i].numberOfOutputs == layers[i + 1])
+                    {
+                        continue;
+                    }
+
+                    create = true;
+                    break;
+                }
+            }
+            
+            if (create)
+            {
+                Create();
+            }
+        }
+
+        public void Create()
+        {
+            _layers = new Layer[layers.Length - 1];
+
+            for (int i = 0; i < _layers.Length; i++)
+            {
+                _layers[i] = new(layers[i], layers[i + 1]);
+            }
+
             step = 0;
+            
+            Debug.Log($"Initialized {BuildString(name)}");
         }
 
         public double[] Forward(double[] inputs)
         {
-            layers[0].Forward(inputs);
-            for (int i = 1; i < layers.Length; i++)
+            _layers[0].Forward(inputs);
+            for (int i = 1; i < _layers.Length; i++)
             {
-                layers[i].Forward(layers[i - 1].outputs);
+                _layers[i].Forward(_layers[i - 1].outputs);
             }
 
-            return layers[^1].outputs;
+            return _layers[^1].outputs;
         }
 
-        public void Train(double[] inputs, double[] expected)
+        public bool Train(double[] inputs, double[] expected)
         {
+            if (step >= maxSteps)
+            {
+                return false;
+            }
+            
             Forward(inputs);
             Backward(expected);
+
+            return true;
         }
 
         public double Test(double[] inputs, double[] expected)
@@ -70,62 +124,44 @@ namespace RapidSim.Networks
 
         private void Backward(double[] expected)
         {
-            layers[^1].BackwardOutput(expected);
-            for (int i = layers.Length - 2; i >= 0; i--)
+            _layers[^1].BackwardOutput(expected);
+            for (int i = _layers.Length - 2; i >= 0; i--)
             {
-                layers[i].BackwardHidden(layers[i + 1].deltaBias, layers[i + 1].weights);
+                _layers[i].BackwardHidden(_layers[i + 1].deltaBias, _layers[i + 1].weights);
             }
 
             step++;
-            for (int i = 0; i < layers.Length; i++)
+            for (int i = 0; i < _layers.Length; i++)
             {
-                layers[i].Optimize(step, eta, beta1, beta2, epsilon);
+                _layers[i].Optimize(step, learningRate, beta1, beta2, epsilon);
             }
-        }
-
-        public void Reset(double newEta = 0.01, double newBeta1 = 0.9, double newBeta2 = 0.999, double newEpsilon = 0.00000001)
-        {
-            for (int i = 0; i < layers.Length; i++)
-            {
-                layers[i].Reset();
-            }
-        
-            beta1 = newBeta1;
-            beta2 = newBeta2;
-            epsilon = newEpsilon;
-            eta = newEta;
-            step = 0;
-        }
-
-        public void SetOptimization(double newEta = 0.01, double newBeta1 = 0.9, double newBeta2 = 0.999, double newEpsilon = 0.00000001)
-        {
-            for (int i = 0; i < layers.Length; i++)
-            {
-                layers[i].ResetOptimization();
-            }
-        
-            beta1 = newBeta1;
-            beta2 = newBeta2;
-            epsilon = newEpsilon;
-            eta = newEta;
-            step = 0;
         }
 
         public override string ToString()
         {
+            return BuildString(name);
+        }
+
+        private string BuildString(string title)
+        {
+            if (!Setup)
+            {
+                return "Network not setup.";
+            }
+            
             int neurons = 0;
             int parameters = 0;
-
-            for (int i = 0; i < layers.Length; i++)
+            
+            for (int i = 0; i < _layers.Length; i++)
             {
-                neurons += layers[i].outputs.Length;
-                parameters += layers[i].NumberOfParameters;
+                neurons += _layers[i].outputs.Length;
+                parameters += _layers[i].NumberOfParameters;
             }
 
-            string s = $"Neural Network - Layers: {layers.Length} | Inputs: {layers[0].inputs.Length} | Outputs: {layers[^1].outputs.Length} | Neurons: {neurons} | Parameters: {parameters}";
-            for (int i = 0; i < layers.Length; i++)
+            string s = $"{title} - Layers: {_layers.Length} | Inputs: {_layers[0].inputs.Length} | Outputs: {_layers[^1].outputs.Length} | Neurons: {neurons} | Parameters: {parameters}";
+            for (int i = 0; i < _layers.Length; i++)
             {
-                s += $"\nLayer {i + 1} - {layers[i]}";
+                s += $"\nLayer {i + 1} - {_layers[i]}";
             }
         
             return s;

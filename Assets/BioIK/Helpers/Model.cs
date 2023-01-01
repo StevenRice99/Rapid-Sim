@@ -191,7 +191,7 @@ namespace BioIK.Helpers
 			_rescaling = model._rescaling;
 		}
 
-		//Computes the loss as the RMSE over all objectives
+		//Computes the loss as the root mean error squared over all objectives
 		public double ComputeLoss(double[] configuration)
 		{
 			ForwardKinematics(configuration);
@@ -199,8 +199,8 @@ namespace BioIK.Helpers
 			_loss = ComputeLoss(node.wpx, node.wpy, node.wpz, node.wrx, node.wry, node.wrz, node.wrw);
 			return Math.Sqrt(_loss);
 		}
-		
-		public double ComputeLoss(double apx, double apy, double apz, double arx, double ary, double arz, double arw)
+
+		private double ComputeLoss(double apx, double apy, double apz, double arx, double ary, double arz, double arw)
 		{
 			double pos = _rescaling * ((_tpx - apx) * (_tpx - apx) + (_tpy - apy) * (_tpy - apy) + (_tpz - apz) * (_tpz - apz));
 			
@@ -301,8 +301,8 @@ namespace BioIK.Helpers
 			_nodes[^1] = node;
 		}
 
-		//Subclass representing the single nodes for the OFKT data structure.
-		//Values are stored using primitive data types for faster access and efficient computation.
+		// Subclass representing the single nodes for the data structure.
+		// Values are stored using primitive data types for faster access and efficient computation.
 		public class Node
 		{
 			private readonly Model _model;							//Reference to the kinematic model

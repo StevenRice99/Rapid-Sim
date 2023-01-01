@@ -1899,11 +1899,10 @@ MonoBehaviour:
   repeatability: 0.00008
   bioIkGenerations: 5
   bioIkPopulationSize: 120
-  optimizeAttempts: 100
   bioIkElites: 3
-  maxSteps: 10
-  json: 
+  bioIkOptimizeAttempts: 100
   train: 0
+  network: {fileID: 11400000, guid: 716b7929ffe21d34db3fe54066eb8adc, type: 2}
 --- !u!1 &1898101831
 GameObject:
   m_ObjectHideFlags: 0
