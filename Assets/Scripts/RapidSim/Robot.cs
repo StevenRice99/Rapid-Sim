@@ -551,14 +551,50 @@ namespace RapidSim
         private Vector3 RelativePosition(Vector3 position) => Root.transform.InverseTransformPoint(position);
 
         private Quaternion RelativeRotation(Quaternion rotation) => Quaternion.Inverse(Root.transform.rotation) * rotation;
+        
+        public double[] BioIkSolve(Vector3 position, Quaternion orientation)
+        {
+            BioIkEvolution evolution = new(this);
+            List<float> joints = GetJoints();
+            double[] solution = new double[joints.Count];
+            double[] starting = new double[joints.Count];
+            double[] maxSpeeds = new double[starting.Length];
+            for (int i = 0; i < starting.Length; i++)
+            {
+                starting[i] = joints[i];
+                maxSpeeds[i] = _maxSpeeds[i];
+            }
+
+            for (int i = 0; i < starting.Length; i++)
+            {
+                _motions[i].SetTargetValue(starting[i]);
+            }
+            UpdateData();
+            for (int i = 0; i < solution.Length; i++)
+            {
+                solution[i] = evolution.bioIkModel.motionPointers[i].motion.GetTargetValue();
+            }
+            solution = evolution.Optimise(generations, solution, position, orientation);
+            for (int i = 0; i < solution.Length; i++)
+            {
+                BioIkJoint.Motion motion = evolution.bioIkModel.motionPointers[i].motion;
+                motion.SetTargetValue(solution[i], true);
+            }
+            ProcessMotion();
+            double[] ending = new double[_motions.Length];
+            for (int i = 0; i < _motions.Length; i++)
+            {
+                ending[i] = _motions[i].GetTargetValue();
+            }
+
+            return ending;
+        }
 
         public double[] BioIkOptimize(Vector3 position, Quaternion orientation)
         {
             BioIkEvolution evolution = new(this);
-            double[] solution = new double[evolution.bioIkModel.dof];
-            
             List<float> joints = GetJoints();
-
+            double[] solution = new double[joints.Count];
             double[] starting = new double[joints.Count];
             double[] maxSpeeds = new double[starting.Length];
             for (int i = 0; i < starting.Length; i++)
@@ -582,21 +618,17 @@ namespace RapidSim
                 {
                     _motions[i].SetTargetValue(starting[i]);
                 }
-            
                 UpdateData();
                 for (int i = 0; i < solution.Length; i++)
                 {
                     solution[i] = evolution.bioIkModel.motionPointers[i].motion.GetTargetValue();
                 }
-            
                 solution = evolution.Optimise(generations, solution, position, orientation);
-
                 for (int i = 0; i < solution.Length; i++)
                 {
                     BioIkJoint.Motion motion = evolution.bioIkModel.motionPointers[i].motion;
                     motion.SetTargetValue(solution[i], true);
                 }
-
                 ProcessMotion();
                 double[] ending = new double[_motions.Length];
                 for (int i = 0; i < _motions.Length; i++)
@@ -624,50 +656,6 @@ namespace RapidSim
             }
 
             return best;
-        }
-        
-        public double[] BioIkSolve(Vector3 position, Quaternion orientation)
-        {
-            BioIkEvolution evolution = new(this);
-            double[] solution = new double[evolution.bioIkModel.dof];
-            
-            List<float> joints = GetJoints();
-
-            double[] starting = new double[joints.Count];
-            double[] maxSpeeds = new double[starting.Length];
-            for (int i = 0; i < starting.Length; i++)
-            {
-                starting[i] = joints[i];
-                maxSpeeds[i] = _maxSpeeds[i];
-            }
-
-            for (int i = 0; i < starting.Length; i++)
-            {
-                _motions[i].SetTargetValue(starting[i]);
-            }
-            
-            UpdateData();
-            for (int i = 0; i < solution.Length; i++)
-            {
-                solution[i] = evolution.bioIkModel.motionPointers[i].motion.GetTargetValue();
-            }
-            
-            solution = evolution.Optimise(generations, solution, position, orientation);
-
-            for (int i = 0; i < solution.Length; i++)
-            {
-                BioIkJoint.Motion motion = evolution.bioIkModel.motionPointers[i].motion;
-                motion.SetTargetValue(solution[i], true);
-            }
-
-            ProcessMotion();
-            double[] ending = new double[_motions.Length];
-            for (int i = 0; i < _motions.Length; i++)
-            {
-                ending[i] = _motions[i].GetTargetValue();
-            }
-
-            return ending;
         }
 
         private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
@@ -713,7 +701,7 @@ namespace RapidSim
                 return;
             }
 
-            if (network == null || network.step >= network.maxSteps)
+            if (network.step >= network.maxSteps)
             {
                 train = false;
                 return;
@@ -732,14 +720,17 @@ namespace RapidSim
             {
                 inputs[i] = angles[i];
             }
+            
+            floats = RandomOrientation();
+            for (int i = 0; i < floats.Length; i++)
+            {
+                _motions[i].SetTargetValue(floats[i], true);
+            }
+            UpdateData();
+            ProcessMotion();
 
-            SetRandomOrientation();
-            Physics.autoSimulation = false;
-            Physics.Simulate(Time.fixedDeltaTime);
-            Physics.autoSimulation = true;
-
-            Vector3 position = Objective.position;
-            Quaternion rotation = Objective.rotation;
+            Vector3 position = _lastBioSegment.position;
+            Quaternion rotation = _lastBioSegment.rotation;
             Vector3 relativePosition = RelativePosition(position);
             Quaternion relativeRotation = RelativeRotation(rotation);
 
@@ -752,10 +743,10 @@ namespace RapidSim
             inputs[angles.Length + 6] = relativeRotation.w;
     
             double[] expected = NetScaled(BioIkOptimize(position, rotation));
-            
-            // TODO - Train neural network.
 
-            Debug.Log($"Training {network.step} of {network.maxSteps} - {(float)network.step / network.maxSteps * 100}%.");
+            network.Train(inputs, expected);
+
+            Debug.Log($"Training {network.step} of {network.maxSteps} - {(float)network.step / network.maxSteps * 100}%");
         }
 
         private void UpdateData()
