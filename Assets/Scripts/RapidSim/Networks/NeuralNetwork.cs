@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using Unity.Mathematics;
+using UnityEditor;
 using UnityEngine;
 
 namespace RapidSim.Networks
@@ -136,6 +137,7 @@ namespace RapidSim.Networks
         {
             if (step >= maxSteps)
             {
+                step = maxSteps;
                 return false;
             }
             
@@ -144,28 +146,17 @@ namespace RapidSim.Networks
 
             return true;
         }
-
+        
         public double Test(double[] inputs, double[] expected)
         {
             double[] results = Forward(inputs);
             double accuracy = 0;
             for (int i = 0; i < expected.Length; i++)
             {
-                accuracy += 1 - (expected[i] - results[i]);
+                accuracy += math.abs(math.max(expected[i], results[i]) - math.min(expected[i], results[i]));
             }
 
-            return accuracy / expected.Length;
-        }
-
-        public double Test(double[][] inputs, double[][] expected)
-        {
-            double accuracy = 0;
-            for (int i = 0; i < inputs.Length; i++)
-            {
-                accuracy += Test(inputs[i], expected[i]);
-            }
-
-            return accuracy / expected.Length;
+            return 1 - accuracy / expected.Length;
         }
 
         private void Backward(double[] expected)

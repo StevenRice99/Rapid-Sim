@@ -72,8 +72,6 @@ namespace RapidSim
 
         private BioIkJoint.Motion[] _motions;
 
-        private Transform Objective => LastJoint.transform;
-
         private Transform _lastBioSegment;
 
         private float _chainLength;
@@ -689,21 +687,10 @@ namespace RapidSim
             return joints;
         }
 
-        private void SetRandomOrientation()
-        {
-            SnapRadians(RandomOrientation().ToList());
-        }
-
         private void Update()
         {
             if (!train)
             {
-                return;
-            }
-
-            if (network.step >= network.maxSteps)
-            {
-                train = false;
                 return;
             }
 
@@ -744,9 +731,11 @@ namespace RapidSim
     
             double[] expected = NetScaled(BioIkOptimize(position, rotation));
 
-            network.Train(inputs, expected);
+            train = network.Train(inputs, expected);
 
-            Debug.Log($"Training {network.step} of {network.maxSteps} - {(float)network.step / network.maxSteps * 100}%");
+            double accuracy = network.Test(inputs, expected);
+
+            Debug.Log($"Training {network.step} of {network.maxSteps} - {(float)network.step / network.maxSteps * 100}% | Accuracy = {accuracy * 100}%");
         }
 
         private void UpdateData()
