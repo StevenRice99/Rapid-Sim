@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -39,7 +40,7 @@ namespace RapidSim.BioIK
 		private double _fitness;                //Evolutionary fitness
 
 		//Initialises the algorithm
-		public BioIkEvolution(BioIkModel bioIkModel, int populationSize, int elites)
+		public BioIkEvolution(BioIkModel bioIkModel, int populationSize, int elites, double rescaling)
         {
 			_bioIkModel = bioIkModel;
 			_populationSize = populationSize;
@@ -65,7 +66,7 @@ namespace RapidSim.BioIK
             for (int i = 0; i < _elites; i++)
             {
                 int index = i;
-                _models[index] = new(_bioIkModel.GetBioRobot());
+                _models[index] = new(_bioIkModel.GetBioRobot(), rescaling);
                 _optimisers[index] = new(_dimensionality, x => _models[index].ComputeLoss(x), y => _models[index].ComputeGradient(y, 1e-5));
             }
         }
@@ -80,11 +81,10 @@ namespace RapidSim.BioIK
             return (System.DateTime.Now - timestamp).Duration().TotalSeconds;
         }
 
-		public double[] Optimise(int generations, double[] seed, Vector3 position, Quaternion orientation, double rescaling)
+		public double[] Optimise(int generations, double[] seed, Vector3 position, Quaternion orientation)
         {
             _bioIkModel.SetTargetPosition(position);
             _bioIkModel.SetTargetRotation(orientation);
-            _bioIkModel.SetRescaling(rescaling);
             
             _bioIkModel.Refresh();
             
@@ -953,7 +953,7 @@ namespace RapidSim.BioIK
             for (i = 1; i <= col; i++)
             {
                 p[i - 1 + pOffset] = v[i - 1 + vOffset]
-                                     / System.Math.Sqrt(sy[i - 1 + (i - 1) * m + syOffset]);
+                                     / math.sqrt(sy[i - 1 + (i - 1) * m + syOffset]);
             }
 
             // 
@@ -971,7 +971,7 @@ namespace RapidSim.BioIK
             for (i = 1; i <= col; i++)
             {
                 p[i - 1 + pOffset] = -(p[i - 1 + pOffset]
-                                       / System.Math.Sqrt(sy[i - 1 + (i - 1) * m + syOffset]));
+                                       / math.sqrt(sy[i - 1 + (i - 1) * m + syOffset]));
             }
 
             for (i = 1; i <= col; i++)
@@ -1264,7 +1264,7 @@ namespace RapidSim.BioIK
                     }
                     else
                     {
-                        if (System.Math.Abs(neggi) <= 0.0)
+                        if (math.abs(neggi) <= 0.0)
                         {
                             iwhere[i - 1 + iwhereOffset] = -3;
                         }
@@ -1321,7 +1321,7 @@ namespace RapidSim.BioIK
                         // x(i) + d(i) is not bounded.
                         nfree -= 1;
                         iorder[nfree - 1 + iorderOffset] = i;
-                        if (System.Math.Abs(neggi) > 0.0)
+                        if (math.abs(neggi) > 0.0)
                         {
                             bnded = false;
                         }
@@ -1466,7 +1466,7 @@ namespace RapidSim.BioIK
             // Update the derivative information.
             // 
             nseg += 1;
-            double dibp2 = System.Math.Pow(dibp, 2);
+            double dibp2 = math.pow(dibp, 2);
 
             // 
             // Update f1 and f2.
@@ -1514,7 +1514,7 @@ namespace RapidSim.BioIK
             }
 
 
-            f2 = System.Math.Max(epsmch * f2Org, f2);
+            f2 = math.max(epsmch * f2Org, f2);
 
             if (nleft > 0)
             {
@@ -1873,7 +1873,7 @@ namespace RapidSim.BioIK
             // 
             // c     Test for convergence.
             // 
-            if (f <= ftest && System.Math.Abs(g) <= gtol * -ginit)
+            if (f <= ftest && math.abs(g) <= gtol * -ginit)
             {
                 task = Task.Convergence;
             }
@@ -1931,20 +1931,20 @@ namespace RapidSim.BioIK
             // 
             if (brackt)
             {
-                if (System.Math.Abs(sty - stx) >= 0.6600000000000000310862446895043831318617 * width1)
+                if (math.abs(sty - stx) >= 0.6600000000000000310862446895043831318617 * width1)
                 {
                     stp = stx + 0.5 * (sty - stx);
                 }
                 width1 = width;
-                width = System.Math.Abs(sty - stx);
+                width = math.abs(sty - stx);
             }
             // 
             // c     Set the minimum and maximum steps allowed for stp.
             // 
             if (brackt)
             {
-                stmin = System.Math.Min(stx, sty);
-                stmax = System.Math.Max(stx, sty);
+                stmin = math.min(stx, sty);
+                stmax = math.max(stx, sty);
             }
             else
             {
@@ -1955,8 +1955,8 @@ namespace RapidSim.BioIK
             // 
             // c     Force the step to be within the bounds stpmax and stpmin.
             // 
-            stp = System.Math.Max(stp, stpmin);
-            stp = System.Math.Min(stp, stpmax);
+            stp = math.max(stp, stpmin);
+            stp = math.min(stp, stpmax);
             // 
             // c     If further progress is not possible, let stp be the best
             // c     point obtained during the search.
@@ -2113,7 +2113,7 @@ namespace RapidSim.BioIK
             double stpf;
             double stpq;
             double theta;
-            sgnd = dp * (dx / System.Math.Abs(dx));
+            sgnd = dp * (dx / math.abs(dx));
 
             // c     First case: A higher function value. The minimum is bracketed. 
             // c     If the cubic step is closer to stx than the quadratic step, the 
@@ -2124,9 +2124,9 @@ namespace RapidSim.BioIK
             {
                 theta = 3.0 * (fx - fp) / (stp - stx) + dx + dp;
 
-                s = System.Math.Max(System.Math.Abs(theta), System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dp)));
+                s = math.max(math.abs(theta), math.max(math.abs(dx), math.abs(dp)));
 
-                gamma = s * System.Math.Sqrt(System.Math.Pow(theta / s, 2) - dx / s * (dp / s));
+                gamma = s * math.sqrt(math.pow(theta / s, 2) - dx / s * (dp / s));
                 if (stp < stx)
                 {
                     gamma = -gamma;
@@ -2137,7 +2137,7 @@ namespace RapidSim.BioIK
                 stpc = stx + r * (stp - stx);
                 stpq = stx + dx / ((fx - fp) / (stp - stx) + dx) / 2.0 * (stp - stx);
 
-                if (System.Math.Abs(stpc - stx) < System.Math.Abs(stpq - stx))
+                if (math.abs(stpc - stx) < math.abs(stpq - stx))
                 {
                     stpf = stpc;
                 }
@@ -2159,8 +2159,8 @@ namespace RapidSim.BioIK
             else if (sgnd < 0.0)
             {
                 theta = 3.0 * (fx - fp) / (stp - stx) + dx + dp;
-                s = System.Math.Max(System.Math.Abs(theta), System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dp)));
-                gamma = s * System.Math.Sqrt(System.Math.Pow(theta / s, 2) - dx / s * (dp / s));
+                s = math.max(math.abs(theta), math.max(math.abs(dx), math.abs(dp)));
+                gamma = s * math.sqrt(math.pow(theta / s, 2) - dx / s * (dp / s));
 
                 if (stp > stx)
                 {
@@ -2173,7 +2173,7 @@ namespace RapidSim.BioIK
                 stpc = stp + r * (stx - stp);
                 stpq = stp + dp / (dp - dx) * (stx - stp);
 
-                stpf = System.Math.Abs(stpc - stp) > System.Math.Abs(stpq - stp) ? stpc : stpq;
+                stpf = math.abs(stpc - stp) > math.abs(stpq - stp) ? stpc : stpq;
 
                 brackt = true;
                 // 
@@ -2182,7 +2182,7 @@ namespace RapidSim.BioIK
                 // c     and the magnitude of the derivative decreases.
                 // 
             }
-            else if (System.Math.Abs(dp) < System.Math.Abs(dx))
+            else if (math.abs(dp) < math.abs(dx))
             {
                 // 
                 // c        The cubic step is computed only if the cubic tends to infinity 
@@ -2191,14 +2191,14 @@ namespace RapidSim.BioIK
                 // c        secant step.
                 // 
                 theta = 3.0 * (fx - fp) / (stp - stx) + dx + dp;
-                s = System.Math.Max(System.Math.Abs(theta), System.Math.Max(System.Math.Abs(dx), System.Math.Abs(dp)));
+                s = math.max(math.abs(theta), math.max(math.abs(dx), math.abs(dp)));
 
                 // 
                 // c        The case gamma = 0 only arises if the cubic does not tend
                 // c        to infinity in the direction of the step.
                 // 
-                gamma = s * System.Math.Sqrt(System.Math.Max(0.0,
-                    System.Math.Pow(theta / s, 2) - dx / s * (dp / s)));
+                gamma = s * math.sqrt(math.max(0.0,
+                    math.pow(theta / s, 2) - dx / s * (dp / s)));
 
                 if (stp > stx)
                 {
@@ -2231,15 +2231,15 @@ namespace RapidSim.BioIK
                     // c           closer to stp than the secant step, the cubic step is 
                     // c           taken, otherwise the secant step is taken.
                     // 
-                    stpf = System.Math.Abs(stpc - stp) < System.Math.Abs(stpq - stp) ? stpc : stpq;
+                    stpf = math.abs(stpc - stp) < math.abs(stpq - stp) ? stpc : stpq;
                     if (stp > stx)
                     {
-                        stpf = System.Math.Min(stp +
+                        stpf = math.min(stp +
                                                0.6600000000000000310862446895043831318617 * (sty - stp), stpf);
                     }
                     else
                     {
-                        stpf = System.Math.Max(stp +
+                        stpf = math.max(stp +
                                                0.6600000000000000310862446895043831318617 * (sty - stp), stpf);
                     }
                 }
@@ -2250,9 +2250,9 @@ namespace RapidSim.BioIK
                     // c           farther from stp than the secant step, the cubic step is 
                     // c           taken, otherwise the secant step is taken.
                     // 
-                    stpf = System.Math.Abs(stpc - stp) > System.Math.Abs(stpq - stp) ? stpc : stpq;
-                    stpf = System.Math.Min(stpmax, stpf);
-                    stpf = System.Math.Max(stpmin, stpf);
+                    stpf = math.abs(stpc - stp) > math.abs(stpq - stp) ? stpc : stpq;
+                    stpf = math.min(stpmax, stpf);
+                    stpf = math.max(stpmin, stpf);
                 }
 
                 // 
@@ -2267,8 +2267,8 @@ namespace RapidSim.BioIK
                 if (brackt)
                 {
                     theta = 3.0 * (fp - fy) / (sty - stp) + dy + dp;
-                    s = System.Math.Max(System.Math.Abs(theta), System.Math.Max(System.Math.Abs(dy), System.Math.Abs(dp)));
-                    gamma = s * System.Math.Sqrt(System.Math.Pow(theta / s, 2) - dy / s * (dp / s));
+                    s = math.max(math.abs(theta), math.max(math.abs(dy), math.abs(dp)));
+                    gamma = s * math.sqrt(math.pow(theta / s, 2) - dy / s * (dp / s));
 
                     if (stp > sty)
                     {
@@ -2849,7 +2849,7 @@ namespace RapidSim.BioIK
             {
                 for (j = i; j <= col; j++)
                 {
-                    int k1 = System.Math.Min(i, j) - 1;
+                    int k1 = math.min(i, j) - 1;
 
                     double ddum = 0.0;
                     int k;
@@ -3161,7 +3161,7 @@ namespace RapidSim.BioIK
 
             // 
             dtd = Ddot(n, d, dOffset, 1, d, dOffset, 1);
-            dnorm = System.Math.Sqrt(dtd);
+            dnorm = math.sqrt(dtd);
             // 
             // c     Determine the maximum step length.
             // 
@@ -3210,7 +3210,7 @@ namespace RapidSim.BioIK
             }
 
             // 
-            stp = iter == 0 && !boxed ? double.IsNaN(dnorm) ? stpmx : System.Math.Min(1.0 / dnorm, stpmx) : 1.0;
+            stp = iter == 0 && !boxed ? double.IsNaN(dnorm) ? stpmx : math.min(1.0 / dnorm, stpmx) : 1.0;
 
             // 
             Dcopy(n, x, xOffset, 1, t, tOffset, 1);
@@ -3794,7 +3794,7 @@ namespace RapidSim.BioIK
                 goto L999;
             }
 
-            double ddum = System.Math.Max(System.Math.Abs(fold), System.Math.Max(System.Math.Abs(f), 1.0));
+            double ddum = math.max(math.abs(fold), math.max(math.abs(f), 1.0));
 
             if (fold - f <= tol * ddum)
             {
@@ -4062,19 +4062,19 @@ namespace RapidSim.BioIK
                     {
                         if (nbd[i - 1 + nbdOffset] >= 2)
                         {
-                            gi = System.Math.Max(x[i - 1 + xOffset] - u[i - 1 + uOffset], gi);
+                            gi = math.max(x[i - 1 + xOffset] - u[i - 1 + uOffset], gi);
                         }
                     }
                     else
                     {
                         if (nbd[i - 1 + nbdOffset] <= 2)
                         {
-                            gi = System.Math.Min(x[i - 1 + xOffset] - l[i - 1 + lOffset], gi);
+                            gi = math.min(x[i - 1 + xOffset] - l[i - 1 + lOffset], gi);
                         }
                     }
                 }
 
-                sbgnrm = System.Math.Max(sbgnrm, System.Math.Abs(gi));
+                sbgnrm = math.max(sbgnrm, math.abs(gi));
             }
         }
 
@@ -4332,8 +4332,8 @@ namespace RapidSim.BioIK
             if (task == Task.Start)
             {
                 isave[1 - 1 + isaveOffset] = m * n;
-                isave[2 - 1 + isaveOffset] = (int)System.Math.Pow(m, 2);
-                isave[3 - 1 + isaveOffset] = 4 * (int)System.Math.Pow(m, 2);
+                isave[2 - 1 + isaveOffset] = (int)math.pow(m, 2);
+                isave[3 - 1 + isaveOffset] = 4 * (int)math.pow(m, 2);
                 isave[4 - 1 + isaveOffset] = 1;
                 isave[5 - 1 + isaveOffset] = isave[4 - 1 + isaveOffset] + isave[1 - 1 + isaveOffset];
                 isave[6 - 1 + isaveOffset] = isave[5 - 1 + isaveOffset] + isave[1 - 1 + isaveOffset];
@@ -4664,20 +4664,20 @@ namespace RapidSim.BioIK
                     {
                         case 1:
                         {
-                            x[k - 1 + xOffset] = System.Math.Max(l[k - 1 + lOffset], xk + dk);
+                            x[k - 1 + xOffset] = math.max(l[k - 1 + lOffset], xk + dk);
 
                             break;
                         }
                         case 2:
                         {
-                            xk = System.Math.Max(l[k - 1 + lOffset], xk + dk);
-                            x[k - 1 + xOffset] = System.Math.Min(u[k - 1 + uOffset], xk);
+                            xk = math.max(l[k - 1 + lOffset], xk + dk);
+                            x[k - 1 + xOffset] = math.min(u[k - 1 + uOffset], xk);
 
                             break;
                         }
                         case 3:
                         {
-                            x[k - 1 + xOffset] = System.Math.Min(u[k - 1 + uOffset], xk + dk);
+                            x[k - 1 + xOffset] = math.min(u[k - 1 + uOffset], xk + dk);
 
                             break;
                         }
@@ -4773,7 +4773,7 @@ namespace RapidSim.BioIK
                     return;
                 }
 
-                a[j - 1 + (j - 1) * lda + aOffset] = System.Math.Sqrt(s);
+                a[j - 1 + (j - 1) * lda + aOffset] = math.sqrt(s);
             }
         }
 

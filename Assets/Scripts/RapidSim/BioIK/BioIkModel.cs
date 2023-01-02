@@ -43,28 +43,22 @@ namespace RapidSim.BioIK
 		private double _trx, _try, _trz, _trw;
 		private double _rescaling;
 
-		public BioIkModel(BioIkRobot bioIkRobot)
+		public BioIkModel(BioIkRobot bioIkRobot, double rescaling)
 		{
 			_bioIkRobot = bioIkRobot;
 
 			//Set Root
 			_root = _bioIkRobot.root;
-			
-			double chainLength = 0.0;
 
 			AddNode(_root, null);
-			BioIkSegment previous = _root;
 			BioIkSegment current = _root.child;
-
 			while (current != null)
 			{
 				AddNode(current, _nodes[^1]);
-				chainLength += Vector3.Distance(previous.transform.position, current.transform.position);
-				previous = current;
 				current = current.child;
 			}
 			
-			_rescaling = BioIkRobot.PI * BioIkRobot.PI / (chainLength * chainLength);
+			_rescaling = rescaling;
 
 			//Assign DoF
 			_doF = motionPointers.Length;
@@ -74,11 +68,6 @@ namespace RapidSim.BioIK
 			Refresh();
 		}
 
-		public void SetRescaling(double rescaling)
-		{
-			_rescaling = rescaling;
-		}
-		
 		public void SetTargetPosition(Vector3 position)
 		{
 			_tpx = position.x;

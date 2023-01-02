@@ -5,10 +5,6 @@ namespace RapidSim.BioIK
 	[DisallowMultipleComponent]
 	public class BioIkRobot : MonoBehaviour
 	{
-		public const double Deg2Rad = 0.017453292;
-		public const double Rad2Deg = 57.29578049;
-		public const double PI = 3.14159265358979;
-		
 		[Tooltip("The root of the Bio IK chain.")]
 		public BioIkSegment root;
 
@@ -17,9 +13,9 @@ namespace RapidSim.BioIK
 		
 		public BioIkEvolution Evolution { get; private set; }
 
-		public void Initialise(int populationSize, int elites)
+		public void Initialise(int populationSize, int elites, double rescaling)
 		{
-			Evolution = new(new(this), populationSize, elites);
+			Evolution = new(new(this, rescaling), populationSize, elites, rescaling);
 		}
 
 		public void UpdateData()

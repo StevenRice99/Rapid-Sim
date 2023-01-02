@@ -77,7 +77,7 @@ namespace RapidSim.BioIK
 			double lpX, lpY, lpZ, lrX, lrY, lrZ, lrW;
 			if(rotational)
 			{
-				ComputeLocalTransformation(BioIkRobot.Deg2Rad*x.ProcessMotion(), BioIkRobot.Deg2Rad*y.ProcessMotion(), BioIkRobot.Deg2Rad*z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
+				ComputeLocalTransformation(Robot.Deg2Rad * x.ProcessMotion(), Robot.Deg2Rad * y.ProcessMotion(), Robot.Deg2Rad * z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
 			}
 			else
 			{
@@ -117,18 +117,18 @@ namespace RapidSim.BioIK
 			double sin, x1, y1, z1, w1, x2, y2, z2, w2, qx, qy, qz, qw;
 			if (valueZ != 0.0)
 			{
-				sin = System.Math.Sin(valueZ / 2.0);
+				sin = math.sin(valueZ / 2.0);
 				qx = z.axis.x * sin;
 				qy = z.axis.y * sin;
 				qz = z.axis.z * sin;
-				qw = System.Math.Cos(valueZ / 2.0);
+				qw = math.cos(valueZ / 2.0);
 				if (valueX != 0.0)
 				{
-					sin = System.Math.Sin(valueX / 2.0);
+					sin = math.sin(valueX / 2.0);
 					x1 = x.axis.x * sin;
 					y1 = x.axis.y * sin;
 					z1 = x.axis.z * sin;
-					w1 = System.Math.Cos(valueX / 2.0);
+					w1 = math.cos(valueX / 2.0);
 					x2 = qx; y2 = qy; z2 = qz; w2 = qw;
 					qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
 					qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
@@ -136,11 +136,11 @@ namespace RapidSim.BioIK
 					qw = -x1 * x2 - y1 * y2 - z1 * z2 + w1 * w2;
 					if (valueY != 0.0)
 					{
-						sin = System.Math.Sin(valueY / 2.0);
+						sin = math.sin(valueY / 2.0);
 						x1 = y.axis.x * sin;
 						y1 = y.axis.y * sin;
 						z1 = y.axis.z * sin;
-						w1 = System.Math.Cos(valueY / 2.0);
+						w1 = math.cos(valueY / 2.0);
 						x2 = qx; y2 = qy; z2 = qz; w2 = qw;
 						qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
 						qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
@@ -150,11 +150,11 @@ namespace RapidSim.BioIK
 				}
 				else if (valueY != 0.0)
 				{
-					sin = System.Math.Sin(valueY / 2.0);
+					sin = math.sin(valueY / 2.0);
 					x1 = y.axis.x * sin;
 					y1 = y.axis.y * sin;
 					z1 = y.axis.z * sin;
-					w1 = System.Math.Cos(valueY / 2.0);
+					w1 = math.cos(valueY / 2.0);
 					x2 = qx; y2 = qy; z2 = qz; w2 = qw;
 					qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
 					qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
@@ -164,18 +164,18 @@ namespace RapidSim.BioIK
 			}
 			else if (valueX != 0.0)
 			{
-				sin = System.Math.Sin(valueX / 2.0);
+				sin = math.sin(valueX / 2.0);
 				qx = x.axis.x * sin;
 				qy = x.axis.y * sin;
 				qz = x.axis.z * sin;
-				qw = System.Math.Cos(valueX / 2.0);
+				qw = math.cos(valueX / 2.0);
 				if (valueY != 0.0)
 				{
-					sin = System.Math.Sin(valueY / 2.0);
+					sin = math.sin(valueY / 2.0);
 					x1 = y.axis.x * sin;
 					y1 = y.axis.y * sin;
 					z1 = y.axis.z * sin;
-					w1 = System.Math.Cos(valueY / 2.0);
+					w1 = math.cos(valueY / 2.0);
 					x2 = qx; y2 = qy; z2 = qz; w2 = qw;
 					qx = x1 * w2 + y1 * z2 - z1 * y2 + w1 * x2;
 					qy = -x1 * z2 + y1 * w2 + z1 * x2 + w1 * y2;
@@ -185,11 +185,11 @@ namespace RapidSim.BioIK
 			}
 			else if(valueY != 0.0)
 			{
-				sin = System.Math.Sin(valueY / 2.0);
+				sin = math.sin(valueY / 2.0);
 				qx = y.axis.x * sin;
 				qy = y.axis.y * sin;
 				qz = y.axis.z * sin;
-				qw = System.Math.Cos(valueY / 2.0);
+				qw = math.cos(valueY / 2.0);
 			}
 			else
 			{
@@ -289,14 +289,14 @@ namespace RapidSim.BioIK
 
 			public void SetLowerLimit(double value)
 			{
-				lowerLimit = System.Math.Min(0.0, value);
+				lowerLimit = math.min(0.0, value);
 			}
 
 			public double GetLowerLimit(bool normalised = false)
 			{
 				if (normalised && joint.rotational)
 				{
-					return BioIkRobot.Deg2Rad * lowerLimit;
+					return Robot.Deg2Rad * lowerLimit;
 				}
 
 				return lowerLimit;
@@ -305,14 +305,14 @@ namespace RapidSim.BioIK
 
 			public void SetUpperLimit(double value)
 			{
-				upperLimit = System.Math.Max(0.0, value);
+				upperLimit = math.max(0.0, value);
 			}
 
 			public double GetUpperLimit(bool normalised = false)
 			{
 				if (normalised && joint.rotational)
 				{
-					return BioIkRobot.Deg2Rad * upperLimit;
+					return Robot.Deg2Rad * upperLimit;
 				}
 
 				return upperLimit;
@@ -323,7 +323,7 @@ namespace RapidSim.BioIK
 			{
 				if (normalised && joint.rotational)
 				{
-					value *= BioIkRobot.Rad2Deg;
+					value *= Robot.Rad2Deg;
 				}
 
 				targetValue = math.clamp(value, lowerLimit, upperLimit);
@@ -333,7 +333,7 @@ namespace RapidSim.BioIK
 			{
 				if (joint.rotational)
 				{
-					return BioIkRobot.Deg2Rad * targetValue;
+					return Robot.Deg2Rad * targetValue;
 				}
 
 				return targetValue;

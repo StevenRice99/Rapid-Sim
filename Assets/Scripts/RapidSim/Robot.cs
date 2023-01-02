@@ -12,6 +12,10 @@ namespace RapidSim
     [DisallowMultipleComponent]
     public class Robot : MonoBehaviour
     {
+        public const double Deg2Rad = 0.017453292;
+        public const double Rad2Deg = 57.29578049;
+        public const double PI = 3.14159265358979;
+        
         [Header("Robot Settings")]
         [Tooltip("How accurate in meters the robot can repeat a movement.")]
         [Min(0)]
@@ -217,7 +221,7 @@ namespace RapidSim
             float time = 0;
             for (int i = 0; i < angles.Count; i++)
             {
-                angles[i] = Mathf.Abs(angles[i] - _targets[i]);
+                angles[i] = math.abs(angles[i] - _targets[i]);
                 if (angles[i] / _maxSpeeds[i] > time)
                 {
                     time = angles[i] / _maxSpeeds[i];
@@ -385,7 +389,7 @@ namespace RapidSim
         {
             for (int i = 0; i < degrees.Count; i++)
             {
-                degrees[i] *= Mathf.Deg2Rad;
+                degrees[i] *= (float) Deg2Rad;
             }
 
             return degrees;
@@ -459,7 +463,7 @@ namespace RapidSim
 
         public double[] BioIkOptimize(Vector3 position, Quaternion orientation)
         {
-            _bioIkRobot.Initialise(populationSize, elites);
+            _bioIkRobot.Initialise(populationSize, elites, Rescaling);
             _bioIkRobot.solution = new double[_bioIkRobot.Evolution.GetModel().GetDoF()];
             
             List<float> joints = GetJoints();
@@ -480,7 +484,6 @@ namespace RapidSim
 
             double bestAccuracy = Accuracy(LastJoint.position, position, Root.transform.rotation, LastJoint.rotation, orientation);
             double bestTime = 0;
-            double rescaling = Rescaling;
 
             for (int attempt = 0; attempt < optimizeAttempts; attempt++)
             {
@@ -495,7 +498,7 @@ namespace RapidSim
                     _bioIkRobot.solution[i] = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion.GetTargetValue();
                 }
             
-                _bioIkRobot.solution = _bioIkRobot.Evolution.Optimise(generations, _bioIkRobot.solution, position, orientation, rescaling);
+                _bioIkRobot.solution = _bioIkRobot.Evolution.Optimise(generations, _bioIkRobot.solution, position, orientation);
 
                 for (int i = 0; i < _bioIkRobot.solution.Length; i++)
                 {
@@ -535,7 +538,7 @@ namespace RapidSim
         
         public double[] BioIkSolve(Vector3 position, Quaternion orientation)
         {
-            _bioIkRobot.Initialise(populationSize, elites);
+            _bioIkRobot.Initialise(populationSize, elites, Rescaling);
             _bioIkRobot.solution = new double[_bioIkRobot.Evolution.GetModel().GetDoF()];
             
             List<float> joints = GetJoints();
@@ -559,7 +562,7 @@ namespace RapidSim
                 _bioIkRobot.solution[i] = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion.GetTargetValue();
             }
             
-            _bioIkRobot.solution = _bioIkRobot.Evolution.Optimise(generations, _bioIkRobot.solution, position, orientation, Rescaling);
+            _bioIkRobot.solution = _bioIkRobot.Evolution.Optimise(generations, _bioIkRobot.solution, position, orientation);
 
             for (int i = 0; i < _bioIkRobot.solution.Length; i++)
             {
@@ -578,7 +581,7 @@ namespace RapidSim
             return ending;
         }
         
-        private double Rescaling => BioIkRobot.PI * BioIkRobot.PI / (_chainLength * _chainLength);
+        private double Rescaling => PI * PI / (_chainLength * _chainLength);
 
         private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
         {
@@ -737,8 +740,8 @@ namespace RapidSim
                     }
                     else
                     {
-                        bioIkJoint.y.SetLowerLimit(_joints[i].LimitX.lower * Mathf.Rad2Deg);
-                        bioIkJoint.y.SetUpperLimit(_joints[i].LimitX.upper * Mathf.Rad2Deg);
+                        bioIkJoint.y.SetLowerLimit(_joints[i].LimitX.lower * Rad2Deg);
+                        bioIkJoint.y.SetUpperLimit(_joints[i].LimitX.upper * Rad2Deg);
                     }
                 }
                 else
@@ -757,8 +760,8 @@ namespace RapidSim
                     }
                     else
                     {
-                        bioIkJoint.z.SetLowerLimit(_joints[i].LimitY.lower * Mathf.Rad2Deg);
-                        bioIkJoint.z.SetUpperLimit(_joints[i].LimitY.upper * Mathf.Rad2Deg);
+                        bioIkJoint.z.SetLowerLimit(_joints[i].LimitY.lower * Rad2Deg);
+                        bioIkJoint.z.SetUpperLimit(_joints[i].LimitY.upper * Rad2Deg);
                     }
                 }
                 else
@@ -777,8 +780,8 @@ namespace RapidSim
                     }
                     else
                     {
-                        bioIkJoint.x.SetLowerLimit(_joints[i].LimitZ.lower * Mathf.Rad2Deg);
-                        bioIkJoint.x.SetUpperLimit(_joints[i].LimitZ.upper * Mathf.Rad2Deg);
+                        bioIkJoint.x.SetLowerLimit(_joints[i].LimitZ.lower * Rad2Deg);
+                        bioIkJoint.x.SetUpperLimit(_joints[i].LimitZ.upper * Rad2Deg);
                     }
                 }
                 else
