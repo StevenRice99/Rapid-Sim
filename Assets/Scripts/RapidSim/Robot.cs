@@ -163,9 +163,114 @@ namespace RapidSim
                 return;
             }
 
-            SetupBioIk();
-
             NeuralNetwork.Validate(this, network, _limits.Length + 7, _limits.Length);
+
+            List<BioIkJoint> bioIkJoints = new();
+            List<BioIkJoint.Motion> motions = new();
+            BioIkJoint previousJoint = null;
+            Transform parent = transform;
+
+            int jointNumber = 1;
+
+            for (int i = 0; i < _joints.Length; i++)
+            {
+                if (!_joints[i].HasMotion)
+                {
+                    continue;
+                }
+                
+                GameObject go = new($"Bio IK Joint {jointNumber++}")
+                {
+                    transform =
+                    {
+                        parent = parent,
+                        position = _joints[i].transform.position,
+                        rotation = _joints[i].transform.rotation
+                    }
+                };
+
+                BioIkJoint bioIkJoint = go.AddComponent<BioIkJoint>();
+                if (previousJoint == null)
+                {
+                    RootJoint = bioIkJoint;
+                }
+                else
+                {
+                    bioIkJoint.parent = previousJoint;
+                    previousJoint.child = bioIkJoint;
+                }
+                bioIkJoint.Setup();
+                previousJoint = bioIkJoint;
+                _lastBioSegment = bioIkJoint.transform;
+                parent = go.transform;
+                
+                bioIkJoint.rotational = _joints[i].Type != ArticulationJointType.PrismaticJoint;
+                bioIkJoint.SetOrientation(Vector3.zero);
+                bioIkJoints.Add(bioIkJoint);
+
+                if (_joints[i].XMotion)
+                {
+                    motions.Add(bioIkJoint.y);
+                    bioIkJoint.y.enabled = true;
+                    if (!bioIkJoint.rotational)
+                    {
+                        bioIkJoint.y.SetLowerLimit(_joints[i].LimitX.lower);
+                        bioIkJoint.y.SetUpperLimit(_joints[i].LimitX.upper);
+                    }
+                    else
+                    {
+                        bioIkJoint.y.SetLowerLimit(math.degrees(_joints[i].LimitX.lower));
+                        bioIkJoint.y.SetUpperLimit(math.degrees(_joints[i].LimitX.upper));
+                    }
+                }
+                else
+                {
+                    bioIkJoint.y.enabled = false;
+                }
+
+                if (_joints[i].YMotion)
+                {
+                    motions.Add(bioIkJoint.z);
+                    bioIkJoint.z.enabled = true;
+                    if (!bioIkJoint.rotational)
+                    {
+                        bioIkJoint.z.SetLowerLimit(_joints[i].LimitY.lower);
+                        bioIkJoint.z.SetUpperLimit(_joints[i].LimitY.upper);
+                    }
+                    else
+                    {
+                        bioIkJoint.z.SetLowerLimit(math.degrees(_joints[i].LimitY.lower));
+                        bioIkJoint.z.SetUpperLimit(math.degrees(_joints[i].LimitY.upper));
+                    }
+                }
+                else
+                {
+                    bioIkJoint.z.enabled = false;
+                }
+                
+                if (_joints[i].ZMotion)
+                {
+                    motions.Add(bioIkJoint.x);
+                    bioIkJoint.x.enabled = true;
+                    if (!bioIkJoint.rotational)
+                    {
+                        bioIkJoint.x.SetLowerLimit(_joints[i].LimitZ.lower);
+                        bioIkJoint.x.SetUpperLimit(_joints[i].LimitZ.upper);
+                    }
+                    else
+                    {
+                        bioIkJoint.x.SetLowerLimit(math.degrees(_joints[i].LimitZ.lower));
+                        bioIkJoint.x.SetUpperLimit(math.degrees(_joints[i].LimitZ.upper));
+                    }
+                }
+                else
+                {
+                    bioIkJoint.x.enabled = false;
+                }
+            }
+
+            _bioIkJoints = bioIkJoints.ToArray();
+            _motions = motions.ToArray();
         }
         
         public void Move(GameObject target)
@@ -657,115 +762,6 @@ namespace RapidSim
             // TODO - Train neural network.
 
             Debug.Log($"Training {network.step} of {network.maxSteps} - {(float)network.step / network.maxSteps * 100}%.");
-        }
-
-        private void SetupBioIk()
-        {
-            List<BioIkJoint> bioIkJoints = new();
-            List<BioIkJoint.Motion> motions = new();
-            BioIkJoint previousJoint = null;
-            Transform parent = transform;
-
-            int jointNumber = 1;
-
-            for (int i = 0; i < _joints.Length; i++)
-            {
-                if (!_joints[i].HasMotion)
-                {
-                    continue;
-                }
-                
-                GameObject go = new($"Bio IK Joint {jointNumber++}")
-                {
-                    transform =
-                    {
-                        parent = parent,
-                        position = _joints[i].transform.position,
-                        rotation = _joints[i].transform.rotation
-                    }
-                };
-
-                BioIkJoint bioIkJoint = go.AddComponent<BioIkJoint>().Create();
-                if (previousJoint == null)
-                {
-                    RootJoint = bioIkJoint;
-                }
-                else
-                {
-                    bioIkJoint.parent = previousJoint;
-                    previousJoint.child = bioIkJoint;
-                }
-                previousJoint = bioIkJoint;
-                _lastBioSegment = bioIkJoint.transform;
-                parent = go.transform;
-                
-                bioIkJoint.rotational = _joints[i].Type != ArticulationJointType.PrismaticJoint;
-                bioIkJoint.SetOrientation(Vector3.zero);
-                bioIkJoints.Add(bioIkJoint);
-
-                if (_joints[i].XMotion)
-                {
-                    motions.Add(bioIkJoint.y);
-                    bioIkJoint.y.enabled = true;
-                    if (!bioIkJoint.rotational)
-                    {
-                        bioIkJoint.y.SetLowerLimit(_joints[i].LimitX.lower);
-                        bioIkJoint.y.SetUpperLimit(_joints[i].LimitX.upper);
-                    }
-                    else
-                    {
-                        bioIkJoint.y.SetLowerLimit(math.degrees(_joints[i].LimitX.lower));
-                        bioIkJoint.y.SetUpperLimit(math.degrees(_joints[i].LimitX.upper));
-                    }
-                }
-                else
-                {
-                    bioIkJoint.y.enabled = false;
-                }
-
-                if (_joints[i].YMotion)
-                {
-                    motions.Add(bioIkJoint.z);
-                    bioIkJoint.z.enabled = true;
-                    if (!bioIkJoint.rotational)
-                    {
-                        bioIkJoint.z.SetLowerLimit(_joints[i].LimitY.lower);
-                        bioIkJoint.z.SetUpperLimit(_joints[i].LimitY.upper);
-                    }
-                    else
-                    {
-                        bioIkJoint.z.SetLowerLimit(math.degrees(_joints[i].LimitY.lower));
-                        bioIkJoint.z.SetUpperLimit(math.degrees(_joints[i].LimitY.upper));
-                    }
-                }
-                else
-                {
-                    bioIkJoint.z.enabled = false;
-                }
-                
-                if (_joints[i].ZMotion)
-                {
-                    motions.Add(bioIkJoint.x);
-                    bioIkJoint.x.enabled = true;
-                    if (!bioIkJoint.rotational)
-                    {
-                        bioIkJoint.x.SetLowerLimit(_joints[i].LimitZ.lower);
-                        bioIkJoint.x.SetUpperLimit(_joints[i].LimitZ.upper);
-                    }
-                    else
-                    {
-                        bioIkJoint.x.SetLowerLimit(math.degrees(_joints[i].LimitZ.lower));
-                        bioIkJoint.x.SetUpperLimit(math.degrees(_joints[i].LimitZ.upper));
-                    }
-                }
-                else
-                {
-                    bioIkJoint.x.enabled = false;
-                }
-            }
-
-            _bioIkJoints = bioIkJoints.ToArray();
-            _motions = motions.ToArray();
         }
 
         private BioIkEvolution Initialise()
