@@ -7,8 +7,11 @@ namespace RapidSim.BioIK
 	[DisallowMultipleComponent]
 	public class BioIkJoint : MonoBehaviour
 	{
-		[Tooltip("The segment this joint is attached to.")]
-		public BioIkSegment segment;
+		[Tooltip("The parent joint.")]
+		public BioIkJoint parent;
+		
+		[Tooltip("The child joint.")]
+		public BioIkJoint child;
 
 		[Tooltip("The motion along the X axis.")]
 		public Motion x;
@@ -28,10 +31,8 @@ namespace RapidSim.BioIK
 
 		private double _r1, _r2, _r3, _r4, _r5, _r6, _r7, _r8, _r9;
 
-		public BioIkJoint Create(BioIkSegment value)
+		public BioIkJoint Create()
 		{
-			segment = value;
-
 			x = new(this, Vector3.right);
 			y = new(this, Vector3.up);
 			z = new(this, Vector3.forward);
@@ -40,13 +41,13 @@ namespace RapidSim.BioIK
 			SetDefaultFrame(t.localPosition, t.localRotation);
 
 			Vector3 forward = Vector3.zero;
-			if (segment.child != null)
+			if (child != null)
 			{
-				forward = segment.child.transform.localPosition;
+				forward = child.transform.localPosition;
 			}
-			else if(segment.parent != null)
+			else if(parent != null)
 			{
-				forward = Quaternion.Inverse(segment.transform.localRotation) * segment.transform.localPosition;
+				forward = Quaternion.Inverse(transform.localRotation) * transform.localPosition;
 			}
 
 			SetOrientation(forward.magnitude != 0f ? Quaternion.LookRotation(forward, Vector3.up).eulerAngles : _orientation);

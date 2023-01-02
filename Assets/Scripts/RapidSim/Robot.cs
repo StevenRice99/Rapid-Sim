@@ -48,7 +48,7 @@ namespace RapidSim
         [SerializeField]
         private bool train;
         
-        public BioIkSegment RootSegment { get; private set; }
+        public BioIkJoint RootJoint { get; private set; }
 
         private ArticulationBody Root => _joints[0].Joint;
 
@@ -663,7 +663,7 @@ namespace RapidSim
         {
             List<BioIkJoint> bioIkJoints = new();
             List<BioIkJoint.Motion> motions = new();
-            BioIkSegment previousSegment = null;
+            BioIkJoint previousJoint = null;
             Transform parent = transform;
 
             int jointNumber = 1;
@@ -685,22 +685,20 @@ namespace RapidSim
                     }
                 };
 
-                BioIkSegment segment = go.AddComponent<BioIkSegment>();
-                if (previousSegment == null)
+                BioIkJoint bioIkJoint = go.AddComponent<BioIkJoint>().Create();
+                if (previousJoint == null)
                 {
-                    RootSegment = segment;
+                    RootJoint = bioIkJoint;
                 }
                 else
                 {
-                    segment.parent = previousSegment;
-                    previousSegment.child = segment;
+                    bioIkJoint.parent = previousJoint;
+                    previousJoint.child = bioIkJoint;
                 }
-                previousSegment = segment;
-                _lastBioSegment = segment.transform;
+                previousJoint = bioIkJoint;
+                _lastBioSegment = bioIkJoint.transform;
                 parent = go.transform;
                 
-                BioIkJoint bioIkJoint = segment.gameObject.AddComponent<BioIkJoint>().Create(segment);
-                segment.joint = bioIkJoint;
                 bioIkJoint.rotational = _joints[i].Type != ArticulationJointType.PrismaticJoint;
                 bioIkJoint.SetOrientation(Vector3.zero);
                 bioIkJoints.Add(bioIkJoint);

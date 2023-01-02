@@ -9,7 +9,7 @@ namespace RapidSim.BioIK
 		private readonly Robot _robot;
 
 		// Reference to root
-		private readonly BioIkSegment _root;
+		private readonly BioIkJoint _root;
 
 		// Offset to world
 		private double _opx, _opy, _opz;
@@ -48,10 +48,10 @@ namespace RapidSim.BioIK
 			_robot = robot;
 
 			//Set Root
-			_root = _robot.RootSegment;
+			_root = _robot.RootJoint;
 
 			AddNode(_root, null);
-			BioIkSegment current = _root.child;
+			BioIkJoint current = _root.child;
 			while (current != null)
 			{
 				AddNode(current, _nodes[^1]);
@@ -246,37 +246,37 @@ namespace RapidSim.BioIK
 		}
 
 		//Adds a segment node into the model
-		private void AddNode(BioIkSegment ikSegment, Node parent)
+		private void AddNode(BioIkJoint ikSegment, Node parent)
 		{
 			Node node = new(this, parent, ikSegment);
 
-			if (node.ikJoint != null)
+			if (node.bioIkJoint != null)
 			{
-				if (node.ikJoint.GetDoF() == 0)
+				if (node.bioIkJoint.GetDoF() == 0)
 				{
-					node.ikJoint = null;
+					node.bioIkJoint = null;
 				}
 				else
 				{
-					if (node.ikJoint.x.enabled)
+					if (node.bioIkJoint.x.enabled)
 					{
-						MotionPtr motionPtr = new(node.ikJoint.x, node, motionPointers.Length);
+						MotionPtr motionPtr = new(node.bioIkJoint.x, node, motionPointers.Length);
 						Array.Resize(ref motionPointers, motionPointers.Length + 1);
 						motionPointers[^1] = motionPtr;
 						node.xEnabled = true;
 						node.xIndex = motionPtr.index;
 					}
-					if (node.ikJoint.y.enabled)
+					if (node.bioIkJoint.y.enabled)
 					{
-						MotionPtr motionPtr = new(node.ikJoint.y, node, motionPointers.Length);
+						MotionPtr motionPtr = new(node.bioIkJoint.y, node, motionPointers.Length);
 						Array.Resize(ref motionPointers, motionPointers.Length + 1);
 						motionPointers[^1] = motionPtr;
 						node.yEnabled = true;
 						node.yIndex = motionPtr.index;
 					}
-					if (node.ikJoint.z.enabled)
+					if (node.bioIkJoint.z.enabled)
 					{
-						MotionPtr motionPtr = new(node.ikJoint.z, node, motionPointers.Length);
+						MotionPtr motionPtr = new(node.bioIkJoint.z, node, motionPointers.Length);
 						Array.Resize(ref motionPointers, motionPointers.Length + 1);
 						motionPointers[^1] = motionPtr;
 						node.zEnabled = true;
@@ -297,7 +297,7 @@ namespace RapidSim.BioIK
 			private readonly Node _parent;							//Reference to the parent of this node
 			private Node _child;
 			private readonly Transform _transform;					//Reference to the transform
-			public BioIkJoint ikJoint;									//Reference to the joint
+			public BioIkJoint bioIkJoint;									//Reference to the joint
 
 			public double wpx, wpy, wpz;				//World position
 			public double wrx, wry, wrz, wrw;			//World rotation
@@ -316,7 +316,7 @@ namespace RapidSim.BioIK
 			public double zValue;
 
 			//Setup for the node
-			public Node(BioIkModel bioIkModel, Node parent, BioIkSegment ikSegment)
+			public Node(BioIkModel bioIkModel, Node parent, BioIkJoint bioIkJoint)
 			{
 				_bioIkModel = bioIkModel;
 				_parent = parent;
@@ -325,33 +325,18 @@ namespace RapidSim.BioIK
 					_parent._child = this;
 				}
 
-				_transform = ikSegment.transform;
-				ikJoint = ikSegment.joint;
+				_transform = bioIkJoint.transform;
+				this.bioIkJoint = bioIkJoint;
 			}
 
 			//Recursively refreshes the current transform data
 			public void Refresh()
 			{
-				//Local
-				if (ikJoint == null)
-				{
-					Vector3 lp = _transform.localPosition;
-					Quaternion lr = _transform.localRotation;
-					lpx = lp.x;
-					lpy = lp.y;
-					lpz = lp.z;
-					lrx = lr.x;
-					lry = lr.y;
-					lrz = lr.z;
-					lrw = lr.w;
-				}
-				else
-				{
-					xValue = ikJoint.x.GetTargetValue();
-					yValue = ikJoint.y.GetTargetValue();
-					zValue = ikJoint.z.GetTargetValue();
-					ikJoint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
-				}
+				xValue = bioIkJoint.x.GetTargetValue();
+				yValue = bioIkJoint.y.GetTargetValue();
+				zValue = bioIkJoint.z.GetTargetValue();
+				bioIkJoint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
+				
 				Vector3 ws = _transform.lossyScale;
 				wsx = ws.x;
 				wsy = ws.y;
@@ -391,7 +376,7 @@ namespace RapidSim.BioIK
 				//Only update local transformation if a joint value has changed
 				if (updateLocal)
 				{
-					ikJoint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
+					bioIkJoint.ComputeLocalTransformation(xValue, yValue, zValue, out lpx, out lpy, out lpz, out lrx, out lry, out lrz, out lrw);
 					updateWorld = true;
 				}
 
@@ -410,7 +395,7 @@ namespace RapidSim.BioIK
 			public void SimulateModification(double[] configuration)
 			{
 				Node node = _bioIkModel.motionPointers[^1].node;
-				ikJoint.ComputeLocalTransformation(
+				bioIkJoint.ComputeLocalTransformation(
 					xEnabled ? configuration[xIndex] : xValue,
 					yEnabled ? configuration[yIndex] : yValue, 
 					zEnabled ? configuration[zIndex] : zValue, 
