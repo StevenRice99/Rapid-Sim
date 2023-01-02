@@ -26,13 +26,11 @@ namespace RapidSim
         
         [Min(1)]
         [Tooltip("The population size of each generation during Bio IK evolution.")]
-        [SerializeField]
-        private int populationSize = 120;
+        public int populationSize = 120;
         
         [Min(1)]
         [Tooltip("The number of elites in each generation during Bio IK evolution.")]
-        [SerializeField]
-        private int elites = 3;
+        public int elites = 3;
         
         [Min(1)]
         [Tooltip("The number of times to run the Bio IK algorithm when attempting to find an optimal move.")]
@@ -47,8 +45,6 @@ namespace RapidSim
         [Tooltip("Click to train the neural network to control the robot.")]
         [SerializeField]
         private bool train;
-        
-        public BioIkJoint RootJoint { get; private set; }
 
         private ArticulationBody Root => _joints[0].Joint;
 
@@ -68,17 +64,19 @@ namespace RapidSim
 
         private JointLimit[] _limits;
 
-        private float _chainLength;
-
         private RobotJoint[] _joints;
 
-        private BioIkJoint[] _bioIkJoints;
+        public BioIkJoint[] BioIkJoints { get; private set; }
+        
+        public double Rescaling { get; private set; }
 
         private BioIkJoint.Motion[] _motions;
 
         private Transform Objective => LastJoint.transform;
 
         private Transform _lastBioSegment;
+
+        private float _chainLength;
 
         private void OnValidate()
         {
@@ -132,6 +130,8 @@ namespace RapidSim
                     _chainLength += Vector3.Distance(_joints[i - 1].transform.position, _joints[i].transform.position);
                 }
             }
+
+            Rescaling = math.PI_DBL * math.PI_DBL / (_chainLength * _chainLength);
 
             _limits = limits.ToArray();
             _home = GetJoints();
@@ -190,11 +190,7 @@ namespace RapidSim
                 };
 
                 BioIkJoint bioIkJoint = go.AddComponent<BioIkJoint>();
-                if (previousJoint == null)
-                {
-                    RootJoint = bioIkJoint;
-                }
-                else
+                if (previousJoint != null)
                 {
                     bioIkJoint.parent = previousJoint;
                     previousJoint.child = bioIkJoint;
@@ -269,7 +265,7 @@ namespace RapidSim
                 }
             }
 
-            _bioIkJoints = bioIkJoints.ToArray();
+            BioIkJoints = bioIkJoints.ToArray();
             _motions = motions.ToArray();
         }
         
@@ -558,8 +554,8 @@ namespace RapidSim
 
         public double[] BioIkOptimize(Vector3 position, Quaternion orientation)
         {
-            BioIkEvolution evolution = Initialise();
-            double[] solution = new double[evolution.GetModel().GetDoF()];
+            BioIkEvolution evolution = new(this);
+            double[] solution = new double[evolution.bioIkModel.dof];
             
             List<float> joints = GetJoints();
 
@@ -590,14 +586,14 @@ namespace RapidSim
                 UpdateData();
                 for (int i = 0; i < solution.Length; i++)
                 {
-                    solution[i] = evolution.GetModel().motionPointers[i].motion.GetTargetValue();
+                    solution[i] = evolution.bioIkModel.motionPointers[i].motion.GetTargetValue();
                 }
             
                 solution = evolution.Optimise(generations, solution, position, orientation);
 
                 for (int i = 0; i < solution.Length; i++)
                 {
-                    BioIkJoint.Motion motion = evolution.GetModel().motionPointers[i].motion;
+                    BioIkJoint.Motion motion = evolution.bioIkModel.motionPointers[i].motion;
                     motion.SetTargetValue(solution[i], true);
                 }
 
@@ -632,8 +628,8 @@ namespace RapidSim
         
         public double[] BioIkSolve(Vector3 position, Quaternion orientation)
         {
-            BioIkEvolution evolution = Initialise();
-            double[] solution = new double[evolution.GetModel().GetDoF()];
+            BioIkEvolution evolution = new(this);
+            double[] solution = new double[evolution.bioIkModel.dof];
             
             List<float> joints = GetJoints();
 
@@ -653,14 +649,14 @@ namespace RapidSim
             UpdateData();
             for (int i = 0; i < solution.Length; i++)
             {
-                solution[i] = evolution.GetModel().motionPointers[i].motion.GetTargetValue();
+                solution[i] = evolution.bioIkModel.motionPointers[i].motion.GetTargetValue();
             }
             
             solution = evolution.Optimise(generations, solution, position, orientation);
 
             for (int i = 0; i < solution.Length; i++)
             {
-                BioIkJoint.Motion motion = evolution.GetModel().motionPointers[i].motion;
+                BioIkJoint.Motion motion = evolution.bioIkModel.motionPointers[i].motion;
                 motion.SetTargetValue(solution[i], true);
             }
 
@@ -673,8 +669,6 @@ namespace RapidSim
 
             return ending;
         }
-        
-        private double Rescaling => math.PI_DBL * math.PI_DBL / (_chainLength * _chainLength);
 
         private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
         {
@@ -764,24 +758,19 @@ namespace RapidSim
             Debug.Log($"Training {network.step} of {network.maxSteps} - {(float)network.step / network.maxSteps * 100}%.");
         }
 
-        private BioIkEvolution Initialise()
-        {
-            return new(new(this, Rescaling), populationSize, elites, Rescaling);
-        }
-
         private void UpdateData()
         {
-            for (int i = 0; i < _bioIkJoints.Length; i++)
+            for (int i = 0; i < BioIkJoints.Length; i++)
             {
-                _bioIkJoints[i].UpdateData();
+                BioIkJoints[i].UpdateData();
             }
         }
 
         private void ProcessMotion()
         {
-            for (int i = 0; i < _bioIkJoints.Length; i++)
+            for (int i = 0; i < BioIkJoints.Length; i++)
             {
-                _bioIkJoints[i].ProcessMotion();
+                BioIkJoints[i].ProcessMotion();
             }
         }
     }

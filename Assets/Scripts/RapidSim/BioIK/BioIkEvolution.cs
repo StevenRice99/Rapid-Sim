@@ -13,7 +13,7 @@ namespace RapidSim.BioIK
 	//----------------------------------------------------------------------------------------------------
 	public class BioIkEvolution
     {
-		private readonly BioIkModel _bioIkModel;          //Reference to the kinematic model
+		public readonly BioIkModel bioIkModel;          //Reference to the kinematic model
 		private readonly int _populationSize;   //Number of individuals (population size)
 		private readonly int _elites;           //Number of elite individuals
 		private readonly int _dimensionality;   //Search space dimensionality
@@ -41,12 +41,12 @@ namespace RapidSim.BioIK
 		private double _fitness;                //Evolutionary fitness
 
 		//Initialises the algorithm
-		public BioIkEvolution(BioIkModel bioIkModel, int populationSize, int elites, double rescaling)
+		public BioIkEvolution(Robot robot)
         {
-			_bioIkModel = bioIkModel;
-			_populationSize = populationSize;
-			_elites = elites;
-			_dimensionality = bioIkModel.GetDoF();
+			bioIkModel = new(robot);
+			_populationSize = robot.populationSize;
+			_elites = robot.elites;
+			_dimensionality = bioIkModel.dof;
 
 			_population = new Individual[_populationSize];
 			_offspring = new Individual[_populationSize];
@@ -67,7 +67,7 @@ namespace RapidSim.BioIK
             for (int i = 0; i < _elites; i++)
             {
                 int index = i;
-                _models[index] = new(_bioIkModel.GetBioRobot(), rescaling);
+                _models[index] = new(robot);
                 _optimisers[index] = new(_dimensionality, x => _models[index].ComputeLoss(x), y => _models[index].ComputeGradient(y, 1e-5));
             }
         }
@@ -84,23 +84,23 @@ namespace RapidSim.BioIK
 
 		public double[] Optimise(int generations, double[] seed, Vector3 position, Quaternion orientation)
         {
-            _bioIkModel.SetTargetPosition(position);
-            _bioIkModel.SetTargetRotation(orientation);
+            bioIkModel.SetTargetPosition(position);
+            bioIkModel.SetTargetRotation(orientation);
             
-            _bioIkModel.Refresh();
+            bioIkModel.Refresh();
             
 			for (int i = 0; i < _dimensionality; i++)
             {
-				_lowerBounds[i] = _bioIkModel.motionPointers[i].motion.GetLowerLimit();
-				_upperBounds[i] = _bioIkModel.motionPointers[i].motion.GetUpperLimit();
+				_lowerBounds[i] = bioIkModel.motionPointers[i].motion.GetLowerLimit();
+				_upperBounds[i] = bioIkModel.motionPointers[i].motion.GetUpperLimit();
 				_solution[i] = seed[i];
 			}
-			_fitness = _bioIkModel.ComputeLoss(_solution);
+			_fitness = bioIkModel.ComputeLoss(_solution);
 
             Initialise(seed);
             for (int i = 0; i < _elites; i++)
             {
-                _models[i].CopyFrom(_bioIkModel);
+                _models[i].CopyFrom(bioIkModel);
                 _optimisers[i].lowerBounds = _lowerBounds;
                 _optimisers[i].upperBounds = _upperBounds;
             }
@@ -121,7 +121,7 @@ namespace RapidSim.BioIK
 				_population[0].genes[i] = seed[i];
 				_population[0].momentum[i] = 0.0;
 			}
-			_population[0].fitness = _bioIkModel.ComputeLoss(_population[0].genes);
+			_population[0].fitness = bioIkModel.ComputeLoss(_population[0].genes);
 
 			for (int i=1; i < _populationSize; i++)
             {
@@ -337,7 +337,7 @@ namespace RapidSim.BioIK
 			}
 
 			//Fitness
-			offspring.fitness = _bioIkModel.ComputeLoss(offspring.genes);
+			offspring.fitness = bioIkModel.ComputeLoss(offspring.genes);
 		}
 
 		//Generates a random individual
@@ -348,7 +348,7 @@ namespace RapidSim.BioIK
                 individual.genes[i] = Random.Range((float)_lowerBounds[i], (float)_upperBounds[i]);
                 individual.momentum[i] = 0.0;
 			}
-			individual.fitness = _bioIkModel.ComputeLoss(individual.genes);
+			individual.fitness = bioIkModel.ComputeLoss(individual.genes);
 		}
 
 		//Rank-based selection of an individual
@@ -392,11 +392,6 @@ namespace RapidSim.BioIK
 		private static void Swap(ref Individual[] a, ref Individual[] b)
         {
 			(a, b) = (b, a);
-        }
-
-        public BioIkModel GetModel()
-        {
-            return _bioIkModel;
         }
 
 		//Data class for the individuals

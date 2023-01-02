@@ -6,10 +6,13 @@ namespace RapidSim.BioIK
 {
 	public class BioIkModel
 	{
-		private readonly Robot _robot;
+		//Global pointers to the IK setup
+		public MotionPtr[] motionPointers = Array.Empty<MotionPtr>();
 
-		// Reference to root
-		private readonly BioIkJoint _root;
+		//Degree of Freedom
+		public readonly int dof;
+		
+		private readonly Robot _robot;
 
 		// Offset to world
 		private double _opx, _opy, _opz;
@@ -17,9 +20,6 @@ namespace RapidSim.BioIK
 		
 		// Linked list of nodes in the model
 		private Node[] _nodes = Array.Empty<Node>();
-
-		//Global pointers to the IK setup
-		public MotionPtr[] motionPointers = Array.Empty<MotionPtr>();
 
 		//Assigned Configuration
 		private readonly double[] _configuration;
@@ -35,33 +35,24 @@ namespace RapidSim.BioIK
 		private double _rz;
 		private double _rw;
 		private double _simulatedLoss;
-
-		//Degree of Freedom
-		private readonly int _doF;
 		
 		private double _tpx, _tpy, _tpz;
 		private double _trx, _try, _trz, _trw;
-		private double _rescaling;
 
-		public BioIkModel(Robot robot, double rescaling)
+		public BioIkModel(Robot robot)
 		{
-			_robot = robot;
+			this._robot = robot;
 
-			//Set Root
-			_root = _robot.RootJoint;
-
-			AddNode(_root, null);
-			BioIkJoint current = _root.child;
+			AddNode(this._robot.BioIkJoints[0], null);
+			BioIkJoint current = this._robot.BioIkJoints[0].child;
 			while (current != null)
 			{
 				AddNode(current, _nodes[^1]);
 				current = current.child;
 			}
-			
-			_rescaling = rescaling;
 
 			//Assign DoF
-			_doF = motionPointers.Length;
+			dof = motionPointers.Length;
 			_configuration = new double[motionPointers.Length];
 			_gradient = new double[motionPointers.Length];
 
@@ -83,16 +74,6 @@ namespace RapidSim.BioIK
 			_trw = rotation.w;
 		}
 
-		public int GetDoF()
-		{
-			return _doF;
-		}
-
-		public Robot GetBioRobot()
-		{
-			return _robot;
-		}
-
 		public void Refresh()
 		{
 			//Updates configuration
@@ -102,14 +83,14 @@ namespace RapidSim.BioIK
 			}
 
 			//Update offset from world to root
-			if (_root.transform.root == _robot.transform)
+			if (_robot.BioIkJoints[0].transform.root == _robot.transform)
 			{
 				_opx = _opy = _opz = _orx = _ory = _orz = 0.0;
 				_orw = 1.0;
 			}
 			else
 			{
-				Transform parent = _root.transform.parent;
+				Transform parent = _robot.BioIkJoints[0].transform.parent;
 				Vector3 p = parent.position;
 				Quaternion r = parent.rotation;
 				_opx = p.x; _opy = p.y; _opz = p.z;
@@ -129,7 +110,7 @@ namespace RapidSim.BioIK
 			_ory = bioIkModel._ory;
 			_orz = bioIkModel._orz;
 			_orw = bioIkModel._orw;
-			for (int i = 0; i < _doF; i++)
+			for (int i = 0; i < dof; i++)
 			{
 				_configuration[i] = bioIkModel._configuration[i];
 				_gradient[i] = bioIkModel._gradient[i];
@@ -168,7 +149,6 @@ namespace RapidSim.BioIK
 				_nodes[i].yValue = bioIkModel._nodes[i].yValue;
 				_nodes[i].zValue = bioIkModel._nodes[i].zValue;
 			}
-			_rescaling = bioIkModel._rescaling;
 			_tpx = bioIkModel._tpx;
 			_tpy = bioIkModel._tpy;
 			_tpz = bioIkModel._tpz;
@@ -176,7 +156,6 @@ namespace RapidSim.BioIK
 			_try = bioIkModel._try;
 			_trz = bioIkModel._trz;
 			_trw = bioIkModel._trw;
-			_rescaling = bioIkModel._rescaling;
 		}
 
 		//Computes the loss as the root mean error squared over all objectives
@@ -190,7 +169,7 @@ namespace RapidSim.BioIK
 
 		private double ComputeLoss(double apx, double apy, double apz, double arx, double ary, double arz, double arw)
 		{
-			double pos = _rescaling * ((_tpx - apx) * (_tpx - apx) + (_tpy - apy) * (_tpy - apy) + (_tpz - apz) * (_tpz - apz));
+			double pos = _robot.Rescaling * ((_tpx - apx) * (_tpx - apx) + (_tpy - apy) * (_tpy - apy) + (_tpz - apz) * (_tpz - apz));
 			
 			double d = arx * _trx + ary * _try + arz * _trz + arw * _trw;
 			switch (d)
@@ -225,7 +204,7 @@ namespace RapidSim.BioIK
 		public double[] ComputeGradient(double[] configuration, double resolution)
 		{
 			double oldLoss = ComputeLoss(configuration);
-			for (int j = 0; j < _doF; j++)
+			for (int j = 0; j < dof; j++)
 			{
 				_configuration[j] += resolution;
 				motionPointers[j].node.SimulateModification(_configuration);
