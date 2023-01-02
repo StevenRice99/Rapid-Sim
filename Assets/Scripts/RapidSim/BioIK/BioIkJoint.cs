@@ -1,4 +1,5 @@
-﻿using Unity.Mathematics;
+﻿using System;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace RapidSim.BioIK
@@ -77,7 +78,7 @@ namespace RapidSim.BioIK
 			double lpX, lpY, lpZ, lrX, lrY, lrZ, lrW;
 			if(rotational)
 			{
-				ComputeLocalTransformation(Robot.Deg2Rad * x.ProcessMotion(), Robot.Deg2Rad * y.ProcessMotion(), Robot.Deg2Rad * z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
+				ComputeLocalTransformation(math.radians(x.ProcessMotion()), math.radians(y.ProcessMotion()), math.radians(z.ProcessMotion()), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
 			}
 			else
 			{
@@ -254,7 +255,7 @@ namespace RapidSim.BioIK
 			_drw = localRotation.w;
 		}
 
-		[System.Serializable]
+		[Serializable]
 		public class Motion
 		{
 			[Tooltip("The joint this motion is attached to.")]
@@ -292,15 +293,9 @@ namespace RapidSim.BioIK
 				lowerLimit = math.min(0.0, value);
 			}
 
-			public double GetLowerLimit(bool normalised = false)
+			public double GetLowerLimit()
 			{
-				if (normalised && joint.rotational)
-				{
-					return Robot.Deg2Rad * lowerLimit;
-				}
-
-				return lowerLimit;
-
+				return joint.rotational ? math.radians(lowerLimit) : lowerLimit;
 			}
 
 			public void SetUpperLimit(double value)
@@ -308,22 +303,16 @@ namespace RapidSim.BioIK
 				upperLimit = math.max(0.0, value);
 			}
 
-			public double GetUpperLimit(bool normalised = false)
+			public double GetUpperLimit()
 			{
-				if (normalised && joint.rotational)
-				{
-					return Robot.Deg2Rad * upperLimit;
-				}
-
-				return upperLimit;
-
+				return joint.rotational ? math.radians(upperLimit) : upperLimit;
 			}
 
 			public void SetTargetValue(double value, bool normalised = false)
 			{
 				if (normalised && joint.rotational)
 				{
-					value *= Robot.Rad2Deg;
+					value = math.degrees(value);
 				}
 
 				targetValue = math.clamp(value, lowerLimit, upperLimit);
@@ -331,12 +320,7 @@ namespace RapidSim.BioIK
 
 			public double GetTargetValue()
 			{
-				if (joint.rotational)
-				{
-					return Robot.Deg2Rad * targetValue;
-				}
-
-				return targetValue;
+				return joint.rotational ? math.radians(targetValue) : targetValue;
 			}
 		}
 	}

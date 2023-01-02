@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -71,14 +72,14 @@ namespace RapidSim.BioIK
             }
         }
         
-        public static System.DateTime GetTimestamp()
+        public static DateTime GetTimestamp()
         {
-            return System.DateTime.Now;
+            return DateTime.Now;
         }
 
-        public static double GetElapsedTime(System.DateTime timestamp)
+        public static double GetElapsedTime(DateTime timestamp)
         {
-            return (System.DateTime.Now - timestamp).Duration().TotalSeconds;
+            return (DateTime.Now - timestamp).Duration().TotalSeconds;
         }
 
 		public double[] Optimise(int generations, double[] seed, Vector3 position, Quaternion orientation)
@@ -90,8 +91,8 @@ namespace RapidSim.BioIK
             
 			for (int i = 0; i < _dimensionality; i++)
             {
-				_lowerBounds[i] = _bioIkModel.motionPointers[i].motion.GetLowerLimit(true);
-				_upperBounds[i] = _bioIkModel.motionPointers[i].motion.GetUpperLimit(true);
+				_lowerBounds[i] = _bioIkModel.motionPointers[i].motion.GetLowerLimit();
+				_upperBounds[i] = _bioIkModel.motionPointers[i].motion.GetUpperLimit();
 				_solution[i] = seed[i];
 			}
 			_fitness = _bioIkModel.ComputeLoss(_solution);
@@ -143,7 +144,7 @@ namespace RapidSim.BioIK
 			_poolCount = _populationSize;
             
             //Evolve offspring
-            System.DateTime timestamp = GetTimestamp();
+            DateTime timestamp = GetTimestamp();
             for (int i=_elites; i < _populationSize; i++)
             {
                 if (_poolCount > 0)
@@ -384,7 +385,7 @@ namespace RapidSim.BioIK
         //Sorts the population by their fitness values (descending)
 		private void SortByFitness()
         {
-			System.Array.Sort(_population, (a, b) => a.fitness.CompareTo(b.fitness));
+			Array.Sort(_population, (a, b) => a.fitness.CompareTo(b.fitness));
 		}
 
 		//In-place swap by references
@@ -447,8 +448,8 @@ namespace RapidSim.BioIK
     {
         private enum Task { None, Start, NewX, Fg, FgLN, FgSt, Abnormal, Convergence, Error, RestartLN, Warning }
 
-        private readonly System.Func<double[], double> _function;
-        private readonly System.Func<double[], double[]> _gradient;
+        private readonly Func<double[], double> _function;
+        private readonly Func<double[], double[]> _gradient;
         private readonly int _dimensionality;
         public readonly double[] solution;
         public double value;
@@ -476,7 +477,7 @@ namespace RapidSim.BioIK
         private double _newF;
         private double[] _newG;
 
-        public Bfgs(int dimensionality, System.Func<double[], double> function, System.Func<double[], double[]> gradient)
+        public Bfgs(int dimensionality, Func<double[], double> function, Func<double[], double[]> gradient)
         {
             _dimensionality = dimensionality;
             _function = function;
@@ -513,18 +514,18 @@ namespace RapidSim.BioIK
             }
 
             _f = 0.0;
-            System.Array.Clear(_g, 0, _g.Length);
-            System.Array.Clear(_lSave, 0, _lSave.Length);
-            System.Array.Clear(_save, 0, _save.Length);
-            System.Array.Clear(_dSave, 0, _dSave.Length);
-            System.Array.Clear(_iwa, 0, _iwa.Length);
-            System.Array.Clear(_work, 0, _work.Length);
+            Array.Clear(_g, 0, _g.Length);
+            Array.Clear(_lSave, 0, _lSave.Length);
+            Array.Clear(_save, 0, _save.Length);
+            Array.Clear(_dSave, 0, _dSave.Length);
+            Array.Clear(_iwa, 0, _iwa.Length);
+            Array.Clear(_work, 0, _work.Length);
             _task = Task.Start;
             _cSave = Task.None;
             _newF = 0;
             _newG = null;
 
-            System.DateTime timestamp = BioIkEvolution.GetTimestamp();
+            DateTime timestamp = BioIkEvolution.GetTimestamp();
             while(BioIkEvolution.GetElapsedTime(timestamp) < timeout)
             {
                 Setulb(

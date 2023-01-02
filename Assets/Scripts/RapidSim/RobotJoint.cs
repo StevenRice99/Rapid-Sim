@@ -28,11 +28,11 @@ namespace RapidSim
 
         public bool ZMotion => ZDrive.lowerLimit != 0 && ZDrive.upperLimit != 0;
 
-        public float SpeedX => (float) (Type == ArticulationJointType.PrismaticJoint ? speed.x : speed.x * Robot.Deg2Rad);
+        public float SpeedX => Type == ArticulationJointType.PrismaticJoint ? speed.x : math.radians(speed.x);
 
-        public float SpeedY => (float) (Type == ArticulationJointType.PrismaticJoint ? speed.y : speed.y * Robot.Deg2Rad);
+        public float SpeedY => Type == ArticulationJointType.PrismaticJoint ? speed.y : math.radians(speed.y);
 
-        public float SpeedZ => (float) (Type == ArticulationJointType.PrismaticJoint ? speed.z : speed.z * Robot.Deg2Rad);
+        public float SpeedZ => Type == ArticulationJointType.PrismaticJoint ? speed.z : math.radians(speed.z);
 
         public ArticulationJointType Type => Joint.jointType;
 
@@ -56,7 +56,7 @@ namespace RapidSim
                     LimitZ = new(ZDrive.lowerLimit, ZDrive.upperLimit);
                     break;
                 case ArticulationJointType.RevoluteJoint:
-                    LimitX = new((float) (XDrive.lowerLimit * Robot.Deg2Rad), (float) (XDrive.upperLimit * Robot.Deg2Rad));
+                    LimitX = new(math.radians(XDrive.lowerLimit), math.radians(XDrive.upperLimit));
                     LimitY = new(0, 0);
                     LimitZ = new(0, 0);
                     break;
@@ -64,7 +64,7 @@ namespace RapidSim
                 default:
                     if (XMotion)
                     {
-                        LimitX = new((float) (XDrive.lowerLimit * Robot.Deg2Rad), (float) (XDrive.upperLimit * Robot.Deg2Rad));
+                        LimitX = new(math.radians(XDrive.lowerLimit), math.radians(XDrive.upperLimit));
                     }
                     else
                     {
@@ -72,7 +72,7 @@ namespace RapidSim
                     }
                     if (YMotion)
                     {
-                        LimitY = new((float) (YDrive.lowerLimit * Robot.Deg2Rad), (float) (YDrive.upperLimit * Robot.Deg2Rad));
+                        LimitY = new(math.radians(YDrive.lowerLimit), math.radians(YDrive.upperLimit));
                     }
                     else
                     {
@@ -80,7 +80,7 @@ namespace RapidSim
                     }
                     if (ZMotion)
                     {
-                        LimitY = new((float) (ZDrive.lowerLimit * Robot.Deg2Rad), (float) (ZDrive.upperLimit * Robot.Deg2Rad));
+                        LimitY = new(math.radians(ZDrive.lowerLimit), math.radians(ZDrive.upperLimit));
                     }
                     else
                     {

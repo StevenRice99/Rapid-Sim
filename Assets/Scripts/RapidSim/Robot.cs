@@ -12,10 +12,6 @@ namespace RapidSim
     [DisallowMultipleComponent]
     public class Robot : MonoBehaviour
     {
-        public const double Deg2Rad = 0.017453292;
-        public const double Rad2Deg = 57.29578049;
-        public const double PI = 3.14159265358979;
-        
         [Header("Robot Settings")]
         [Tooltip("How accurate in meters the robot can repeat a movement.")]
         [Min(0)]
@@ -389,7 +385,7 @@ namespace RapidSim
         {
             for (int i = 0; i < degrees.Count; i++)
             {
-                degrees[i] *= (float) Deg2Rad;
+                degrees[i] = math.radians(degrees[i]);
             }
 
             return degrees;
@@ -581,7 +577,7 @@ namespace RapidSim
             return ending;
         }
         
-        private double Rescaling => PI * PI / (_chainLength * _chainLength);
+        private double Rescaling => math.PI_DBL * math.PI_DBL / (_chainLength * _chainLength);
 
         private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
         {
@@ -740,8 +736,8 @@ namespace RapidSim
                     }
                     else
                     {
-                        bioIkJoint.y.SetLowerLimit(_joints[i].LimitX.lower * Rad2Deg);
-                        bioIkJoint.y.SetUpperLimit(_joints[i].LimitX.upper * Rad2Deg);
+                        bioIkJoint.y.SetLowerLimit(math.degrees(_joints[i].LimitX.lower));
+                        bioIkJoint.y.SetUpperLimit(math.degrees(_joints[i].LimitX.upper));
                     }
                 }
                 else
@@ -760,8 +756,8 @@ namespace RapidSim
                     }
                     else
                     {
-                        bioIkJoint.z.SetLowerLimit(_joints[i].LimitY.lower * Rad2Deg);
-                        bioIkJoint.z.SetUpperLimit(_joints[i].LimitY.upper * Rad2Deg);
+                        bioIkJoint.z.SetLowerLimit(math.degrees(_joints[i].LimitY.lower));
+                        bioIkJoint.z.SetUpperLimit(math.degrees(_joints[i].LimitY.upper));
                     }
                 }
                 else
@@ -780,8 +776,8 @@ namespace RapidSim
                     }
                     else
                     {
-                        bioIkJoint.x.SetLowerLimit(_joints[i].LimitZ.lower * Rad2Deg);
-                        bioIkJoint.x.SetUpperLimit(_joints[i].LimitZ.upper * Rad2Deg);
+                        bioIkJoint.x.SetLowerLimit(math.degrees(_joints[i].LimitZ.lower));
+                        bioIkJoint.x.SetUpperLimit(math.degrees(_joints[i].LimitZ.upper));
                     }
                 }
                 else
