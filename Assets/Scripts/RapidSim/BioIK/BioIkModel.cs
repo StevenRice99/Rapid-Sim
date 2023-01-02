@@ -6,7 +6,7 @@ namespace RapidSim.BioIK
 {
 	public class BioIkModel
 	{
-		private readonly BioIkRobot _bioIkRobot;
+		private readonly Robot _robot;
 
 		// Reference to root
 		private readonly BioIkSegment _root;
@@ -43,12 +43,12 @@ namespace RapidSim.BioIK
 		private double _trx, _try, _trz, _trw;
 		private double _rescaling;
 
-		public BioIkModel(BioIkRobot bioIkRobot, double rescaling)
+		public BioIkModel(Robot robot, double rescaling)
 		{
-			_bioIkRobot = bioIkRobot;
+			_robot = robot;
 
 			//Set Root
-			_root = _bioIkRobot.root;
+			_root = _robot.RootSegment;
 
 			AddNode(_root, null);
 			BioIkSegment current = _root.child;
@@ -88,9 +88,9 @@ namespace RapidSim.BioIK
 			return _doF;
 		}
 
-		public BioIkRobot GetBioRobot()
+		public Robot GetBioRobot()
 		{
-			return _bioIkRobot;
+			return _robot;
 		}
 
 		public void Refresh()
@@ -102,7 +102,7 @@ namespace RapidSim.BioIK
 			}
 
 			//Update offset from world to root
-			if (_root.transform.root == _bioIkRobot.transform)
+			if (_root.transform.root == _robot.transform)
 			{
 				_opx = _opy = _opz = _orx = _ory = _orz = 0.0;
 				_orw = 1.0;

@@ -47,6 +47,8 @@ namespace RapidSim
         [Tooltip("Click to train the neural network to control the robot.")]
         [SerializeField]
         private bool train;
+        
+        public BioIkSegment RootSegment { get; private set; }
 
         private ArticulationBody Root => _joints[0].Joint;
 
@@ -70,7 +72,7 @@ namespace RapidSim
 
         private RobotJoint[] _joints;
 
-        private BioIkRobot _bioIkRobot;
+        private BioIkJoint[] _bioIkJoints;
 
         private BioIkJoint.Motion[] _motions;
 
@@ -88,11 +90,11 @@ namespace RapidSim
 
         public void Start()
         {
-            RobotJoint root = GetComponent<RobotJoint>();
+            RobotJoint rootJoint = GetComponent<RobotJoint>();
         
             RobotJoint[] children = GetComponentsInChildren<RobotJoint>();
 
-            if (root == null)
+            if (rootJoint == null)
             {
                 if (children.Length == 0)
                 {
@@ -106,7 +108,7 @@ namespace RapidSim
             else if (children.Length > 0)
             {
                 _joints = new RobotJoint[children.Length + 1];
-                _joints[0] = root;
+                _joints[0] = rootJoint;
                 for (int i = 1; i < _joints.Length - 1; i++)
                 {
                     _joints[i] = children[i - 1];
@@ -115,7 +117,7 @@ namespace RapidSim
             else
             {
                 _joints = new RobotJoint[1];
-                _joints[0] = root;
+                _joints[0] = rootJoint;
             }
 
             _joints = _joints.OrderBy(j => j.Joint.index).ToArray();
@@ -164,14 +166,6 @@ namespace RapidSim
             SetupBioIk();
 
             NeuralNetwork.Validate(this, network, _limits.Length + 7, _limits.Length);
-        }
-        
-        private void OnDestroy()
-        {
-            if (_bioIkRobot != null)
-            {
-                Destroy(_bioIkRobot.gameObject);
-            }
         }
         
         public void Move(GameObject target)
@@ -459,8 +453,8 @@ namespace RapidSim
 
         public double[] BioIkOptimize(Vector3 position, Quaternion orientation)
         {
-            _bioIkRobot.Initialise(populationSize, elites, Rescaling);
-            _bioIkRobot.solution = new double[_bioIkRobot.Evolution.GetModel().GetDoF()];
+            BioIkEvolution evolution = Initialise();
+            double[] solution = new double[evolution.GetModel().GetDoF()];
             
             List<float> joints = GetJoints();
 
@@ -488,22 +482,21 @@ namespace RapidSim
                     _motions[i].SetTargetValue(starting[i]);
                 }
             
-                _bioIkRobot.UpdateData();
-                for (int i = 0; i < _bioIkRobot.solution.Length; i++)
+                UpdateData();
+                for (int i = 0; i < solution.Length; i++)
                 {
-                    _bioIkRobot.solution[i] = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion.GetTargetValue();
+                    solution[i] = evolution.GetModel().motionPointers[i].motion.GetTargetValue();
                 }
             
-                _bioIkRobot.solution = _bioIkRobot.Evolution.Optimise(generations, _bioIkRobot.solution, position, orientation);
+                solution = evolution.Optimise(generations, solution, position, orientation);
 
-                for (int i = 0; i < _bioIkRobot.solution.Length; i++)
+                for (int i = 0; i < solution.Length; i++)
                 {
-                    BioIkJoint.Motion motion = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion;
-                    motion.SetTargetValue(_bioIkRobot.solution[i], true);
+                    BioIkJoint.Motion motion = evolution.GetModel().motionPointers[i].motion;
+                    motion.SetTargetValue(solution[i], true);
                 }
 
-                _bioIkRobot.ProcessMotion();
-
+                ProcessMotion();
                 double[] ending = new double[_motions.Length];
                 for (int i = 0; i < _motions.Length; i++)
                 {
@@ -534,8 +527,8 @@ namespace RapidSim
         
         public double[] BioIkSolve(Vector3 position, Quaternion orientation)
         {
-            _bioIkRobot.Initialise(populationSize, elites, Rescaling);
-            _bioIkRobot.solution = new double[_bioIkRobot.Evolution.GetModel().GetDoF()];
+            BioIkEvolution evolution = Initialise();
+            double[] solution = new double[evolution.GetModel().GetDoF()];
             
             List<float> joints = GetJoints();
 
@@ -552,22 +545,21 @@ namespace RapidSim
                 _motions[i].SetTargetValue(starting[i]);
             }
             
-            _bioIkRobot.UpdateData();
-            for (int i = 0; i < _bioIkRobot.solution.Length; i++)
+            UpdateData();
+            for (int i = 0; i < solution.Length; i++)
             {
-                _bioIkRobot.solution[i] = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion.GetTargetValue();
+                solution[i] = evolution.GetModel().motionPointers[i].motion.GetTargetValue();
             }
             
-            _bioIkRobot.solution = _bioIkRobot.Evolution.Optimise(generations, _bioIkRobot.solution, position, orientation);
+            solution = evolution.Optimise(generations, solution, position, orientation);
 
-            for (int i = 0; i < _bioIkRobot.solution.Length; i++)
+            for (int i = 0; i < solution.Length; i++)
             {
-                BioIkJoint.Motion motion = _bioIkRobot.Evolution.GetModel().motionPointers[i].motion;
-                motion.SetTargetValue(_bioIkRobot.solution[i], true);
+                BioIkJoint.Motion motion = evolution.GetModel().motionPointers[i].motion;
+                motion.SetTargetValue(solution[i], true);
             }
 
-            _bioIkRobot.ProcessMotion();
-
+            ProcessMotion();
             double[] ending = new double[_motions.Length];
             for (int i = 0; i < _motions.Length; i++)
             {
@@ -669,23 +661,10 @@ namespace RapidSim
 
         private void SetupBioIk()
         {
-            Transform rootTransform = Root.transform;
-            GameObject bioIkHolder = new("Bio IK")
-            {
-                transform =
-                {
-                    parent = transform,
-                    position = rootTransform.position,
-                    rotation = rootTransform.rotation
-                }
-            };
-            _bioIkRobot = bioIkHolder.AddComponent<BioIkRobot>();
-
-            BioIkSegment previousSegment = null;
-
+            List<BioIkJoint> bioIkJoints = new();
             List<BioIkJoint.Motion> motions = new();
-
-            Transform parent = _bioIkRobot.transform;
+            BioIkSegment previousSegment = null;
+            Transform parent = transform;
 
             int jointNumber = 1;
 
@@ -696,7 +675,7 @@ namespace RapidSim
                     continue;
                 }
                 
-                GameObject go = new($"Joint {jointNumber++}")
+                GameObject go = new($"Bio IK Joint {jointNumber++}")
                 {
                     transform =
                     {
@@ -709,7 +688,7 @@ namespace RapidSim
                 BioIkSegment segment = go.AddComponent<BioIkSegment>();
                 if (previousSegment == null)
                 {
-                    _bioIkRobot.root = segment;
+                    RootSegment = segment;
                 }
                 else
                 {
@@ -724,6 +703,7 @@ namespace RapidSim
                 segment.joint = bioIkJoint;
                 bioIkJoint.rotational = _joints[i].Type != ArticulationJointType.PrismaticJoint;
                 bioIkJoint.SetOrientation(Vector3.zero);
+                bioIkJoints.Add(bioIkJoint);
 
                 if (_joints[i].XMotion)
                 {
@@ -786,7 +766,29 @@ namespace RapidSim
                 }
             }
 
+            _bioIkJoints = bioIkJoints.ToArray();
             _motions = motions.ToArray();
+        }
+
+        private BioIkEvolution Initialise()
+        {
+            return new(new(this, Rescaling), populationSize, elites, Rescaling);
+        }
+
+        private void UpdateData()
+        {
+            for (int i = 0; i < _bioIkJoints.Length; i++)
+            {
+                _bioIkJoints[i].UpdateData();
+            }
+        }
+
+        private void ProcessMotion()
+        {
+            for (int i = 0; i < _bioIkJoints.Length; i++)
+            {
+                _bioIkJoints[i].ProcessMotion();
+            }
         }
     }
 }
