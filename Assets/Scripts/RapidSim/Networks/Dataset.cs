@@ -11,15 +11,13 @@ namespace RapidSim.Networks
         
         public List<DataPoint> dataPoints;
 
-        public bool Add(double[] inputs, double[] outputs)
+        public int Size => dataPoints.Count;
+
+        public bool Complete => dataPoints.Count >= maxSize;
+
+        public void Add(double[] inputs, double[] outputs)
         {
-            if (dataPoints.Count >= maxSize)
-            {
-                return false;
-            }
-            
-            dataPoints.Add(new() {inputs = inputs, outputs = outputs});
-            return true;
+            dataPoints.Add(new(inputs, outputs));
         }
     }
 }

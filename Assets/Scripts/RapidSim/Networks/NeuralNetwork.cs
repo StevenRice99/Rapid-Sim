@@ -155,19 +155,21 @@ namespace RapidSim.Networks
         {
             double totalAccuracy = 0;
             
-            for (int i = 0; i < dataset.dataPoints.Count; i++)
+            for (int i = 0; i < dataset.Size; i++)
             {
                 double[] results = Forward(dataset.dataPoints[i].inputs);
                 double accuracy = 0;
                 for (int j = 0; j < dataset.dataPoints[i].outputs.Length; j++)
                 {
+                    Debug.Log($"Data Point {i + 1} | Joint {j + 1} | Expected = {dataset.dataPoints[i].outputs[j]} | Result = {results[j]}");
                     accuracy += math.abs(math.max(dataset.dataPoints[i].outputs[j], results[j]) - math.min(dataset.dataPoints[i].outputs[j], results[j]));
                 }
 
+                Debug.Log($"Data Point {i + 1} = {accuracy}");
                 totalAccuracy += accuracy / dataset.dataPoints[i].outputs.Length;
             }
 
-            return 1 - totalAccuracy / dataset.dataPoints.Count;
+            return 1 - totalAccuracy / dataset.Size;
         }
 
         private void Backward(double[] expected)

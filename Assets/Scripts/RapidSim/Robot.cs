@@ -84,7 +84,7 @@ namespace RapidSim
 
         private BioIkJoint.Motion[] _motions;
 
-        private Transform _lastBioSegment;
+        private Transform _lastBioIkJoint;
 
         private float _chainLength;
 
@@ -207,7 +207,7 @@ namespace RapidSim
                 }
                 bioIkJoint.Setup();
                 previousJoint = bioIkJoint;
-                _lastBioSegment = bioIkJoint.transform;
+                _lastBioIkJoint = bioIkJoint.transform;
                 parent = go.transform;
                 
                 bioIkJoint.rotational = _joints[i].Type != ArticulationJointType.PrismaticJoint;
@@ -277,6 +277,8 @@ namespace RapidSim
 
             BioIkJoints = bioIkJoints.ToArray();
             _motions = motions.ToArray();
+
+            UpdateData();
         }
         
         public void Move(GameObject target)
@@ -566,11 +568,20 @@ namespace RapidSim
         {
             List<float> joints = GetJoints();
             double[] starting = new double[joints.Count];
+            for (int i = 0; i < starting.Length; i++)
+            {
+                starting[i] = joints[i];
+            }
+
+            return BioIkOptimize(position, orientation, starting);
+        }
+
+        private double[] BioIkOptimize(Vector3 position, Quaternion orientation, double[] starting)
+        {
             double[] best = new double[starting.Length];
             double[] maxSpeeds = new double[starting.Length];
             for (int i = 0; i < starting.Length; i++)
             {
-                starting[i] = joints[i];
                 best[i] = starting[i];
                 maxSpeeds[i] = _maxSpeeds[i];
             }
@@ -582,7 +593,7 @@ namespace RapidSim
             {
                 double[] solution = BioIkSolve(position, orientation, starting);
 
-                double accuracy = Accuracy(_lastBioSegment.position, position, Root.transform.rotation, _lastBioSegment.rotation, orientation);
+                double accuracy = Accuracy(_lastBioIkJoint.position, position, Root.transform.rotation, _lastBioIkJoint.rotation, orientation);
                 double time = CalculateTime(starting, solution, maxSpeeds);
 
                 if (bestAccuracy > repeatability && accuracy < bestAccuracy)
@@ -622,20 +633,45 @@ namespace RapidSim
             {
                 _motions[i].SetTargetValue(starting[i]);
             }
-            UpdateData();
-            double[] solution = new BioIkEvolution(this).Optimise(generations, starting, position, orientation);
+            return new BioIkEvolution(this).Optimise(generations, starting, position, orientation);
+        }
+
+        private double[] BioIkGenerate()
+        {
+            return BioIkGenerate(RandomOrientation());
+        }
+
+        private double[] BioIkGenerate(double[] starting)
+        {
+            BioIkRandom(out Vector3 position, out Quaternion orientation);
+            
+            return BioIkOptimize(position, orientation, starting);
+        }
+
+        private void BioIkPositionOrientation(out Vector3 position, out Quaternion orientation, double[] solution)
+        {
             for (int i = 0; i < solution.Length; i++)
             {
                 _motions[i].SetTargetValue(solution[i], true);
             }
             ProcessMotion();
-            double[] ending = new double[_motions.Length];
-            for (int i = 0; i < _motions.Length; i++)
-            {
-                ending[i] = _motions[i].GetTargetValue();
-            }
 
-            return ending;
+            position = _lastBioIkJoint.position;
+            orientation = _lastBioIkJoint.rotation;
+        }
+
+        private void BioIkRandom(out Vector3 position, out Quaternion orientation)
+        {
+            double[] joints = RandomOrientation();
+            
+            for (int i = 0; i < joints.Length; i++)
+            {
+                _motions[i].SetTargetValue(joints[i], true);
+            }
+            ProcessMotion();
+
+            position = RelativePosition(_lastBioIkJoint.position);
+            orientation = RelativeRotation(_lastBioIkJoint.rotation);
         }
 
         private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
@@ -658,9 +694,9 @@ namespace RapidSim
             return longestTime;
         }
 
-        private float[] RandomOrientation()
+        private double[] RandomOrientation()
         {
-            float[] joints = new float[_limits.Length];
+            double[] joints = new double[_limits.Length];
             for (int i = 0; i < joints.Length; i++)
             {
                 joints[i] = Random.Range(_limits[i].lower, _limits[i].upper);
@@ -673,7 +709,19 @@ namespace RapidSim
         {
             if (generate)
             {
-                Generate();
+                if (!trainingDataset.Complete)
+                {
+                    Generate(trainingDataset);
+                    return;
+                }
+
+                if (!testingDataset.Complete)
+                {
+                    Generate(testingDataset);
+                    return;
+                }
+
+                generate = false;
             }
             
             if (train)
@@ -682,44 +730,18 @@ namespace RapidSim
             }
         }
 
-        private void Generate()
+        private void Generate(Dataset dataset)
         {
-            float[] floats = RandomOrientation();
-            double[] angles = new double[floats.Length];
-            for (int i = 0; i < floats.Length; i++)
-            {
-                angles[i] = floats[i];
-            }
-            
-            angles = NetScaled(angles);
-            double[] inputs = new double[angles.Length + 7];
-            for (int i = 0; i < angles.Length; i++)
-            {
-                inputs[i] = angles[i];
-            }
-            
-            floats = RandomOrientation();
-            for (int i = 0; i < floats.Length; i++)
-            {
-                _motions[i].SetTargetValue(floats[i], true);
-            }
-            UpdateData();
-            ProcessMotion();
+            double[] starting = BioIkGenerate();
+            double[] ending = BioIkGenerate(starting);
+            BioIkPositionOrientation(out Vector3 position, out Quaternion orientation, ending);
 
-            Vector3 position = _lastBioSegment.position;
-            Quaternion rotation = _lastBioSegment.rotation;
-            Vector3 relativePosition = RelativePosition(position);
-            Quaternion relativeRotation = RelativeRotation(rotation);
+            double[] inputs = PrepareInputs(NetScaled(starting), position, orientation);
+            double[] outputs = NetScaled(ending);
 
-            inputs[angles.Length] = relativePosition.x;
-            inputs[angles.Length + 1] = relativePosition.y;
-            inputs[angles.Length + 2] = relativePosition.z;
-            inputs[angles.Length + 3] = relativeRotation.x;
-            inputs[angles.Length + 4] = relativeRotation.y;
-            inputs[angles.Length + 5] = relativeRotation.z;
-            inputs[angles.Length + 6] = relativeRotation.w;
-    
-            double[] expected = NetScaled(BioIkOptimize(position, rotation));
+            dataset.Add(inputs, outputs);
+            
+            Debug.Log($"{dataset.name} - {dataset.Size} / {dataset.maxSize}");
         }
 
         private void Train()
