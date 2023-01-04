@@ -561,34 +561,72 @@ namespace RapidSim
         private Vector3 RelativePosition(Vector3 position) => Root.transform.InverseTransformPoint(position);
 
         private Quaternion RelativeRotation(Quaternion rotation) => Quaternion.Inverse(Root.transform.rotation) * rotation;
-        
-        public double[] BioIkSolve(Vector3 position, Quaternion orientation)
+
+        public double[] BioIkOptimize(Vector3 position, Quaternion orientation)
         {
-            BioIkEvolution evolution = new(this);
             List<float> joints = GetJoints();
-            double[] solution = new double[joints.Count];
             double[] starting = new double[joints.Count];
+            double[] best = new double[starting.Length];
             double[] maxSpeeds = new double[starting.Length];
             for (int i = 0; i < starting.Length; i++)
             {
                 starting[i] = joints[i];
+                best[i] = starting[i];
                 maxSpeeds[i] = _maxSpeeds[i];
             }
 
+            double bestAccuracy = Accuracy(LastJoint.position, position, Root.transform.rotation, LastJoint.rotation, orientation);
+            double bestTime = 0;
+
+            for (int attempt = 0; attempt < optimizeAttempts; attempt++)
+            {
+                double[] solution = BioIkSolve(position, orientation, starting);
+
+                double accuracy = Accuracy(_lastBioSegment.position, position, Root.transform.rotation, _lastBioSegment.rotation, orientation);
+                double time = CalculateTime(starting, solution, maxSpeeds);
+
+                if (bestAccuracy > repeatability && accuracy < bestAccuracy)
+                {
+                    best = solution;
+                    bestAccuracy = accuracy;
+                    bestTime = time;
+                    continue;
+                }
+
+                if (accuracy <= repeatability && time < bestTime)
+                {
+                    best = solution;
+                    bestAccuracy = accuracy;
+                    bestTime = time;
+                }
+            }
+
+            return best;
+        }
+        
+        public double[] BioIkSolve(Vector3 position, Quaternion orientation)
+        {
+            List<float> joints = GetJoints();
+            double[] starting = new double[joints.Count];
+            for (int i = 0; i < starting.Length; i++)
+            {
+                starting[i] = joints[i];
+            }
+
+            return BioIkSolve(position, orientation, starting);
+        }
+
+        private double[] BioIkSolve(Vector3 position, Quaternion orientation, double[] starting)
+        {
             for (int i = 0; i < starting.Length; i++)
             {
                 _motions[i].SetTargetValue(starting[i]);
             }
             UpdateData();
+            double[] solution = new BioIkEvolution(this).Optimise(generations, starting, position, orientation);
             for (int i = 0; i < solution.Length; i++)
             {
-                solution[i] = evolution.bioIkModel.motionPointers[i].motion.GetTargetValue();
-            }
-            solution = evolution.Optimise(generations, solution, position, orientation);
-            for (int i = 0; i < solution.Length; i++)
-            {
-                BioIkJoint.Motion motion = evolution.bioIkModel.motionPointers[i].motion;
-                motion.SetTargetValue(solution[i], true);
+                _motions[i].SetTargetValue(solution[i], true);
             }
             ProcessMotion();
             double[] ending = new double[_motions.Length];
@@ -598,74 +636,6 @@ namespace RapidSim
             }
 
             return ending;
-        }
-
-        public double[] BioIkOptimize(Vector3 position, Quaternion orientation)
-        {
-            BioIkEvolution evolution = new(this);
-            List<float> joints = GetJoints();
-            double[] solution = new double[joints.Count];
-            double[] starting = new double[joints.Count];
-            double[] maxSpeeds = new double[starting.Length];
-            for (int i = 0; i < starting.Length; i++)
-            {
-                starting[i] = joints[i];
-                maxSpeeds[i] = _maxSpeeds[i];
-            }
-
-            double[] best = new double[starting.Length];
-            for (int i = 0; i < best.Length; i++)
-            {
-                best[i] = starting[i];
-            }
-
-            double bestAccuracy = Accuracy(LastJoint.position, position, Root.transform.rotation, LastJoint.rotation, orientation);
-            double bestTime = 0;
-
-            for (int attempt = 0; attempt < optimizeAttempts; attempt++)
-            {
-                for (int i = 0; i < starting.Length; i++)
-                {
-                    _motions[i].SetTargetValue(starting[i]);
-                }
-                UpdateData();
-                for (int i = 0; i < solution.Length; i++)
-                {
-                    solution[i] = evolution.bioIkModel.motionPointers[i].motion.GetTargetValue();
-                }
-                solution = evolution.Optimise(generations, solution, position, orientation);
-                for (int i = 0; i < solution.Length; i++)
-                {
-                    BioIkJoint.Motion motion = evolution.bioIkModel.motionPointers[i].motion;
-                    motion.SetTargetValue(solution[i], true);
-                }
-                ProcessMotion();
-                double[] ending = new double[_motions.Length];
-                for (int i = 0; i < _motions.Length; i++)
-                {
-                    ending[i] = _motions[i].GetTargetValue();
-                }
-
-                double accuracy = Accuracy(_lastBioSegment.position, position, Root.transform.rotation, _lastBioSegment.rotation, orientation);
-                double time = CalculateTime(starting, ending, maxSpeeds);
-
-                if (bestAccuracy > repeatability && accuracy < bestAccuracy)
-                {
-                    best = ending;
-                    bestAccuracy = accuracy;
-                    bestTime = time;
-                    continue;
-                }
-
-                if (accuracy <= repeatability && time < bestTime)
-                {
-                    best = ending;
-                    bestAccuracy = accuracy;
-                    bestTime = time;
-                }
-            }
-
-            return best;
         }
 
         private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
