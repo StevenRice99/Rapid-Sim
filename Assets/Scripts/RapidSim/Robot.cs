@@ -41,8 +41,20 @@ namespace RapidSim
         [Tooltip("The neural network to control the robot.")]
         [SerializeField]
         private NeuralNetwork network;
+
+        [Tooltip("The dataset to train the neural network on.")]
+        [SerializeField]
+        private Dataset trainingDataset;
+
+        [Tooltip("The dataset to test the neural network against.")]
+        [SerializeField]
+        private Dataset testingDataset;
         
-        [Tooltip("Click to train the neural network to control the robot.")]
+        [Tooltip("Enable to generate training data for the robot. Will turn off once both datasets are complete.")]
+        [SerializeField]
+        private bool generate;
+        
+        [Tooltip("Enable to train the neural network to control the robot. Will turn off once network is trained for set epochs.")]
         [SerializeField]
         private bool train;
 
@@ -689,11 +701,19 @@ namespace RapidSim
 
         private void Update()
         {
-            if (!train)
+            if (generate)
             {
-                return;
+                Generate();
             }
+            
+            if (train)
+            {
+                Train();
+            }
+        }
 
+        private void Generate()
+        {
             float[] floats = RandomOrientation();
             double[] angles = new double[floats.Length];
             for (int i = 0; i < floats.Length; i++)
@@ -730,12 +750,16 @@ namespace RapidSim
             inputs[angles.Length + 6] = relativeRotation.w;
     
             double[] expected = NetScaled(BioIkOptimize(position, rotation));
+        }
 
-            train = network.Train(inputs, expected);
+        private void Train()
+        {
+            train = network.Train(trainingDataset);
+            
+            double training = network.Test(trainingDataset);
+            double testing = network.Test(testingDataset);
 
-            double accuracy = network.Test(inputs, expected);
-
-            Debug.Log($"Training {network.step} of {network.maxSteps} - {(float)network.step / network.maxSteps * 100}% | Accuracy = {accuracy * 100}%");
+            Debug.Log($"Epoch {network.currentEpoch} of {network.epochs} | Training = {(training * 100).ToString($"{.4}")}% | Testing = {(testing * 100).ToString($"{.4}")}%");
         }
 
         private void UpdateData()

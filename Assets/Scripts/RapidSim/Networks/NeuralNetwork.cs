@@ -28,13 +28,13 @@ namespace RapidSim.Networks
         public double epsilon = 1e-08;
         
         [Header("Training")]
-        [Tooltip("The maximum number of training steps to perform for.")]
+        [Tooltip("The maximum number of epochs to perform training for.")]
         [Min(1)]
-        public int maxSteps = 100;
+        public int epochs = 100;
         
-        [Tooltip("The number of steps training has been run for.")]
+        [Tooltip("The current training epoch.")]
         [Min(0)]
-        public int step;
+        public int currentEpoch;
         
         private bool Setup => layers is not {Length: 0};
         
@@ -44,9 +44,9 @@ namespace RapidSim.Networks
 
         private void OnValidate()
         {
-            if (step > maxSteps)
+            if (currentEpoch > epochs)
             {
-                step = maxSteps;
+                currentEpoch = epochs;
             }
             
             bool create = layers == null || layers.Length != architecture.Length - 1;
@@ -77,7 +77,7 @@ namespace RapidSim.Networks
                 layers[i] = new(architecture[i], architecture[i + 1]);
             }
 
-            step = 0;
+            currentEpoch = 0;
 
             Debug.Log($"Initialized {BuildString(name)}");
         }
@@ -133,30 +133,41 @@ namespace RapidSim.Networks
             return layers[^1].outputs;
         }
 
-        public bool Train(double[] inputs, double[] expected)
+        public bool Train(Dataset dataset)
         {
-            if (step >= maxSteps)
+            if (currentEpoch >= epochs)
             {
-                step = maxSteps;
                 return false;
             }
             
-            Forward(inputs);
-            Backward(expected);
+            for (int i = 0; i < dataset.dataPoints.Count; i++)
+            {
+                Forward(dataset.dataPoints[i].inputs);
+                Backward(dataset.dataPoints[i].outputs);
+            }
+            
+            currentEpoch++;
 
             return true;
         }
-        
-        public double Test(double[] inputs, double[] expected)
+
+        public double Test(Dataset dataset)
         {
-            double[] results = Forward(inputs);
-            double accuracy = 0;
-            for (int i = 0; i < expected.Length; i++)
+            double totalAccuracy = 0;
+            
+            for (int i = 0; i < dataset.dataPoints.Count; i++)
             {
-                accuracy += math.abs(math.max(expected[i], results[i]) - math.min(expected[i], results[i]));
+                double[] results = Forward(dataset.dataPoints[i].inputs);
+                double accuracy = 0;
+                for (int j = 0; j < dataset.dataPoints[i].outputs.Length; j++)
+                {
+                    accuracy += math.abs(math.max(dataset.dataPoints[i].outputs[j], results[j]) - math.min(dataset.dataPoints[i].outputs[j], results[j]));
+                }
+
+                totalAccuracy += accuracy / dataset.dataPoints[i].outputs.Length;
             }
 
-            return 1 - accuracy / expected.Length;
+            return 1 - totalAccuracy / dataset.dataPoints.Count;
         }
 
         private void Backward(double[] expected)
@@ -167,10 +178,9 @@ namespace RapidSim.Networks
                 layers[i].BackwardHidden(layers[i + 1].deltaBias, layers[i + 1].weights);
             }
 
-            step++;
             for (int i = 0; i < layers.Length; i++)
             {
-                layers[i].Optimize(step, learningRate, beta1, beta2, epsilon);
+                layers[i].Optimize(currentEpoch, learningRate, beta1, beta2, epsilon);
             }
         }
 

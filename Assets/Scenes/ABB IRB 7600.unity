@@ -1896,6 +1896,9 @@ MonoBehaviour:
   elites: 3
   optimizeAttempts: 100
   network: {fileID: 11400000, guid: 716b7929ffe21d34db3fe54066eb8adc, type: 2}
+  trainingDataset: {fileID: 11400000, guid: 960ec78af71ff9a41a7857408fe6c49c, type: 2}
+  testingDataset: {fileID: 11400000, guid: bd3510dcff95b934e90a0f79ec26c9b1, type: 2}
+  generate: 0
   train: 0
 --- !u!1 &1898101831
 GameObject:
