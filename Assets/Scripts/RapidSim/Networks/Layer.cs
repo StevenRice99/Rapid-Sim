@@ -1,203 +1,234 @@
 ﻿using System;
-using Unity.Mathematics;
-using UnityEngine;
-using Random = Unity.Mathematics.Random;
+using static System.Math;
 
 namespace RapidSim.Networks
 {
-    [Serializable]
-    public struct Layer
-    {
-        [Header("Layer Size")]
-        [Tooltip("Number of inputs to the layer.")]
-        [Min(1)]
-        public int numberOfInputs;
-        
-        [Tooltip("Number of outputs from the layer.")]
-        [Min(1)]
-        public int numberOfOutputs;
-        
-        [Header("Passed Values")]
-        [Tooltip("The last inputs passed into the layer.")]
-        public double[] inputs;
-        
-        [Tooltip("The last outputs run through the layer.")]
-        public double[] outputs;
-        
-        [Header("Weights and Bias")]
-        [Tooltip("The weights of the layer.")]
-        public WrappedArray[] weights;
-        
-        [Tooltip("The bias of the layer.")]
-        [SerializeField]
-        private double[] bias;
-        
-        [Header("ADAM Optimizer Parameters")]
-        [Tooltip("Delta weight values.")]
-        [SerializeField]
-        private WrappedArray[] deltaWeights;
-        
-        [Tooltip("Delta bias values.")]
-        public double[] deltaBias;
-        
-        [Tooltip("Velocity delta weight values.")]
-        [SerializeField]
-        private WrappedArray[] velocityDeltaWeights;
-        
-        [Tooltip("Velocity delta bias values.")]
-        [SerializeField]
-        private double[] velocityDeltaBias;
-        
-        [Tooltip("Momentum delta weight values.")]
-        [SerializeField]
-        private WrappedArray[] momentumDeltaWeights;
-        
-        [Tooltip("Momentum delta bias values.")]
-        [SerializeField]
-        private double[] momentumDeltaBias;
+	[Serializable]
+	public class Layer
+	{
+		public int numNodesIn;
+		public int numNodesOut;
 
-        public int NumberOfParameters => numberOfInputs * numberOfOutputs + numberOfOutputs;
+		public double[] weights;
+		public double[] biases;
 
-        public Layer(int numberOfInputs, int numberOfOutputs)
-        {
-            this.numberOfInputs = numberOfInputs;
-            this.numberOfOutputs = numberOfOutputs;
+		// Cost gradient with respect to weights and with respect to biases
+		public double[] costGradientW;
+		public double[] costGradientB;
 
-            inputs = new double[this.numberOfInputs];
-            outputs = new double[this.numberOfOutputs];
+		// Used for adding momentum to gradient descent
+		public double[] weightVelocities;
+		public double[] biasVelocities;
 
-            weights = new WrappedArray[this.numberOfOutputs];
-            deltaWeights = new WrappedArray[this.numberOfOutputs];
-            momentumDeltaWeights = new WrappedArray[this.numberOfOutputs];
-            velocityDeltaWeights = new WrappedArray[this.numberOfOutputs];
-            
-            bias = new double[this.numberOfOutputs];
-            deltaBias = new double[this.numberOfOutputs];
-            momentumDeltaBias = new double[this.numberOfOutputs];
-            velocityDeltaBias = new double[this.numberOfOutputs];
-            
-            uint seed = (uint) DateTime.UtcNow.Ticks;
-            if (seed == 0)
-            {
-                seed = 1;
-            }
+		// Create the layer
+		public Layer(int numNodesIn, int numNodesOut, Random rng)
+		{
+			this.numNodesIn = numNodesIn;
+			this.numNodesOut = numNodesOut;
 
-            Random random = new(seed);
-            
-            for (int i = 0; i < this.numberOfOutputs; i++)
-            {
-                weights[i].data = new double[this.numberOfInputs];
-                deltaWeights[i].data = new double[this.numberOfInputs];
-                momentumDeltaWeights[i].data = new double[this.numberOfInputs];
-                velocityDeltaWeights[i].data = new double[this.numberOfInputs];
-                
-                for (int j = 0; j < this.numberOfInputs; j++)
-                {
-                    weights[i].data[j] = random.NextFloat(-0.5f, 0.5f);
-                    momentumDeltaWeights[i].data[j] = 0;
-                    velocityDeltaWeights[i].data[j] = 0;
-                }
-            
-                bias[i] = random.NextFloat(-0.5f, 0.5f);
-                momentumDeltaBias[i] = 0;
-                velocityDeltaBias[i] = 0;
-            }
-        }
+			weights = new double[numNodesIn * numNodesOut];
+			costGradientW = new double[weights.Length];
+			biases = new double[numNodesOut];
+			costGradientB = new double[biases.Length];
 
-        public double[] Forward(double[] input)
-        {
-            for (int i = 0; i < inputs.Length; i++)
-            {
-                inputs[i] = input[i];
-            }
+			weightVelocities = new double[weights.Length];
+			biasVelocities = new double[biases.Length];
 
-            for (int i = 0; i < numberOfOutputs; i++)
-            {
-                outputs[i] = bias[i];
-                for (int j = 0; j < numberOfInputs; j++)
-                {
-                    outputs[i] += inputs[j] * weights[i].data[j];
-                }
+			InitializeRandomWeights(rng);
+		}
 
-                outputs[i] = Activation(outputs[i]);
-            }
+		// Calculate layer output activations
+		public double[] CalculateOutputs(double[] inputs)
+		{
+			double[] weightedInputs = new double[numNodesOut];
 
-            return outputs;
-        }
+			for (int nodeOut = 0; nodeOut < numNodesOut; nodeOut++)
+			{
+				double weightedInput = biases[nodeOut];
 
-        public void BackwardOutput(double[] expected)
-        {
-            for (int i = 0; i < numberOfOutputs; i++)
-            {
-                deltaBias[i] = (outputs[i] - expected[i]) * ActivationDerivative(outputs[i]);
-            
-                for (int j = 0; j < numberOfInputs; j++)
-                {
-                    deltaWeights[i].data[j] = deltaBias[i] * inputs[j];
-                }
-            }
-        }
+				for (int nodeIn = 0; nodeIn < numNodesIn; nodeIn++)
+				{
+					weightedInput += inputs[nodeIn] * GetWeight(nodeIn, nodeOut);
+				}
+				weightedInputs[nodeOut] = weightedInput;
+			}
 
-        public void BackwardHidden(double[] gammaForward, WrappedArray[] weightsForward)
-        {
-            for (int i = 0; i < numberOfOutputs; i++)
-            {
-                deltaBias[i] = 0;
+			// Apply activation function
+			double[] activations = new double[numNodesOut];
+			for (int outputNode = 0; outputNode < numNodesOut; outputNode++)
+			{
+				activations[outputNode] = Activate(weightedInputs, outputNode);
+			}
 
-                for (int j = 0; j < gammaForward.Length; j++)
-                {
-                    deltaBias[i] += gammaForward[j] * weightsForward[j].data[i];
-                }
+			return activations;
+		}
 
-                deltaBias[i] *= ActivationDerivative(outputs[i]);
-            
-                for (int j = 0; j < numberOfInputs; j++)
-                {
-                    deltaWeights[i].data[j] = deltaBias[i] * inputs[j];
-                }
-            }
-        }
+		// Calculate layer output activations and store inputs/weightedInputs/activations in the given learnData object
+		public double[] CalculateOutputs(double[] inputs, LayerLearnData learnData)
+		{
+			learnData.inputs = inputs;
 
-        public void Optimize(int step, double eta, double beta1, double beta2, double epsilon)
-        {
-            for (int i = 0; i < numberOfOutputs; i++)
-            {
-                for (int j = 0; j < numberOfInputs; j++)
-                {
-                    momentumDeltaWeights[i].data[j] = beta1 * momentumDeltaWeights[i].data[j] + (1 - beta1) * deltaWeights[i].data[j];
-                    velocityDeltaWeights[i].data[j] = beta2 * velocityDeltaWeights[i].data[j] + (1 - beta2) * math.pow(deltaWeights[i].data[j], 2);
-            
-                    double momentumDeltaWeightCorrection = momentumDeltaWeights[i].data[j] / (1 - math.pow(beta1, step));
-                    double velocityDeltaWeightCorrection = velocityDeltaWeights[i].data[j] / (1 - math.pow(beta2, step));
-                
-                    weights[i].data[j] -= eta * (momentumDeltaWeightCorrection / (math.sqrt(velocityDeltaWeightCorrection) + epsilon));
-                }
-            
-                momentumDeltaBias[i] = beta1 * momentumDeltaBias[i] + (1 - beta1) * deltaBias[i];
-                velocityDeltaBias[i] = beta2 * velocityDeltaBias[i] + (1 - beta2) * deltaBias[i];
-            
-                double momentumDeltaBiaCorrection = momentumDeltaBias[i] / (1 - math.pow(beta1, step));
-                double velocityDeltaBiaCorrection = velocityDeltaBias[i] / (1 - math.pow(beta2, step));
+			for (int nodeOut = 0; nodeOut < numNodesOut; nodeOut++)
+			{
+				double weightedInput = biases[nodeOut];
+				for (int nodeIn = 0; nodeIn < numNodesIn; nodeIn++)
+				{
+					weightedInput += inputs[nodeIn] * GetWeight(nodeIn, nodeOut);
+				}
+				learnData.weightedInputs[nodeOut] = weightedInput;
+			}
 
-                deltaBias[i] -= eta * (momentumDeltaBiaCorrection / (math.sqrt(velocityDeltaBiaCorrection) + epsilon));
-            }
-        }
+			// Apply activation function
+			for (int i = 0; i < learnData.activations.Length; i++)
+			{
+				learnData.activations[i] = Activate(learnData.weightedInputs, i);
+			}
 
-        private static double Activation(double value)
-        {
-            return math.tanh(value);
-        }
+			return learnData.activations;
+		}
 
-        private static double ActivationDerivative(double value)
-        {
-            return 1 - value * value;
-        }
+		// Update weights and biases based on previously calculated gradients.
+		// Also resets the gradients to zero.
+		public void ApplyGradients(double learnRate, double regularization, double momentum)
+		{
+			double weightDecay = 1 - regularization * learnRate;
 
-        public override string ToString()
-        {
-            return inputs == null || outputs == null
-                ? "Layer not setup"
-                : $"Inputs: {inputs.Length} | Outputs: {outputs.Length} | Parameters: {NumberOfParameters}";
-        }
-    }
+			for (int i = 0; i < weights.Length; i++)
+			{
+				double weight = weights[i];
+				double velocity = weightVelocities[i] * momentum - costGradientW[i] * learnRate;
+				weightVelocities[i] = velocity;
+				weights[i] = weight * weightDecay + velocity;
+				costGradientW[i] = 0;
+			}
+
+
+			for (int i = 0; i < biases.Length; i++)
+			{
+				double velocity = biasVelocities[i] * momentum - costGradientB[i] * learnRate;
+				biasVelocities[i] = velocity;
+				biases[i] += velocity;
+				costGradientB[i] = 0;
+			}
+		}
+
+		// Calculate the "node values" for the output layer. This is an array containing for each node:
+		// the partial derivative of the cost with respect to the weighted input
+		public void CalculateOutputLayerNodeValues(LayerLearnData layerLearnData, double[] expectedOutputs)
+		{
+			for (int i = 0; i < layerLearnData.nodeValues.Length; i++)
+			{
+				// Evaluate partial derivatives for current node: cost/activation & activation/weightedInput
+				double costDerivative = CostDerivative(layerLearnData.activations[i], expectedOutputs[i]);
+				double activationDerivative = Derivative(layerLearnData.weightedInputs, i);
+				layerLearnData.nodeValues[i] = costDerivative * activationDerivative;
+			}
+		}
+
+		// Calculate the "node values" for a hidden layer. This is an array containing for each node:
+		// the partial derivative of the cost with respect to the weighted input
+		public void CalculateHiddenLayerNodeValues(LayerLearnData layerLearnData, Layer oldLayer, double[] oldNodeValues)
+		{
+			for (int newNodeIndex = 0; newNodeIndex < numNodesOut; newNodeIndex++)
+			{
+				double newNodeValue = 0;
+				for (int oldNodeIndex = 0; oldNodeIndex < oldNodeValues.Length; oldNodeIndex++)
+				{
+					// Partial derivative of the weighted input with respect to the input
+					double weightedInputDerivative = oldLayer.GetWeight(newNodeIndex, oldNodeIndex);
+					newNodeValue += weightedInputDerivative * oldNodeValues[oldNodeIndex];
+				}
+				newNodeValue *= Derivative(layerLearnData.weightedInputs, newNodeIndex);
+				layerLearnData.nodeValues[newNodeIndex] = newNodeValue;
+			}
+
+		}
+
+		public void UpdateGradients(LayerLearnData layerLearnData)
+		{
+			// Update cost gradient with respect to weights (lock for multithreading)
+			lock (costGradientW)
+			{
+				for (int nodeOut = 0; nodeOut < numNodesOut; nodeOut++)
+				{
+					double nodeValue = layerLearnData.nodeValues[nodeOut];
+					for (int nodeIn = 0; nodeIn < numNodesIn; nodeIn++)
+					{
+						// Evaluate the partial derivative: cost / weight of current connection
+						double derivativeCostWrtWeight = layerLearnData.inputs[nodeIn] * nodeValue;
+						// The costGradientW array stores these partial derivatives for each weight.
+						// Note: the derivative is being added to the array here because ultimately we want
+						// to calculate the average gradient across all the data in the training batch
+						costGradientW[GetFlatWeightIndex(nodeIn, nodeOut)] += derivativeCostWrtWeight;
+					}
+				}
+			}
+
+			// Update cost gradient with respect to biases (lock for multithreading)
+			lock (costGradientB)
+			{
+				for (int nodeOut = 0; nodeOut < numNodesOut; nodeOut++)
+				{
+					// Evaluate partial derivative: cost / bias
+					double derivativeCostWrtBias = 1 * layerLearnData.nodeValues[nodeOut];
+					costGradientB[nodeOut] += derivativeCostWrtBias;
+				}
+			}
+		}
+
+		public double GetWeight(int nodeIn, int nodeOut)
+		{
+			int flatIndex = nodeOut * numNodesIn + nodeIn;
+			return weights[flatIndex];
+		}
+
+		public int GetFlatWeightIndex(int inputNeuronIndex, int outputNeuronIndex)
+		{
+			return outputNeuronIndex * numNodesIn + inputNeuronIndex;
+		}
+
+		public void InitializeRandomWeights(Random rng)
+		{
+			for (int i = 0; i < weights.Length; i++)
+			{
+				weights[i] = RandomInNormalDistribution(rng, 0, 1) / Sqrt(numNodesIn);
+			}
+		}
+
+		private double RandomInNormalDistribution(Random rng, double mean, double standardDeviation)
+		{
+			double x1 = 1 - rng.NextDouble();
+			double x2 = 1 - rng.NextDouble();
+
+			double y1 = Sqrt(-2.0 * Log(x1)) * Cos(2.0 * PI * x2);
+			return y1 * standardDeviation + mean;
+		}
+	
+		public double Activate(double[] inputs, int index)
+		{
+			return Max(0, inputs[index]);
+		}
+
+		public double Derivative(double[] inputs, int index)
+		{
+			return inputs[index] > 0 ? 1 : 0;
+		}
+	
+		public double CostFunction(double[] predictedOutputs, double[] expectedOutputs)
+		{
+			// cost is sum (for all x,y pairs) of: 0.5 * (x-y)^2
+			double cost = 0;
+			for (int i = 0; i < predictedOutputs.Length; i++)
+			{
+				double error = predictedOutputs[i] - expectedOutputs[i];
+				cost += error * error;
+			}
+			return 0.5 * cost;
+		}
+
+		public double CostDerivative(double predictedOutput, double expectedOutput)
+		{
+			return predictedOutput - expectedOutput;
+		}
+	}
 }

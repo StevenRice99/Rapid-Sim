@@ -173,7 +173,10 @@ namespace RapidSim
                 return;
             }
 
-            NeuralNetwork.Validate(this, network, _limits.Length + 7, _limits.Length);
+            if (!NeuralNetwork.Validate(this, network, _limits.Length + 7, _limits.Length))
+            {
+                return;
+            }
 
             List<BioIkJoint> bioIkJoints = new();
             List<BioIkJoint.Motion> motions = new();
@@ -529,14 +532,14 @@ namespace RapidSim
                 inputs[i] = joints[i];
             }
             position = RelativePosition(position) / _chainLength;
-            inputs[joints.Length] = position.x;
-            inputs[joints.Length + 1] = position.y;
-            inputs[joints.Length + 2] = position.z;
+            inputs[joints.Length] = (position.x + 1) / 2;
+            inputs[joints.Length + 1] = (position.y + 1) / 2;
+            inputs[joints.Length + 2] = (position.z + 1) / 2;
             rotation = RelativeRotation(rotation);
-            inputs[joints.Length + 3] = rotation.x;
-            inputs[joints.Length + 4] = rotation.y;
-            inputs[joints.Length + 5] = rotation.z;
-            inputs[joints.Length + 6] = rotation.w;
+            inputs[joints.Length + 3] = (rotation.x + 1) / 2;
+            inputs[joints.Length + 4] = (rotation.y + 1) / 2;
+            inputs[joints.Length + 5] = (rotation.z + 1) / 2;
+            inputs[joints.Length + 6] = (rotation.w + 1) / 2;
             return inputs;
         }
 
@@ -544,7 +547,7 @@ namespace RapidSim
         {
             for (int i = 0; i < joints.Length; i++)
             {
-                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower) * 2 - 1;
+                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
             }
 
             return joints;
@@ -554,7 +557,7 @@ namespace RapidSim
         {
             for (int i = 0; i < joints.Length; i++)
             {
-                joints[i] = math.clamp((joints[i] + 1) / 2 * (_limits[i].upper - _limits[i].lower) + _limits[i].lower, _limits[i].lower, _limits[i].upper);
+                joints[i] = math.clamp(joints[i] * (_limits[i].upper - _limits[i].lower) + _limits[i].lower, _limits[i].lower, _limits[i].upper);
             }
 
             return joints;
@@ -648,7 +651,7 @@ namespace RapidSim
             return BioIkOptimize(position, orientation, starting);
         }
 
-        private void BioIkPositionOrientation(out Vector3 position, out Quaternion orientation, double[] solution)
+        private (Vector3 position, Quaternion orientation) BioIkPositionOrientation(double[] solution)
         {
             for (int i = 0; i < solution.Length; i++)
             {
@@ -656,8 +659,7 @@ namespace RapidSim
             }
             ProcessMotion();
 
-            position = _lastBioIkJoint.position;
-            orientation = _lastBioIkJoint.rotation;
+            return (_lastBioIkJoint.position, _lastBioIkJoint.rotation);
         }
 
         private void BioIkRandom(out Vector3 position, out Quaternion orientation)
@@ -670,8 +672,8 @@ namespace RapidSim
             }
             ProcessMotion();
 
-            position = RelativePosition(_lastBioIkJoint.position);
-            orientation = RelativeRotation(_lastBioIkJoint.rotation);
+            position = _lastBioIkJoint.position;
+            orientation = _lastBioIkJoint.rotation;
         }
 
         private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
@@ -734,9 +736,9 @@ namespace RapidSim
         {
             double[] starting = BioIkGenerate();
             double[] ending = BioIkGenerate(starting);
-            BioIkPositionOrientation(out Vector3 position, out Quaternion orientation, ending);
+            (Vector3 position, Quaternion orientation) t = BioIkPositionOrientation(ending);
 
-            double[] inputs = PrepareInputs(NetScaled(starting), position, orientation);
+            double[] inputs = PrepareInputs(NetScaled(starting), t.position, t.orientation);
             double[] outputs = NetScaled(ending);
 
             dataset.Add(inputs, outputs);
@@ -748,10 +750,10 @@ namespace RapidSim
         {
             train = network.Train(trainingDataset);
             
-            double training = network.Test(trainingDataset);
-            double testing = network.Test(testingDataset);
+            EvaluationData training = network.Test(trainingDataset);
+            EvaluationData testing = network.Test(testingDataset);
 
-            Debug.Log($"Epoch {network.currentEpoch} of {network.epochs} | Training = {(training * 100).ToString($"{.4}")}% | Testing = {(testing * 100).ToString($"{.4}")}%");
+            Debug.Log($"Epoch {network.currentEpoch} of {network.epochs} | Training = {training} | Testing = {testing}%");
         }
 
         private void UpdateData()

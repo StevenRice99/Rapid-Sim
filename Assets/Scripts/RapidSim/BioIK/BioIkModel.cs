@@ -41,10 +41,10 @@ namespace RapidSim.BioIK
 
 		public BioIkModel(Robot robot)
 		{
-			this._robot = robot;
+			_robot = robot;
 
-			AddNode(this._robot.BioIkJoints[0], null);
-			BioIkJoint current = this._robot.BioIkJoints[0].child;
+			AddNode(_robot.BioIkJoints[0], null);
+			BioIkJoint current = _robot.BioIkJoints[0].child;
 			while (current != null)
 			{
 				AddNode(current, _nodes[^1]);
