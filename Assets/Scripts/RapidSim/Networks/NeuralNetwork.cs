@@ -36,25 +36,37 @@ namespace RapidSim.Networks
 		[SerializeField]
 		private double regularization = 0.1;
 		
-		[Tooltip("The maximum number of epochs to perform training for.")]
+		[Tooltip("The number of epochs to stop training after testing accuracy has not improved.")]
 		[Min(1)]
-		public int epochs = 100;
+		public int limitWithoutImprovement = 100;
         
 		[Tooltip("The current training epoch.")]
 		[Min(0)]
-		public int currentEpoch;
+		public int epoch;
+
+		[SerializeField]
+		[HideInInspector]
+		private int currentWithoutImprovement;
 		
 		[SerializeField]
 		[HideInInspector]
 		private Layer[] layers;
 
+		[SerializeField]
+		[HideInInspector]
+		private Layer[] bestLayers;
+
+		[SerializeField]
+		[HideInInspector]
+		private EvaluationData bestAccuracy;
+
 		private NetworkLearnData[] _batchLearnData;
 
 		private void OnValidate()
 		{
-			if (currentEpoch > epochs)
+			if (epoch > limitWithoutImprovement)
 			{
-				currentEpoch = epochs;
+				epoch = limitWithoutImprovement;
 			}
             
 			bool create = layers == null || layers.Length != layerSizes.Length - 1;
@@ -86,63 +98,104 @@ namespace RapidSim.Networks
 				layers[i] = new(layerSizes[i], layerSizes[i + 1], rng);
 			}
 
-			currentEpoch = 0;
+			UpdateBestLayers();
+
+			epoch = 0;
+			currentWithoutImprovement = 0;
+			
+			bestAccuracy = new() {value = float.MaxValue};
 			
 			Debug.Log($"Network {name} Initialized.");
+		}
+
+		private void UpdateBestLayers()
+		{
+			bestLayers = new Layer[layers.Length];
+			Array.Copy(layers, bestLayers, layers.Length);
 		}
 
 		// Run the inputs through the network to calculate the outputs
 		public double[] Forward(double[] inputs)
 		{
-			foreach (Layer layer in layers)
+			return Forward(inputs, bestLayers);
+		}
+
+		// Run the inputs through the network to calculate the outputs
+		private double[] Forward(double[] inputs, Layer[] architecture)
+		{
+			foreach (Layer layer in architecture)
 			{
 				inputs = layer.CalculateOutputs(inputs);
 			}
 			return inputs;
 		}
 
-		public bool Train(Dataset dataset)
+		public bool Train(Dataset trainingDataset, Dataset testingDataset)
 		{
-			if (currentEpoch >= epochs)
+			if (currentWithoutImprovement >= limitWithoutImprovement)
 			{
 				return false;
 			}
 			
-			if (_batchLearnData == null || _batchLearnData.Length != dataset.dataPoints.Count)
+			if (_batchLearnData == null || _batchLearnData.Length != trainingDataset.dataPoints.Count)
 			{
-				_batchLearnData = new NetworkLearnData[dataset.dataPoints.Count];
+				_batchLearnData = new NetworkLearnData[trainingDataset.dataPoints.Count];
 				for (int i = 0; i < _batchLearnData.Length; i++)
 				{
 					_batchLearnData[i] = new(layers);
 				}
 			}
 
-			System.Threading.Tasks.Parallel.For(0, dataset.dataPoints.Count, i =>
+			System.Threading.Tasks.Parallel.For(0, trainingDataset.dataPoints.Count, i =>
 			{
-				UpdateGradients(dataset.dataPoints[i], _batchLearnData[i]);
+				UpdateGradients(trainingDataset.dataPoints[i], _batchLearnData[i]);
 			});
 
 
-			double currentLearningRate = 1.0 / (1.0 + learnRateDecay * currentEpoch) * initialLearningRate;
+			double currentLearningRate = 1.0 / (1.0 + learnRateDecay * epoch) * initialLearningRate;
 			
 			// Update weights and biases based on the calculated gradients
 			for (int i = 0; i < layers.Length; i++)
 			{
-				layers[i].ApplyGradients(currentLearningRate / dataset.dataPoints.Count, regularization, momentum);
+				layers[i].ApplyGradients(currentLearningRate / trainingDataset.dataPoints.Count, regularization, momentum);
 			}
 			
-			currentEpoch++;
+			epoch++;
+
+			EvaluationData trainingAccuracy = Test(trainingDataset, layers);
+			EvaluationData testingAccuracy = Test(testingDataset, layers);
+
+			if (testingAccuracy.value < bestAccuracy.value)
+			{
+				UpdateBestLayers();
+				bestAccuracy.value = testingAccuracy.value;
+				currentWithoutImprovement = 0;
+			}
+			else
+			{
+				currentWithoutImprovement++;
+			}
+			
+			Debug.Log($"{name} | Epoch {epoch} | Training = {trainingAccuracy} | Testing = {testingAccuracy}% | Best = {bestAccuracy}% | {currentWithoutImprovement} / {limitWithoutImprovement} Epochs without Improvement");
 			
 			return true;
 		}
+
+		public void Test(Dataset trainingDataset, Dataset testingDataset)
+		{
+			EvaluationData trainingAccuracy = Test(trainingDataset, bestLayers);
+			EvaluationData testingAccuracy = Test(testingDataset, bestLayers);
+			
+			Debug.Log($"{name} | Best Training = {trainingAccuracy} | Best Testing = {testingAccuracy}%");
+		}
 		
-		public EvaluationData Test(Dataset dataset)
+		private EvaluationData Test(Dataset dataset, Layer[] architecture)
 		{
 			EvaluationData evalData = new();
 
 			System.Threading.Tasks.Parallel.ForEach(dataset.dataPoints, data =>
 			{
-				double[] calculatedOutputs = Forward(data.inputs);
+				double[] calculatedOutputs = Forward(data.inputs, architecture);
 
 				double accuracy = 0;
 				for (int i = 0; i < data.outputs.Length; i++)
@@ -153,11 +206,11 @@ namespace RapidSim.Networks
 
 				lock (evalData)
 				{
-					evalData.accuracy += accuracy;
+					evalData.value += accuracy;
 				}
 			});
 
-			evalData.accuracy /= dataset.dataPoints.Count;
+			evalData.value /= dataset.dataPoints.Count;
 
 			return evalData;
 		}
@@ -262,14 +315,15 @@ namespace RapidSim.Networks
 			nodeValues = new double[layer.numNodesOut];
 		}
 	}
-		
+	
+	[Serializable]
 	public class EvaluationData
 	{
-		public double accuracy;
+		public double value;
 
 		public override string ToString()
 		{
-			return $"{(1 - accuracy) * 100:F4}%";
+			return $"{(1 - value) * 100:F4}%";
 		}
 	}
 }

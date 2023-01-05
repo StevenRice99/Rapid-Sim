@@ -58,6 +58,10 @@ namespace RapidSim
         [SerializeField]
         private bool train;
 
+        [Tooltip("Click to test the neural network.")]
+        [SerializeField]
+        private bool test;
+
         private ArticulationBody Root => _joints[0].Joint;
 
         private Transform LastJoint => _joints[^1].transform;
@@ -729,6 +733,12 @@ namespace RapidSim
             if (train)
             {
                 Train();
+                return;
+            }
+
+            if (test)
+            {
+                Test();
             }
         }
 
@@ -748,12 +758,13 @@ namespace RapidSim
 
         private void Train()
         {
-            train = network.Train(trainingDataset);
-            
-            EvaluationData training = network.Test(trainingDataset);
-            EvaluationData testing = network.Test(testingDataset);
+            train = network.Train(trainingDataset, testingDataset);
+        }
 
-            Debug.Log($"Epoch {network.currentEpoch} of {network.epochs} | Training = {training} | Testing = {testing}%");
+        private void Test()
+        {
+            test = false;
+            network.Test(trainingDataset, testingDataset);
         }
 
         private void UpdateData()
