@@ -1,5 +1,6 @@
 ﻿using System;
-using static System.Math;
+using Unity.Mathematics;
+using Random = System.Random;
 
 namespace RapidSim.Networks
 {
@@ -34,7 +35,10 @@ namespace RapidSim.Networks
 			weightVelocities = new double[weights.Length];
 			biasVelocities = new double[biases.Length];
 
-			InitializeRandomWeights(rng);
+			for (int i = 0; i < weights.Length; i++)
+			{
+				weights[i] = RandomInNormalDistribution(rng, 0, 1) / math.sqrt(numNodesIn);
+			}
 		}
 
 		// Calculate layer output activations
@@ -187,26 +191,18 @@ namespace RapidSim.Networks
 			return outputNeuronIndex * numNodesIn + inputNeuronIndex;
 		}
 
-		public void InitializeRandomWeights(Random rng)
-		{
-			for (int i = 0; i < weights.Length; i++)
-			{
-				weights[i] = RandomInNormalDistribution(rng, 0, 1) / Sqrt(numNodesIn);
-			}
-		}
-
 		private double RandomInNormalDistribution(Random rng, double mean, double standardDeviation)
 		{
 			double x1 = 1 - rng.NextDouble();
 			double x2 = 1 - rng.NextDouble();
 
-			double y1 = Sqrt(-2.0 * Log(x1)) * Cos(2.0 * PI * x2);
+			double y1 = math.sqrt(-2.0 * math.log(x1)) * math.cos(2.0 * math.PI_DBL * x2);
 			return y1 * standardDeviation + mean;
 		}
 	
 		public double Activate(double[] inputs, int index)
 		{
-			return Max(0, inputs[index]);
+			return math.max(0, inputs[index]);
 		}
 
 		public double Derivative(double[] inputs, int index)

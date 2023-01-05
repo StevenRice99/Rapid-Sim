@@ -1,4 +1,5 @@
 ﻿using System;
+using Unity.Mathematics;
 using UnityEngine;
 using Random = System.Random;
 
@@ -200,7 +201,7 @@ namespace RapidSim.Networks
 				double accuracy = 0;
 				for (int i = 0; i < data.outputs.Length; i++)
 				{
-					accuracy += Math.Max(data.outputs[i], calculatedOutputs[i]) - Math.Min(data.outputs[i], calculatedOutputs[i]);
+					accuracy += math.max(data.outputs[i], calculatedOutputs[i]) - math.min(data.outputs[i], calculatedOutputs[i]);
 				}
 				accuracy /= data.outputs.Length;
 
