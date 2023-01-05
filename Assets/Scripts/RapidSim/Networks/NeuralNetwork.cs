@@ -269,7 +269,7 @@ namespace RapidSim.Networks
 
 		public override string ToString()
 		{
-			return $"{accuracy * 100:F4}%";
+			return $"{(1 - accuracy) * 100:F4}%";
 		}
 	}
 }
