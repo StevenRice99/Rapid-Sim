@@ -94,10 +94,6 @@ namespace RapidSim.BioIK
 		{
 			if (!rotational)
 			{
-				Vector3 scale = transform.lossyScale;
-				valueX /= scale.x;
-				valueY /= scale.y;
-				valueZ /= scale.z;
 				double axisX = valueX * x.axis.x + valueY * y.axis.x + valueZ * z.axis.x;
 				double axisY = valueX * x.axis.y + valueY * y.axis.y + valueZ * z.axis.y;
 				double axisZ = valueX * x.axis.z + valueY * y.axis.z + valueZ * z.axis.z;
