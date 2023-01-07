@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f3d7fb5e4f8b4e24bd952ca400650d9e, type: 3}
   m_Name: ABB IRB 7600 Testing
   m_EditorClassIdentifier: 
-  maxSize: 10
+  maxSize: 2000
   dataPoints: []
