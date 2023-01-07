@@ -45,6 +45,15 @@ namespace RapidSim.Networks
 		[Min(0)]
 		public int epoch;
 
+		[Header("Datasets")]
+		[Tooltip("Training dataset")]
+		[SerializeField]
+		private Dataset trainingDataset;
+		
+		[Tooltip("Testing dataset")]
+		[SerializeField]
+		private Dataset testingDataset;
+
 		[SerializeField]
 		[HideInInspector]
 		private int currentWithoutImprovement;
@@ -131,7 +140,30 @@ namespace RapidSim.Networks
 			return inputs;
 		}
 
-		public bool Train(Dataset trainingDataset, Dataset testingDataset)
+		public bool Add(double[] inputs, double[] outputs)
+		{
+			if (!trainingDataset.Complete)
+			{
+				Add(trainingDataset, inputs, outputs);
+				return true;
+			}
+
+			if (!testingDataset.Complete)
+			{
+				Add(testingDataset, inputs, outputs);
+				return true;
+			}
+
+			return false;
+		}
+
+		private void Add(Dataset dataset, double[] inputs, double[] outputs)
+		{
+			dataset.Add(inputs, outputs);
+			Debug.Log($"Network {name} | Dataset {dataset.name} | {dataset.Size} / {dataset.maxSize} Data Points");
+		}
+
+		public bool Train()
 		{
 			if (currentWithoutImprovement >= limitWithoutImprovement)
 			{
@@ -177,12 +209,12 @@ namespace RapidSim.Networks
 				currentWithoutImprovement++;
 			}
 			
-			Debug.Log($"{name} | Epoch {epoch} | Training = {trainingAccuracy} | Testing = {testingAccuracy}% | Best = {bestAccuracy}% | {currentWithoutImprovement} / {limitWithoutImprovement} Epochs without Improvement");
+			Debug.Log($"Network {name} | Epoch {epoch} | Training = {trainingAccuracy} | Testing = {testingAccuracy}% | Best = {bestAccuracy}% | {currentWithoutImprovement} / {limitWithoutImprovement} Epochs without Improvement");
 			
 			return true;
 		}
 
-		public void Test(Dataset trainingDataset, Dataset testingDataset)
+		public void Test()
 		{
 			EvaluationData trainingAccuracy = Test(trainingDataset, bestLayers);
 			EvaluationData testingAccuracy = Test(testingDataset, bestLayers);

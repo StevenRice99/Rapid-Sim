@@ -41,14 +41,6 @@ namespace RapidSim
         [Tooltip("The neural network to control the robot.")]
         [SerializeField]
         private NeuralNetwork network;
-
-        [Tooltip("The dataset to train the neural network on.")]
-        [SerializeField]
-        private Dataset trainingDataset;
-
-        [Tooltip("The dataset to test the neural network against.")]
-        [SerializeField]
-        private Dataset testingDataset;
         
         [Tooltip("Enable to generate training data for the robot. Will turn off once both datasets are complete.")]
         [SerializeField]
@@ -715,19 +707,8 @@ namespace RapidSim
         {
             if (generate)
             {
-                if (!trainingDataset.Complete)
-                {
-                    Generate(trainingDataset);
-                    return;
-                }
-
-                if (!testingDataset.Complete)
-                {
-                    Generate(testingDataset);
-                    return;
-                }
-
-                generate = false;
+                Generate();
+                return;
             }
             
             if (train)
@@ -742,29 +723,23 @@ namespace RapidSim
             }
         }
 
-        private void Generate(Dataset dataset)
+        private void Generate()
         {
             double[] starting = BioIkGenerate();
             double[] ending = BioIkGenerate(starting);
             (Vector3 position, Quaternion orientation) t = BioIkPositionOrientation(ending);
-
-            double[] inputs = PrepareInputs(NetScaled(starting), t.position, t.orientation);
-            double[] outputs = NetScaled(ending);
-
-            dataset.Add(inputs, outputs);
-            
-            Debug.Log($"{dataset.name} - {dataset.Size} / {dataset.maxSize}");
+            generate = network.Add(PrepareInputs(NetScaled(starting), t.position, t.orientation), NetScaled(ending));
         }
 
         private void Train()
         {
-            train = network.Train(trainingDataset, testingDataset);
+            train = network.Train();
         }
 
         private void Test()
         {
             test = false;
-            network.Test(trainingDataset, testingDataset);
+            network.Test();
         }
 
         private void UpdateData()
