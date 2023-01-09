@@ -24,16 +24,18 @@ namespace RapidSim
         [SerializeField]
         private int generations = 5;
         
-        [Min(1)]
         [Tooltip("The population size of each generation during Bio IK evolution.")]
-        public int populationSize = 120;
-        
         [Min(1)]
+        [SerializeField]
+        private int populationSize = 120;
+        
         [Tooltip("The number of elites in each generation during Bio IK evolution.")]
-        public int elites = 3;
-        
         [Min(1)]
+        [SerializeField]
+        private int elites = 3;
+        
         [Tooltip("The number of times to run the Bio IK algorithm when attempting to find an optimal move.")]
+        [Min(1)]
         [SerializeField]
         private int optimizeAttempts = 100;
         
@@ -53,6 +55,10 @@ namespace RapidSim
         [Tooltip("Click to test the neural network.")]
         [SerializeField]
         private bool test;
+
+        public int PopulationSize => populationSize;
+
+        public int Elites => elites;
 
         private ArticulationBody Root => _joints[0].Joint;
 

@@ -44,8 +44,8 @@ namespace RapidSim.BioIK
 		public BioIkEvolution(Robot robot)
         {
 			bioIkModel = new(robot);
-			_populationSize = robot.populationSize;
-			_elites = robot.elites;
+			_populationSize = robot.PopulationSize;
+			_elites = robot.Elites;
 			_dimensionality = bioIkModel.dof;
 
 			_population = new Individual[_populationSize];
