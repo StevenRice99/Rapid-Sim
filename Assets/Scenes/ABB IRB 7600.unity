@@ -1896,8 +1896,8 @@ MonoBehaviour:
   elites: 3
   optimizeAttempts: 100
   network: {fileID: 11400000, guid: 716b7929ffe21d34db3fe54066eb8adc, type: 2}
-  generate: 1
-  train: 0
+  generate: 0
+  train: 1
   test: 0
 --- !u!1 &1898101831
 GameObject:
