@@ -150,9 +150,6 @@ namespace RapidSim.Networks
 		public void Add(double[] inputs, double[] outputs)
 		{
 			dataset.Add(inputs, outputs);
-#if UNITY_EDITOR
-			EditorUtility.SetDirty(dataset);
-#endif
 			Debug.Log($"Network {name} | Dataset {dataset.name} | {dataset.Size} Points");
 		}
 

@@ -6,6 +6,10 @@ namespace RapidSim.Networks
     [CreateAssetMenu(fileName = "Dataset", menuName = "Dataset", order = 1)]
     public class Dataset : ScriptableObject
     {
+        [Tooltip("Dummy variable to ensure data is saved.")]
+        [SerializeField]
+        private bool dummy;
+        
         [Tooltip("The data points of the dataset.")]
         [SerializeField]
         private List<DataPoint> dataPoints;
