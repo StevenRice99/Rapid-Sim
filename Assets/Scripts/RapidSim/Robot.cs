@@ -699,7 +699,7 @@ namespace RapidSim
             //Vector3 position = LastJoint.position;
             //Quaternion orientation = LastJoint.rotation;
 
-            Vector3 position = new Vector3(Random.Range(0, 1), Random.Range(0, 1), Random.Range(0, 1)) * _chainLength + transform.position;
+            Vector3 position = new Vector3(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f)) * _chainLength + transform.position;
             Quaternion orientation = Random.rotation;
             
             Physics.autoSimulation = false;
