@@ -689,9 +689,9 @@ namespace RapidSim
 
         private void Generate()
         {
-            SetRandomJoints();
-            
             Physics.autoSimulation = false;
+            
+            SetRandomJoints();
             Physics.Simulate(1);
             
             Vector3 position = LastJoint.position;
@@ -700,11 +700,19 @@ namespace RapidSim
             SnapRadians(_middle);
             Physics.Simulate(1);
             
-            Physics.autoSimulation = true;
-            
             double[] solution = BioIkOptimize(position, orientation);
+            List<float> joints = new();
+            for (int i = 0; i < solution.Length; i++)
+            {
+                joints.Add((float) solution[i]);
+            }
+            
+            SnapRadians(joints);
+            Physics.Simulate(1);
+            
+            Physics.autoSimulation = true;
 
-            network.Add(PrepareInputs(position, orientation), NetScaled(solution));
+            network.Add(PrepareInputs(LastJoint.position, LastJoint.rotation), NetScaled(solution));
         }
         
         private double[] NetScaled(double[] joints)

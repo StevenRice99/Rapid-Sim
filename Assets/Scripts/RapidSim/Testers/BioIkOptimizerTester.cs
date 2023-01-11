@@ -9,9 +9,9 @@ namespace RapidSim.Testers
         protected override void Move()
         {
             Transform t = transform;
-            List<double> doubles = robot.BioIkOptimize(t.position, t.rotation).ToList();
+            double[] doubles = robot.BioIkOptimize(t.position, t.rotation);
             List<float> joints = new();
-            for (int i = 0; i < doubles.Count; i++)
+            for (int i = 0; i < doubles.Length; i++)
             {
                 joints.Add((float) doubles[i]);
             }
@@ -22,9 +22,9 @@ namespace RapidSim.Testers
         protected override void Snap()
         {
             Transform t = transform;
-            List<double> doubles = robot.BioIkOptimize(t.position, t.rotation).ToList();
+            double[] doubles = robot.BioIkOptimize(t.position, t.rotation);
             List<float> joints = new();
-            for (int i = 0; i < doubles.Count; i++)
+            for (int i = 0; i < doubles.Length; i++)
             {
                 joints.Add((float) doubles[i]);
             }
