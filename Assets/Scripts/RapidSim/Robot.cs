@@ -47,6 +47,10 @@ namespace RapidSim
         [Tooltip("Enable to generate training data for the robot. Will turn off once both datasets are complete.")]
         [SerializeField]
         private bool generate;
+
+        [Tooltip("Check the dataset values.")]
+        [SerializeField]
+        private bool checkData;
         
         [Tooltip("Enable to train the neural network to control the robot. Will turn off once network is trained for set epochs.")]
         [SerializeField]
@@ -677,6 +681,12 @@ namespace RapidSim
             {
                 Generate();
                 return;
+            }
+
+            if (checkData)
+            {
+                checkData = false;
+                network.CheckData();
             }
             
             if (train)

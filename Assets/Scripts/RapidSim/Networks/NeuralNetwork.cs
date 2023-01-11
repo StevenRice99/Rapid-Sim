@@ -232,6 +232,11 @@ namespace RapidSim.Networks
 			Debug.Log(_testingDataPoints.Length > 0 ? $"{name} | Best Training = {Test(_trainingDataPoints, bestLayers)}% | Best Testing = {Test(_testingDataPoints, bestLayers)}%" : $"{name} | Best Accuracy = {Test(_trainingDataPoints, bestLayers)}%");
 		}
 
+		public void CheckData()
+		{
+			dataset.CheckData();
+		}
+
 		private void SplitDatasets()
 		{
 			if (_trainingDataPoints is { Length: > 0 })
