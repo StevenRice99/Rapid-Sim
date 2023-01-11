@@ -577,20 +577,11 @@ namespace RapidSim
         {
             List<float> joints = GetJoints();
             double[] starting = new double[joints.Count];
-            for (int i = 0; i < starting.Length; i++)
+            double[] best = new double[joints.Count];
+            double[] maxSpeeds = new double[joints.Count];
+            for (int i = 0; i < joints.Count; i++)
             {
                 starting[i] = joints[i];
-            }
-
-            return BioIkOptimize(position, orientation, starting);
-        }
-
-        private double[] BioIkOptimize(Vector3 position, Quaternion orientation, double[] starting)
-        {
-            double[] best = new double[starting.Length];
-            double[] maxSpeeds = new double[starting.Length];
-            for (int i = 0; i < starting.Length; i++)
-            {
                 best[i] = starting[i];
                 maxSpeeds[i] = _maxSpeeds[i];
             }
@@ -645,44 +636,6 @@ namespace RapidSim
             return new BioIkEvolution(this).Optimise(generations, starting, position, orientation);
         }
 
-        private double[] BioIkGenerate()
-        {
-            BioIkRandom(out Vector3 position, out Quaternion orientation);
-
-            double[] middle = new double[_middle.Count];
-            for (int i = 0; i < middle.Length; i++)
-            {
-                middle[i] = _middle[i];
-            }
-            
-            return BioIkOptimize(position, orientation, middle);
-        }
-
-        private (Vector3 position, Quaternion orientation) BioIkPositionOrientation(double[] solution)
-        {
-            for (int i = 0; i < solution.Length; i++)
-            {
-                _motions[i].SetTargetValue(solution[i], true);
-            }
-            ProcessMotion();
-
-            return (_lastBioIkJoint.position, _lastBioIkJoint.rotation);
-        }
-
-        private void BioIkRandom(out Vector3 position, out Quaternion orientation)
-        {
-            double[] joints = RandomOrientation();
-            
-            for (int i = 0; i < joints.Length; i++)
-            {
-                _motions[i].SetTargetValue(joints[i], true);
-            }
-            ProcessMotion();
-
-            position = _lastBioIkJoint.position;
-            orientation = _lastBioIkJoint.rotation;
-        }
-
         private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
         {
             return Vector3.Distance(currentPosition, goalPosition) + Quaternion.Angle(goalEndRotation, Quaternion.Inverse(rootRotation) * currentEndRotation);
@@ -703,15 +656,15 @@ namespace RapidSim
             return longestTime;
         }
 
-        private double[] RandomOrientation()
+        private void SetRandomJoints()
         {
-            double[] joints = new double[_limits.Length];
-            for (int i = 0; i < joints.Length; i++)
+            List<float> joints = new();
+            for (int i = 0; i < _limits.Length; i++)
             {
-                joints[i] = Random.Range(_limits[i].lower, _limits[i].upper);
+                joints.Add(Random.Range(_limits[i].lower, _limits[i].upper));
             }
 
-            return joints;
+            SnapRadians(joints);
         }
 
         private void Update()
@@ -736,9 +689,21 @@ namespace RapidSim
 
         private void Generate()
         {
-            double[] solution = BioIkGenerate();
-            (Vector3 position, Quaternion orientation) t = BioIkPositionOrientation(solution);
-            network.Add(PrepareInputs(t.position, t.orientation), NetScaled(solution));
+            SetRandomJoints();
+            
+            Physics.autoSimulation = false;
+            Physics.Simulate(1);
+            
+            Vector3 position = LastJoint.position;
+            Quaternion orientation = LastJoint.rotation;
+            
+            SnapRadians(_middle);
+            
+            Physics.autoSimulation = true;
+            
+            double[] solution = BioIkOptimize(position, orientation);
+
+            network.Add(PrepareInputs(position, orientation), NetScaled(solution));
         }
         
         private double[] NetScaled(double[] joints)
