@@ -142,7 +142,7 @@ namespace RapidSim
                 List<JointLimit> limit = _joints[i].Limits();
                 for (int j = 0; j < limit.Count; j++)
                 {
-                    _middle.Add((limit[i].lower + limit[i].upper) / 2);
+                    _middle.Add((limit[j].lower + limit[j].upper) / 2);
                 }
                 limits.AddRange(limit);
                 if (i > 0)
