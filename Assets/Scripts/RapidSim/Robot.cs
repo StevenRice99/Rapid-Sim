@@ -183,7 +183,7 @@ namespace RapidSim
                 return;
             }
 
-            if (!NeuralNetwork.Validate(this, network, _limits.Length, _limits.Length))
+            if (!NeuralNetwork.Validate(this, network, 7, _limits.Length))
             {
                 return;
             }
