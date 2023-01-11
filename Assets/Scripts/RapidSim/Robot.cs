@@ -547,7 +547,7 @@ namespace RapidSim
         private double[] PrepareInputs(Vector3 position, Quaternion rotation)
         {
             double[] inputs = new double[7];
-            position = RelativePosition(position) / _chainLength;
+            position = RelativePosition(position);
             inputs[0] = (position.x + 1) / 2;
             inputs[1] = (position.y + 1) / 2;
             inputs[2] = (position.z + 1) / 2;
@@ -569,7 +569,9 @@ namespace RapidSim
             return joints;
         }
 
-        private Vector3 RelativePosition(Vector3 position) => Root.transform.InverseTransformPoint(position);
+        private Vector3 RelativePosition(Vector3 position) => Root.transform.InverseTransformPoint(position) / _chainLength;
+
+        private Vector3 GlobalPosition(Vector3 position) => _chainLength * Root.transform.TransformPoint(position);
 
         private Quaternion RelativeRotation(Quaternion rotation) => Quaternion.Inverse(Root.transform.rotation) * rotation;
 
@@ -691,16 +693,16 @@ namespace RapidSim
 
         private void Generate()
         {
-            Physics.autoSimulation = false;
-            
             //SetRandomJoints();
             //Physics.Simulate(1);
             
             //Vector3 position = LastJoint.position;
             //Quaternion orientation = LastJoint.rotation;
 
-            Vector3 position = Random.insideUnitSphere * _chainLength + transform.position;
+            Vector3 position = new Vector3(Random.Range(0, 1), Random.Range(0, 1), Random.Range(0, 1)) * _chainLength + transform.position;
             Quaternion orientation = Random.rotation;
+            
+            Physics.autoSimulation = false;
             
             SnapRadians(_middle);
             Physics.Simulate(1);
@@ -717,17 +719,19 @@ namespace RapidSim
             
             Physics.autoSimulation = true;
 
-            network.Add(PrepareInputs(LastJoint.position, LastJoint.rotation), NetScaled(solution));
+            network.Add(PrepareInputs(position, orientation), NetScaledJoints());
         }
         
-        private double[] NetScaled(double[] joints)
+        private double[] NetScaledJoints()
         {
-            for (int i = 0; i < joints.Length; i++)
+            List<float> joints = GetJoints();
+            double[] doubles = new double[joints.Count];
+            for (int i = 0; i < joints.Count; i++)
             {
-                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
+                doubles[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
             }
 
-            return joints;
+            return doubles;
         }
 
         private void Train()
