@@ -14,9 +14,29 @@ namespace RapidSim.Networks
 	public class NeuralNetwork : ScriptableObject
 	{
 		[Header("Network Architecture")]
-		[Tooltip("The architecture of the neural network")]
+		[Tooltip("The input size to the network.")]
+		[Min(1)]
 		[SerializeField]
-		private int[] layerSizes;
+		private int inputs = 1;
+		
+		[Tooltip("The output size from the network.")]
+		[Min(1)]
+		[SerializeField]
+		private int outputs = 1;
+
+		[Tooltip("The number of hidden layers.")]
+		[Min(0)]
+		[SerializeField]
+		private int numberHidden;
+
+		[Tooltip("The size of the hidden layers.")]
+		[Min(1)]
+		[SerializeField]
+		private int sizeHidden = 1;
+
+		[Tooltip("Click to setup the network.")]
+		[SerializeField]
+		private bool initialize;
 
 		[Header("Training Parameters")]
 		[Tooltip("The learning rate during the first epoch.")]
@@ -42,12 +62,8 @@ namespace RapidSim.Networks
 		[Tooltip("The number of epochs to train for.")]
 		[Min(1)]
 		public int maxEpochs = 100;
-        
-		[Tooltip("The current training epoch.")]
-		[Min(0)]
-		public int epoch;
 
-		[Header("Datasets")]
+		[Header("Dataset")]
 		[Tooltip("Complete dataset to train.")]
 		[SerializeField]
 		private Dataset dataset;
@@ -56,6 +72,9 @@ namespace RapidSim.Networks
 		[Range(0, 1)]
 		[SerializeField]
 		private float testingPercent = 0.2f;
+        
+		[HideInInspector]
+		public int epoch;
 
 		[SerializeField]
 		[HideInInspector]
@@ -81,38 +100,22 @@ namespace RapidSim.Networks
 
 		private void OnValidate()
 		{
-			if (epoch > maxEpochs)
-			{
-				epoch = maxEpochs;
-			}
-            
-			bool create = layers == null || layers.Length != layerSizes.Length - 1;
-
-			if (!create)
-			{
-				for (int i = 0; i < layers.Length; i++)
-				{
-					if (layers[i].numNodesIn == layerSizes[i] && layers[i].numNodesOut == layerSizes[i + 1])
-					{
-						continue;
-					}
-
-					create = true;
-					break;
-				}
-			}
-
-			if (!create)
+			if (!initialize)
 			{
 				return;
 			}
 
+			initialize = false;
+
 			Random rng = new();
 
-			layers = new Layer[layerSizes.Length - 1];
+			layers = new Layer[numberHidden + 1];
 			for (int i = 0; i < layers.Length; i++)
 			{
-				layers[i] = new(layerSizes[i], layerSizes[i + 1], rng);
+				int inputSize = i == 0 ? inputs : sizeHidden;
+				int outputSize = i == layers.Length - 1 ? outputs : sizeHidden;
+				
+				layers[i] = new(inputSize, outputSize, rng);
 			}
 
 			UpdateBestLayers();
@@ -249,8 +252,6 @@ namespace RapidSim.Networks
 			int index = (int) (dataset.Size * (1 - testingPercent));
 			_trainingDataPoints = randomized.Take(index).ToArray();
 			_testingDataPoints = randomized.Skip(index).ToArray();
-			
-			Debug.Log(_trainingDataPoints.Length);
 		}
 		
 		private static EvaluationData Test(IReadOnlyCollection<DataPoint> dataPoints, Layer[] architecture)

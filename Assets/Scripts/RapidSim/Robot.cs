@@ -717,7 +717,8 @@ namespace RapidSim
             SnapRadians(_middle);
             Physics.Simulate(1);
             
-            double[] solution = BioIkOptimize(position, orientation);
+            //double[] solution = BioIkOptimize(position, orientation);
+            double[] solution = BioIkSolve(position, orientation);
             List<float> joints = new();
             for (int i = 0; i < solution.Length; i++)
             {
