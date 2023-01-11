@@ -693,11 +693,14 @@ namespace RapidSim
         {
             Physics.autoSimulation = false;
             
-            SetRandomJoints();
-            Physics.Simulate(1);
+            //SetRandomJoints();
+            //Physics.Simulate(1);
             
-            Vector3 position = LastJoint.position;
-            Quaternion orientation = LastJoint.rotation;
+            //Vector3 position = LastJoint.position;
+            //Quaternion orientation = LastJoint.rotation;
+
+            Vector3 position = Random.insideUnitSphere * _chainLength + transform.position;
+            Quaternion orientation = Random.rotation;
             
             SnapRadians(_middle);
             Physics.Simulate(1);
