@@ -1492,8 +1492,7 @@ GameObject:
   - component: {fileID: 1291932677}
   - component: {fileID: 1291932672}
   - component: {fileID: 1291932675}
-  - component: {fileID: 1291932674}
-  - component: {fileID: 1291932673}
+  - component: {fileID: 1291932678}
   m_Layer: 0
   m_Name: Tester
   m_TagString: Untagged
@@ -1581,38 +1580,6 @@ MonoBehaviour:
   move: 0
   snap: 0
   robot: {fileID: 1634662496}
---- !u!114 &1291932673
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1291932666}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1be0994bbddc4c038d285f318e42f7c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  move: 0
-  snap: 0
-  robot: {fileID: 1634662496}
-  values: []
---- !u!114 &1291932674
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1291932666}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1be0994bbddc4c038d285f318e42f7c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  move: 0
-  snap: 0
-  robot: {fileID: 1634662496}
-  values: []
 --- !u!114 &1291932675
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1653,6 +1620,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8f390c1555df44d2a10fb6830fcfee0a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  move: 0
+  snap: 0
+  robot: {fileID: 1634662496}
+--- !u!114 &1291932678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1291932666}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d3adfb594af4ed1be87d0b33ed0517a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   move: 0
@@ -1897,7 +1879,7 @@ MonoBehaviour:
   optimizeAttempts: 100
   network: {fileID: 11400000, guid: 716b7929ffe21d34db3fe54066eb8adc, type: 2}
   generate: 0
-  train: 1
+  train: 0
   test: 0
 --- !u!1 &1898101831
 GameObject:

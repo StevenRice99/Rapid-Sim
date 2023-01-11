@@ -1,6 +1,7 @@
 ﻿using System;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = System.Random;
 
 #if UNITY_EDITOR
@@ -37,9 +38,9 @@ namespace RapidSim.Networks
 		[SerializeField]
 		private double regularization = 0.1;
 		
-		[Tooltip("The number of epochs to stop training after testing accuracy has not improved.")]
+		[Tooltip("The number of epochs to train for.")]
 		[Min(1)]
-		public int limitWithoutImprovement = 100;
+		public int maxEpochs = 100;
         
 		[Tooltip("The current training epoch.")]
 		[Min(0)]
@@ -74,9 +75,9 @@ namespace RapidSim.Networks
 
 		private void OnValidate()
 		{
-			if (epoch > limitWithoutImprovement)
+			if (epoch > maxEpochs)
 			{
-				epoch = limitWithoutImprovement;
+				epoch = maxEpochs;
 			}
             
 			bool create = layers == null || layers.Length != layerSizes.Length - 1;
@@ -131,7 +132,7 @@ namespace RapidSim.Networks
 		}
 
 		// Run the inputs through the network to calculate the outputs
-		private double[] Forward(double[] inputs, Layer[] architecture)
+		private static double[] Forward(double[] inputs, Layer[] architecture)
 		{
 			foreach (Layer layer in architecture)
 			{
@@ -165,7 +166,7 @@ namespace RapidSim.Networks
 
 		public bool Train()
 		{
-			if (currentWithoutImprovement >= limitWithoutImprovement)
+			if (epoch >= maxEpochs)
 			{
 				return false;
 			}
@@ -209,7 +210,7 @@ namespace RapidSim.Networks
 				currentWithoutImprovement++;
 			}
 			
-			Debug.Log($"Network {name} | Epoch {epoch} | Training = {trainingAccuracy} | Testing = {testingAccuracy}% | Best = {bestAccuracy}% | {currentWithoutImprovement} / {limitWithoutImprovement} Epochs without Improvement");
+			Debug.Log($"Network {name} | Epoch {epoch} | Training = {trainingAccuracy} | Testing = {testingAccuracy}% | Best = {bestAccuracy}% | {currentWithoutImprovement} Epochs without Improvement");
 			
 			return true;
 		}

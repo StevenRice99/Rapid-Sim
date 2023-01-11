@@ -66,6 +66,8 @@ namespace RapidSim
 
         private List<float> _home;
 
+        private List<float> _middle;
+
         private List<float> _zeros;
 
         private List<float> _targets;
@@ -132,11 +134,17 @@ namespace RapidSim
 
             _joints = _joints.OrderBy(j => j.Joint.index).ToArray();
 
+            _middle = new();
             _chainLength = 0;
             List<JointLimit> limits = new();
             for (int i = 0; i < _joints.Length; i++)
             {
-                limits.AddRange(_joints[i].Limits());
+                List<JointLimit> limit = _joints[i].Limits();
+                for (int j = 0; j < limit.Count; j++)
+                {
+                    _middle.Add((limit[i].lower + limit[i].upper) / 2);
+                }
+                limits.AddRange(limit);
                 if (i > 0)
                 {
                     _chainLength += Vector3.Distance(_joints[i - 1].transform.position, _joints[i].transform.position);
@@ -175,7 +183,7 @@ namespace RapidSim
                 return;
             }
 
-            if (!NeuralNetwork.Validate(this, network, _limits.Length + 7, _limits.Length))
+            if (!NeuralNetwork.Validate(this, network, _limits.Length, _limits.Length))
             {
                 return;
             }
@@ -398,6 +406,16 @@ namespace RapidSim
             SnapRadians(_home);
         }
 
+        public void MoveMiddle()
+        {
+            MoveRadians(_middle);
+        }
+
+        public void SnapMiddle()
+        {
+            SnapRadians(_middle);
+        }
+
         private List<float> GetJoints()
         {
             List<float> angles = new();
@@ -512,7 +530,7 @@ namespace RapidSim
                 starting[i] = original[i];
             }
             
-            double[] results = JointsScaled(network.Forward(PrepareInputs(NetScaled(starting), position, rotation)));
+            double[] results = JointsScaled(network.Forward(PrepareInputs(position, rotation)));
 
             List<float> joints = new();
 
@@ -526,33 +544,19 @@ namespace RapidSim
             return joints;
         }
 
-        private double[] PrepareInputs(double[] joints, Vector3 position, Quaternion rotation)
+        private double[] PrepareInputs(Vector3 position, Quaternion rotation)
         {
-            double[] inputs = new double[joints.Length + 7];
-            for (int i = 0; i < joints.Length; i++)
-            {
-                inputs[i] = joints[i];
-            }
+            double[] inputs = new double[7];
             position = RelativePosition(position) / _chainLength;
-            inputs[joints.Length] = (position.x + 1) / 2;
-            inputs[joints.Length + 1] = (position.y + 1) / 2;
-            inputs[joints.Length + 2] = (position.z + 1) / 2;
+            inputs[0] = (position.x + 1) / 2;
+            inputs[1] = (position.y + 1) / 2;
+            inputs[22] = (position.z + 1) / 2;
             rotation = RelativeRotation(rotation);
-            inputs[joints.Length + 3] = (rotation.x + 1) / 2;
-            inputs[joints.Length + 4] = (rotation.y + 1) / 2;
-            inputs[joints.Length + 5] = (rotation.z + 1) / 2;
-            inputs[joints.Length + 6] = (rotation.w + 1) / 2;
+            inputs[3] = (rotation.x + 1) / 2;
+            inputs[4] = (rotation.y + 1) / 2;
+            inputs[5] = (rotation.z + 1) / 2;
+            inputs[6] = (rotation.w + 1) / 2;
             return inputs;
-        }
-
-        private double[] NetScaled(double[] joints)
-        {
-            for (int i = 0; i < joints.Length; i++)
-            {
-                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
-            }
-
-            return joints;
         }
 
         private double[] JointsScaled(double[] joints)
@@ -643,14 +647,15 @@ namespace RapidSim
 
         private double[] BioIkGenerate()
         {
-            return BioIkGenerate(RandomOrientation());
-        }
-
-        private double[] BioIkGenerate(double[] starting)
-        {
             BioIkRandom(out Vector3 position, out Quaternion orientation);
+
+            double[] middle = new double[_middle.Count];
+            for (int i = 0; i < middle.Length; i++)
+            {
+                middle[i] = _middle[i];
+            }
             
-            return BioIkOptimize(position, orientation, starting);
+            return BioIkOptimize(position, orientation, middle);
         }
 
         private (Vector3 position, Quaternion orientation) BioIkPositionOrientation(double[] solution)
@@ -731,10 +736,19 @@ namespace RapidSim
 
         private void Generate()
         {
-            double[] starting = BioIkGenerate();
-            double[] ending = BioIkGenerate(starting);
-            (Vector3 position, Quaternion orientation) t = BioIkPositionOrientation(ending);
-            generate = network.Add(PrepareInputs(NetScaled(starting), t.position, t.orientation), NetScaled(ending));
+            double[] solution = BioIkGenerate();
+            (Vector3 position, Quaternion orientation) t = BioIkPositionOrientation(solution);
+            generate = network.Add(PrepareInputs(t.position, t.orientation), NetScaled(solution));
+        }
+        
+        private double[] NetScaled(double[] joints)
+        {
+            for (int i = 0; i < joints.Length; i++)
+            {
+                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
+            }
+
+            return joints;
         }
 
         private void Train()

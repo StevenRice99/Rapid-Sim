@@ -9,14 +9,32 @@ namespace RapidSim.Testers
         [SerializeField]
         private float[] values;
 
+        [Tooltip("If values are in radians or not.")]
+        [SerializeField]
+        private bool radians;
+
         protected override void Move()
         {
-            robot.Move(values.ToList());
+            if (radians)
+            {
+                robot.MoveRadians(values.ToList());
+            }
+            else
+            {
+                robot.Move(values.ToList());
+            }
         }
 
         protected override void Snap()
         {
-            robot.Snap(values.ToList());
+            if (radians)
+            {
+                robot.SnapRadians(values.ToList());
+            }
+            else
+            {
+                robot.Snap(values.ToList());
+            }
         }
     }
 }
