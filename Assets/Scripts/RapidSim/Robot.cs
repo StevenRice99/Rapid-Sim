@@ -738,7 +738,7 @@ namespace RapidSim
         {
             double[] solution = BioIkGenerate();
             (Vector3 position, Quaternion orientation) t = BioIkPositionOrientation(solution);
-            generate = network.Add(PrepareInputs(t.position, t.orientation), NetScaled(solution));
+            network.Add(PrepareInputs(t.position, t.orientation), NetScaled(solution));
         }
         
         private double[] NetScaled(double[] joints)

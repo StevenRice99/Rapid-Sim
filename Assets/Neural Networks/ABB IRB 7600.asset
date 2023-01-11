@@ -19,8 +19,8 @@ MonoBehaviour:
   regularization: 0.1
   maxEpochs: 100
   epoch: 0
-  trainingDataset: {fileID: 11400000, guid: 960ec78af71ff9a41a7857408fe6c49c, type: 2}
-  testingDataset: {fileID: 11400000, guid: bd3510dcff95b934e90a0f79ec26c9b1, type: 2}
+  dataset: {fileID: 11400000, guid: 960ec78af71ff9a41a7857408fe6c49c, type: 2}
+  testingPercent: 0.2
   currentWithoutImprovement: 0
   layers:
   - numNodesIn: 7
