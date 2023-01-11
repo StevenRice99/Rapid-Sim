@@ -150,7 +150,6 @@ namespace RapidSim.Networks
 		public void Add(double[] inputs, double[] outputs)
 		{
 			dataset.Add(inputs, outputs);
-			Debug.Log($"Network {name} | Dataset {dataset.name} | {dataset.Size} Points");
 		}
 
 		public bool Train()

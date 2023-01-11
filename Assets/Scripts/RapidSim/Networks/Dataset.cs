@@ -6,9 +6,10 @@ namespace RapidSim.Networks
     [CreateAssetMenu(fileName = "Dataset", menuName = "Dataset", order = 1)]
     public class Dataset : ScriptableObject
     {
-        [Tooltip("Dummy variable to ensure data is saved.")]
+        [HideInInspector]
+        [Tooltip("The number of data points.")]
         [SerializeField]
-        private bool dummy;
+        private int size;
         
         [Tooltip("The data points of the dataset.")]
         [SerializeField]
@@ -16,11 +17,18 @@ namespace RapidSim.Networks
 
         public List<DataPoint> DataPoints => dataPoints;
 
-        public int Size => dataPoints.Count;
+        public int Size => size;
 
         public void Add(double[] inputs, double[] outputs)
         {
             dataPoints.Add(new(inputs, outputs));
+            OnValidate();
+            Debug.Log($" Dataset {name} | {size} Points");
+        }
+
+        private void OnValidate()
+        {
+            size = dataPoints.Count;
         }
     }
 }
