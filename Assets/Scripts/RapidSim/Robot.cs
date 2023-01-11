@@ -550,7 +550,7 @@ namespace RapidSim
             position = RelativePosition(position) / _chainLength;
             inputs[0] = (position.x + 1) / 2;
             inputs[1] = (position.y + 1) / 2;
-            inputs[22] = (position.z + 1) / 2;
+            inputs[2] = (position.z + 1) / 2;
             rotation = RelativeRotation(rotation);
             inputs[3] = (rotation.x + 1) / 2;
             inputs[4] = (rotation.y + 1) / 2;
