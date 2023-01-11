@@ -1876,7 +1876,7 @@ MonoBehaviour:
   generations: 5
   populationSize: 120
   elites: 3
-  optimizeAttempts: 100
+  optimizeAttempts: 10
   network: {fileID: 11400000, guid: 716b7929ffe21d34db3fe54066eb8adc, type: 2}
   generate: 0
   train: 0

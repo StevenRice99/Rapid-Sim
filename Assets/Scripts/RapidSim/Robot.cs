@@ -37,7 +37,7 @@ namespace RapidSim
         [Tooltip("The number of times to run the Bio IK algorithm when attempting to find an optimal move.")]
         [Min(1)]
         [SerializeField]
-        private int optimizeAttempts = 100;
+        private int optimizeAttempts = 10;
         
         [Header("Neural Network Settings")]
         [Tooltip("The neural network to control the robot.")]
