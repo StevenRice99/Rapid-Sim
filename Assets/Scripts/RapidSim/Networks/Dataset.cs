@@ -24,7 +24,7 @@ namespace RapidSim.Networks
 #if UNITY_EDITOR
             EditorUtility.SetDirty(this);
 #endif
-            Debug.Log($" Dataset {name} | {Size} Points");
+            Debug.Log($"Dataset {name} | {Size} Points");
         }
     }
 }

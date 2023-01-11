@@ -158,11 +158,8 @@ namespace RapidSim.Networks
 			{
 				return false;
 			}
-
-			if (_trainingDataPoints == null)
-			{
-				SplitDatasets();
-			}
+			
+			SplitDatasets();
 			
 			if (_batchLearnData == null || _batchLearnData.Length != _trainingDataPoints.Length)
 			{
@@ -230,21 +227,25 @@ namespace RapidSim.Networks
 
 		public void Test()
 		{
-			if (_trainingDataPoints == null)
-			{
-				SplitDatasets();
-			}
+			SplitDatasets();
 			
 			Debug.Log(_testingDataPoints.Length > 0 ? $"{name} | Best Training = {Test(_trainingDataPoints, bestLayers)}% | Best Testing = {Test(_testingDataPoints, bestLayers)}%" : $"{name} | Best Accuracy = {Test(_trainingDataPoints, bestLayers)}%");
 		}
 
 		private void SplitDatasets()
 		{
+			if (_trainingDataPoints is { Length: > 0 })
+			{
+				return;
+			}
+			
 			Random rng = new();
 			DataPoint[] randomized = dataset.DataPoints.OrderBy(_ => rng.Next()).ToArray();
 			int index = (int) (dataset.Size * (1 - testingPercent));
 			_trainingDataPoints = randomized.Take(index).ToArray();
 			_testingDataPoints = randomized.Skip(index).ToArray();
+			
+			Debug.Log(_trainingDataPoints.Length);
 		}
 		
 		private static EvaluationData Test(IReadOnlyCollection<DataPoint> dataPoints, Layer[] architecture)
