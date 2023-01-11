@@ -586,12 +586,14 @@ namespace RapidSim
                 maxSpeeds[i] = _maxSpeeds[i];
             }
 
-            double bestAccuracy = Accuracy(LastJoint.position, position, Root.transform.rotation, LastJoint.rotation, orientation);
-            double bestTime = 0;
+            double bestAccuracy = double.MaxValue;
+            double bestTime = double.MaxValue;
 
             for (int attempt = 0; attempt < optimizeAttempts; attempt++)
             {
                 double[] solution = BioIkSolve(position, orientation, starting);
+
+                ProcessMotion();
 
                 double accuracy = Accuracy(_lastBioIkJoint.position, position, Root.transform.rotation, _lastBioIkJoint.rotation, orientation);
                 double time = CalculateTime(starting, solution, maxSpeeds);
