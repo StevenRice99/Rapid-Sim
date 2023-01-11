@@ -698,6 +698,7 @@ namespace RapidSim
             Quaternion orientation = LastJoint.rotation;
             
             SnapRadians(_middle);
+            Physics.Simulate(1);
             
             Physics.autoSimulation = true;
             
