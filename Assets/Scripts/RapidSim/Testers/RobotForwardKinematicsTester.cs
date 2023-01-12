@@ -1,4 +1,4 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace RapidSim.Testers
@@ -7,7 +7,7 @@ namespace RapidSim.Testers
     {
         [Tooltip("The values to move the robot to.")]
         [SerializeField]
-        private float[] values;
+        private List<float> values;
 
         [Tooltip("If values are in radians or not.")]
         [SerializeField]
@@ -17,11 +17,11 @@ namespace RapidSim.Testers
         {
             if (radians)
             {
-                robot.MoveRadians(values.ToList());
+                robot.MoveRadians(values);
             }
             else
             {
-                robot.Move(values.ToList());
+                robot.Move(values);
             }
         }
 
@@ -29,11 +29,11 @@ namespace RapidSim.Testers
         {
             if (radians)
             {
-                robot.SnapRadians(values.ToList());
+                robot.SnapRadians(values);
             }
             else
             {
-                robot.Snap(values.ToList());
+                robot.Snap(values);
             }
         }
     }

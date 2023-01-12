@@ -75,8 +75,6 @@ namespace RapidSim
 
         private BioIkJoint.Motion[] _motions;
 
-        private Transform _lastBioIkJoint;
-
         private float _chainLength;
 
         private Vector3 _mlAgentsPos;
@@ -219,7 +217,6 @@ namespace RapidSim
                 }
                 bioIkJoint.Setup();
                 previousJoint = bioIkJoint;
-                _lastBioIkJoint = bioIkJoint.transform;
                 parent = go.transform;
                 
                 bioIkJoint.rotational = j.Type != ArticulationJointType.PrismaticJoint;
@@ -290,7 +287,10 @@ namespace RapidSim
             BioIkJoints = bioIkJoints.ToArray();
             _motions = motions.ToArray();
 
-            UpdateData();
+            foreach (BioIkJoint j in BioIkJoints)
+            {
+                j.UpdateData();
+            }
             
             BehaviorParameters parameters = GetComponent<BehaviorParameters>();
             if (parameters == null)
@@ -317,9 +317,11 @@ namespace RapidSim
             
             _mlAgentsPos = Random.insideUnitSphere * _chainLength + transform.position;
             _mlAgentsRot = Random.rotation;
-            
+
+            bool move = _move;
             SetRandomJoints();
             PhysicsStep();
+            _move = move;
             
             RequestDecision();
         }
@@ -364,8 +366,10 @@ namespace RapidSim
 
         private void Evaluate(List<float> joints)
         {
+            bool move = _move;
             SnapRadians(joints);
             PhysicsStep();
+            _move = move;
         
             const float accuracyValue = 100;
             const float timeValue = 10;
@@ -378,16 +382,7 @@ namespace RapidSim
             
             if (meetsRepeatability)
             {
-                float maxTime = float.MinValue;
-                for (int i = 0; i < _middle.Count; i++)
-                {
-                    float distance = math.abs(_middle[i] - joints[i]);
-                    float time = distance / _maxSpeeds[i];
-                    if (time > maxTime)
-                    {
-                        maxTime = time;
-                    }
-                }
+                float maxTime = CalculateTime(_middle, joints, _maxSpeeds);
 
                 accuracy += (maxTime / _maxTime) * timeValue;
             }
@@ -644,44 +639,38 @@ namespace RapidSim
 
         public List<float> BioIkOptimize(Vector3 position, Quaternion orientation)
         {
-            List<float> joints = GetJoints();
+            List<float> starting = GetJoints();
             
             List<float> best = new();
-            best.AddRange(joints);
-            
-            float[] maxSpeeds = new float[joints.Count];
-            for (int i = 0; i < joints.Count; i++)
-            {
-                maxSpeeds[i] = _maxSpeeds[i];
-            }
+            best.AddRange(starting);
 
             float bestAccuracy = float.MaxValue;
             float bestTime = float.MaxValue;
 
+            bool move = _move;
+
             for (int attempt = 0; attempt < optimizeAttempts; attempt++)
             {
-                List<float> solution = BioIkSolve(position, orientation, joints);
+                SnapRadians(BioIkSolve(position, orientation, starting));
+                PhysicsStep();
 
-                ProcessMotion();
+                List<float> solution = GetJoints();
 
-                float accuracy = Accuracy(_lastBioIkJoint.position, position, Root.transform.rotation, _lastBioIkJoint.rotation, orientation);
-                float time = CalculateTime(joints, solution, maxSpeeds);
+                float accuracy = Accuracy(LastJoint.position, position, Root.transform.rotation, LastJoint.rotation, orientation);
+                float time = CalculateTime(starting, solution, _maxSpeeds);
 
-                if (bestAccuracy > repeatability && accuracy < bestAccuracy)
-                {
-                    best = solution;
-                    bestAccuracy = accuracy;
-                    bestTime = time;
-                    continue;
-                }
-
-                if (accuracy <= repeatability && time < bestTime)
+                if ((bestAccuracy > repeatability && accuracy < bestAccuracy) || accuracy <= repeatability && time < bestTime)
                 {
                     best = solution;
                     bestAccuracy = accuracy;
                     bestTime = time;
                 }
             }
+            
+            SnapRadians(starting);
+            PhysicsStep();
+
+            _move = move;
 
             return best;
         }
@@ -737,22 +726,6 @@ namespace RapidSim
             }
 
             return joints;
-        }
-
-        private void UpdateData()
-        {
-            foreach (BioIkJoint j in BioIkJoints)
-            {
-                j.UpdateData();
-            }
-        }
-
-        private void ProcessMotion()
-        {
-            foreach (BioIkJoint j in BioIkJoints)
-            {
-                j.ProcessMotion();
-            }
         }
 
         private static void PhysicsStep()

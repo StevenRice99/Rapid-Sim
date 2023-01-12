@@ -62,33 +62,6 @@ namespace RapidSim.BioIK
 			_r9 = 1.0 - 2.0 * (_drx * _drx + _dry * _dry);
 		}
 
-		public void ProcessMotion()
-		{
-			if (!enabled)
-			{
-				return;
-			}
-
-			//Compute local transformation
-			double lpX, lpY, lpZ, lrX, lrY, lrZ, lrW;
-			if(rotational)
-			{
-				ComputeLocalTransformation(math.radians(x.ProcessMotion()), math.radians(y.ProcessMotion()), math.radians(z.ProcessMotion()), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
-			}
-			else
-			{
-				ComputeLocalTransformation(x.ProcessMotion(), y.ProcessMotion(), z.ProcessMotion(), out lpX, out lpY, out lpZ, out lrX, out lrY, out lrZ, out lrW);
-			}
-
-			//Apply local transformation
-			Transform t = transform;
-			t.localPosition = new((float)lpX, (float)lpY, (float)lpZ);
-			t.localRotation = new((float)lrX, (float)lrY, (float)lrZ, (float)lrW);
-
-			//Remember transformation
-			t.hasChanged = false;
-		}
-
 		//Fast implementation to compute the local transform given the joint values (in radians / metres)
 		public void ComputeLocalTransformation(double valueX, double valueY, double valueZ, out double lpX, out double lpY, out double lpZ, out double lrX, out double lrY, out double lrZ, out double lrW)
 		{
