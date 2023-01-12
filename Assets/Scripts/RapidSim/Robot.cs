@@ -10,10 +10,14 @@ using Unity.MLAgents.Sensors;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace RapidSim
 {
-    [RequireComponent(typeof(BehaviorParameters))]
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(BehaviorParameters))]
     public class Robot : Agent
     {
         public BioIkJoint[] BioIkJoints { get; private set; }
@@ -65,6 +69,9 @@ namespace RapidSim
             if (robotProperties == null)
             {
                 Debug.LogError($"No robot properties attached to {name}.");
+#if UNITY_EDITOR
+                EditorApplication.ExitPlaymode();
+#endif
                 Destroy(gameObject);
                 return;
             }
@@ -78,6 +85,9 @@ namespace RapidSim
                 if (children.Length == 0)
                 {
                     Debug.LogError($"No articulation bodies attached to {name}.");
+#if UNITY_EDITOR
+                    EditorApplication.ExitPlaymode();
+#endif
                     Destroy(gameObject);
                     return;
                 }
@@ -145,6 +155,9 @@ namespace RapidSim
             if (_home.Count != _limits.Length)
             {
                 Debug.LogError($"Ensure all joints on {name} have limits defined.");
+#if UNITY_EDITOR
+                EditorApplication.ExitPlaymode();
+#endif
                 Destroy(gameObject);
                 return;
             }
@@ -174,6 +187,9 @@ namespace RapidSim
             if (_home.Count != _maxSpeeds.Length)
             {
                 Debug.LogError($"{name} has {_home.Count} degrees of freedom but {_maxSpeeds.Length} speeds defined.");
+#if UNITY_EDITOR
+                EditorApplication.ExitPlaymode();
+#endif
                 Destroy(gameObject);
                 return;
             }

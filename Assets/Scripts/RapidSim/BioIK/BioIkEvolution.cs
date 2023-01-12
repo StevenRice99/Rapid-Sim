@@ -13,10 +13,10 @@ namespace RapidSim.BioIK
 	//----------------------------------------------------------------------------------------------------
 	public class BioIkEvolution
     {
-		public readonly BioIkModel bioIkModel;          //Reference to the kinematic model
-		private readonly int _populationSize;   //Number of individuals (population size)
-		private readonly int _elites;           //Number of elite individuals
-		private readonly int _dimensionality;   //Search space dimensionality
+        private readonly BioIkModel _bioIkModel;    //Reference to the kinematic model
+		private readonly int _populationSize;       //Number of individuals (population size)
+		private readonly int _elites;               //Number of elite individuals
+		private readonly int _dimensionality;       //Search space dimensionality
 
 		private readonly double[] _lowerBounds; //Constraints for the lower bounds
 		private readonly double[] _upperBounds; //Constraints for the upper bounds
@@ -43,10 +43,10 @@ namespace RapidSim.BioIK
 		//Initialises the algorithm
 		public BioIkEvolution(Robot robot)
         {
-			bioIkModel = new(robot);
+			_bioIkModel = new(robot);
 			_populationSize = robot.PopulationSize;
 			_elites = robot.Elites;
-			_dimensionality = bioIkModel.dof;
+			_dimensionality = _bioIkModel.dof;
 
 			_population = new Individual[_populationSize];
 			_offspring = new Individual[_populationSize];
@@ -84,23 +84,23 @@ namespace RapidSim.BioIK
 
 		public double[] Optimise(int generations, double[] seed, Vector3 position, Quaternion orientation)
         {
-            bioIkModel.SetTargetPosition(position);
-            bioIkModel.SetTargetRotation(orientation);
+            _bioIkModel.SetTargetPosition(position);
+            _bioIkModel.SetTargetRotation(orientation);
             
-            bioIkModel.Refresh();
+            _bioIkModel.Refresh();
             
 			for (int i = 0; i < _dimensionality; i++)
             {
-				_lowerBounds[i] = bioIkModel.motionPointers[i].motion.GetLowerLimit();
-				_upperBounds[i] = bioIkModel.motionPointers[i].motion.GetUpperLimit();
+				_lowerBounds[i] = _bioIkModel.motionPointers[i].motion.GetLowerLimit();
+				_upperBounds[i] = _bioIkModel.motionPointers[i].motion.GetUpperLimit();
 				_solution[i] = seed[i];
 			}
-			_fitness = bioIkModel.ComputeLoss(_solution);
+			_fitness = _bioIkModel.ComputeLoss(_solution);
 
             Initialise(seed);
             for (int i = 0; i < _elites; i++)
             {
-                _models[i].CopyFrom(bioIkModel);
+                _models[i].CopyFrom(_bioIkModel);
                 _optimisers[i].lowerBounds = _lowerBounds;
                 _optimisers[i].upperBounds = _upperBounds;
             }
@@ -121,7 +121,7 @@ namespace RapidSim.BioIK
 				_population[0].genes[i] = seed[i];
 				_population[0].momentum[i] = 0.0;
 			}
-			_population[0].fitness = bioIkModel.ComputeLoss(_population[0].genes);
+			_population[0].fitness = _bioIkModel.ComputeLoss(_population[0].genes);
 
 			for (int i=1; i < _populationSize; i++)
             {
@@ -337,7 +337,7 @@ namespace RapidSim.BioIK
 			}
 
 			//Fitness
-			offspring.fitness = bioIkModel.ComputeLoss(offspring.genes);
+			offspring.fitness = _bioIkModel.ComputeLoss(offspring.genes);
 		}
 
 		//Generates a random individual
@@ -348,7 +348,7 @@ namespace RapidSim.BioIK
                 individual.genes[i] = Random.Range((float)_lowerBounds[i], (float)_upperBounds[i]);
                 individual.momentum[i] = 0.0;
 			}
-			individual.fitness = bioIkModel.ComputeLoss(individual.genes);
+			individual.fitness = _bioIkModel.ComputeLoss(individual.genes);
 		}
 
 		//Rank-based selection of an individual

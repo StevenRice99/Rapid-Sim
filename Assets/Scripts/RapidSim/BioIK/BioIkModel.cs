@@ -175,14 +175,13 @@ namespace RapidSim.BioIK
 			switch (d)
 			{
 				case < 0.0:
-				{
 					d = -d;
-					if(d > 1.0) {
+					if (d > 1.0)
+					{
 						d = 1.0;
 					}
 
 					break;
-				}
 				case > 1.0:
 					d = 1.0;
 					break;

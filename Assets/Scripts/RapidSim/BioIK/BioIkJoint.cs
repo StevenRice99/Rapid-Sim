@@ -246,20 +246,13 @@ namespace RapidSim.BioIK
 				this.axis = axis;
 			}
 
-			//Runs one motion control cycle
-			public double ProcessMotion()
-			{
-				return !enabled ? 0.0 : targetValue;
-			}
+			public double GetLowerLimit() => joint.rotational ? math.radians(lowerLimit) : lowerLimit;
+
+			public double GetUpperLimit() => joint.rotational ? math.radians(upperLimit) : upperLimit;
 
 			public void SetLowerLimit(double value)
 			{
 				lowerLimit = math.min(0.0, value);
-			}
-
-			public double GetLowerLimit()
-			{
-				return joint.rotational ? math.radians(lowerLimit) : lowerLimit;
 			}
 
 			public void SetUpperLimit(double value)
@@ -267,18 +260,8 @@ namespace RapidSim.BioIK
 				upperLimit = math.max(0.0, value);
 			}
 
-			public double GetUpperLimit()
+			public void SetTargetValue(double value)
 			{
-				return joint.rotational ? math.radians(upperLimit) : upperLimit;
-			}
-
-			public void SetTargetValue(double value, bool normalised = false)
-			{
-				if (normalised && joint.rotational)
-				{
-					value = math.degrees(value);
-				}
-
 				targetValue = math.clamp(value, lowerLimit, upperLimit);
 			}
 

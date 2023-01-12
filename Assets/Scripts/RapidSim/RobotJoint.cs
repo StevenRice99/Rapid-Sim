@@ -120,7 +120,7 @@ namespace RapidSim
             Joint.zDrive = drive;
         }
 
-        public List<JointLimit> Limits()
+        public IEnumerable<JointLimit> Limits()
         {
             List<JointLimit> limits = new();
             if (XMotion)
