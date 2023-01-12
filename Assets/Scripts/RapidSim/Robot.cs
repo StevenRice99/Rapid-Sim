@@ -53,8 +53,6 @@ namespace RapidSim
 
         private List<float> _home;
 
-        private List<float> _middle;
-
         private List<float> _zeros;
 
         private List<float> _targets;
@@ -80,6 +78,8 @@ namespace RapidSim
         private Vector3 _mlAgentsPos;
 
         private Quaternion _mlAgentsRot;
+
+        private List<float> _mlAgentsJoints;
 
         private float _maxTime;
 
@@ -124,18 +124,12 @@ namespace RapidSim
             }
 
             _joints = _joints.OrderBy(j => j.Joint.index).ToArray();
-
-            _middle = new();
+            
             _chainLength = 0;
             List<JointLimit> limits = new();
             for (int i = 0; i < _joints.Length; i++)
             {
-                List<JointLimit> limit = _joints[i].Limits();
-                for (int j = 0; j < limit.Count; j++)
-                {
-                    _middle.Add((limit[j].lower + limit[j].upper) / 2);
-                }
-                limits.AddRange(limit);
+                limits.AddRange(_joints[i].Limits());
                 if (i > 0)
                 {
                     _chainLength += Vector3.Distance(_joints[i - 1].transform.position, _joints[i].transform.position);
@@ -314,14 +308,15 @@ namespace RapidSim
             {
                 return;
             }
-            
-            _mlAgentsPos = Random.insideUnitSphere * _chainLength + transform.position;
-            _mlAgentsRot = Random.rotation;
 
             bool move = _move;
             SetRandomJoints();
             PhysicsStep();
             _move = move;
+            
+            _mlAgentsPos = Random.insideUnitSphere * _chainLength + transform.position;
+            _mlAgentsRot = Random.rotation;
+            _mlAgentsJoints = GetJoints();
             
             RequestDecision();
         }
@@ -330,7 +325,7 @@ namespace RapidSim
         {
             sensor.AddObservation(RelativePosition(_mlAgentsPos));
             sensor.AddObservation(RelativeRotation(_mlAgentsRot));
-            sensor.AddObservation(NetScaledJoints());
+            sensor.AddObservation(NetScaledJoints(_mlAgentsJoints));
         }
 
         public override void OnActionReceived(ActionBuffers actions)
@@ -376,17 +371,10 @@ namespace RapidSim
 
             float accuracy = Accuracy(LastJoint.position, _mlAgentsPos, Root.transform.rotation, LastJoint.rotation, _mlAgentsRot);
 
-            bool meetsRepeatability = accuracy <= repeatability;
+            accuracy = accuracy <= repeatability
+                ? accuracyValue + CalculateTime(_mlAgentsJoints, joints, _maxSpeeds) / _maxTime * timeValue
+                : (1 - accuracy) * accuracyValue;
 
-            accuracy = (1 - accuracy) * accuracyValue;
-            
-            if (meetsRepeatability)
-            {
-                float maxTime = CalculateTime(_middle, joints, _maxSpeeds);
-
-                accuracy += (maxTime / _maxTime) * timeValue;
-            }
-            
             SetReward(accuracy);
         }
 
@@ -419,6 +407,7 @@ namespace RapidSim
         {
             _mlAgentsPos = position;
             _mlAgentsRot = rotation;
+            _mlAgentsJoints = GetJoints();
             _move = true;
             RequestDecision();
         }
@@ -483,6 +472,7 @@ namespace RapidSim
         {
             _mlAgentsPos = position;
             _mlAgentsRot = rotation;
+            _mlAgentsJoints = GetJoints();
             _move = false;
             RequestDecision();
         }
@@ -506,16 +496,6 @@ namespace RapidSim
         public void SnapHome()
         {
             SnapRadians(_home);
-        }
-
-        public void MoveMiddle()
-        {
-            MoveRadians(_middle);
-        }
-
-        public void SnapMiddle()
-        {
-            SnapRadians(_middle);
         }
 
         private List<float> GetJoints()
@@ -659,12 +639,14 @@ namespace RapidSim
                 float accuracy = Accuracy(LastJoint.position, position, Root.transform.rotation, LastJoint.rotation, orientation);
                 float time = CalculateTime(starting, solution, _maxSpeeds);
 
-                if ((bestAccuracy > repeatability && accuracy < bestAccuracy) || accuracy <= repeatability && time < bestTime)
+                if ((bestAccuracy <= repeatability || accuracy >= bestAccuracy) && (accuracy > repeatability || time >= bestTime))
                 {
-                    best = solution;
-                    bestAccuracy = accuracy;
-                    bestTime = time;
+                    continue;
                 }
+
+                best = solution;
+                bestAccuracy = accuracy;
+                bestTime = time;
             }
             
             SnapRadians(starting);
@@ -711,11 +693,6 @@ namespace RapidSim
             }
 
             SnapRadians(joints);
-        }
-        
-        private List<float> NetScaledJoints()
-        {
-            return NetScaledJoints(GetJoints());
         }
         
         private List<float> NetScaledJoints(List<float> joints)
