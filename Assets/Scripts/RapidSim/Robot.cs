@@ -333,9 +333,7 @@ namespace RapidSim
 
         public override void OnActionReceived(ActionBuffers actions)
         {
-            List<float> joints = actions.ContinuousActions.ToList();
-
-            joints = JointsScaled(joints);
+            List<float> joints = JointsScaled(actions.ContinuousActions.ToList());
 
             if (_move)
             {
@@ -354,6 +352,14 @@ namespace RapidSim
 
         public override void Heuristic(in ActionBuffers actionsOut)
         {
+            List<float> solution = NetScaledJoints(BioIkOptimize(_mlAgentsPos, _mlAgentsRot));
+            
+            ActionSegment<float> continuous = actionsOut.ContinuousActions;
+
+            for (int i = 0; i < solution.Count; i++)
+            {
+                continuous[i] = solution[i];
+            }
         }
 
         private void Evaluate(List<float> joints)
@@ -720,7 +726,11 @@ namespace RapidSim
         
         private List<float> NetScaledJoints()
         {
-            List<float> joints = GetJoints();
+            return NetScaledJoints(GetJoints());
+        }
+        
+        private List<float> NetScaledJoints(List<float> joints)
+        {
             for (int i = 0; i < joints.Count; i++)
             {
                 joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
