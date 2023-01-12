@@ -164,7 +164,7 @@ namespace RapidSim.BioIK
 			ForwardKinematics(configuration);
 			Node node = motionPointers[^1].node;
 			_loss = ComputeLoss(node.wpx, node.wpy, node.wpz, node.wrx, node.wry, node.wrz, node.wrw);
-			return Math.Sqrt(_loss);
+			return math.sqrt(_loss);
 		}
 
 		private double ComputeLoss(double apx, double apy, double apz, double arx, double ary, double arz, double arw)
@@ -208,7 +208,7 @@ namespace RapidSim.BioIK
 				_configuration[j] += resolution;
 				motionPointers[j].node.SimulateModification(_configuration);
 				_configuration[j] -= resolution;
-				_gradient[j] = (Math.Sqrt(_simulatedLoss) - oldLoss) / resolution;
+				_gradient[j] = (math.sqrt(_simulatedLoss) - oldLoss) / resolution;
 			}
 			return _gradient;
 		}
