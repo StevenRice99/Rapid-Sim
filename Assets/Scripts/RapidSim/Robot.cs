@@ -20,7 +20,7 @@ namespace RapidSim
         [Tooltip("How accurate in meters the robot can repeat a movement.")]
         [Min(0)]
         [SerializeField]
-        private double repeatability = 8e-5;
+        private float repeatability = 8e-5f;
         
         [Header("Bio IK Settings")]
         [Tooltip("The number of generations for a Bio IK evolution.")]
@@ -71,7 +71,7 @@ namespace RapidSim
 
         public BioIkJoint[] BioIkJoints { get; private set; }
         
-        public double Rescaling { get; private set; }
+        public float Rescaling { get; private set; }
 
         private BioIkJoint.Motion[] _motions;
 
@@ -144,7 +144,7 @@ namespace RapidSim
                 }
             }
 
-            Rescaling = math.PI_DBL * math.PI_DBL / (_chainLength * _chainLength);
+            Rescaling = math.PI * math.PI / (_chainLength * _chainLength);
 
             _limits = limits.ToArray();
             _home = GetJoints();
@@ -193,20 +193,21 @@ namespace RapidSim
 
             int jointNumber = 1;
 
-            for (int i = 0; i < _joints.Length; i++)
+            foreach (RobotJoint j in _joints)
             {
-                if (!_joints[i].HasMotion)
+                if (!j.HasMotion)
                 {
                     continue;
                 }
-                
+
+                Transform jointTransform = j.transform;
                 GameObject go = new($"Bio IK Joint {jointNumber++}")
                 {
                     transform =
                     {
                         parent = parent,
-                        position = _joints[i].transform.position,
-                        rotation = _joints[i].transform.rotation
+                        position = jointTransform.position,
+                        rotation = jointTransform.rotation
                     }
                 };
 
@@ -221,23 +222,23 @@ namespace RapidSim
                 _lastBioIkJoint = bioIkJoint.transform;
                 parent = go.transform;
                 
-                bioIkJoint.rotational = _joints[i].Type != ArticulationJointType.PrismaticJoint;
+                bioIkJoint.rotational = j.Type != ArticulationJointType.PrismaticJoint;
                 bioIkJoint.SetOrientation(Vector3.zero);
                 bioIkJoints.Add(bioIkJoint);
 
-                if (_joints[i].XMotion)
+                if (j.XMotion)
                 {
                     motions.Add(bioIkJoint.y);
                     bioIkJoint.y.enabled = true;
                     if (!bioIkJoint.rotational)
                     {
-                        bioIkJoint.y.SetLowerLimit(_joints[i].LimitX.lower);
-                        bioIkJoint.y.SetUpperLimit(_joints[i].LimitX.upper);
+                        bioIkJoint.y.SetLowerLimit(j.LimitX.lower);
+                        bioIkJoint.y.SetUpperLimit(j.LimitX.upper);
                     }
                     else
                     {
-                        bioIkJoint.y.SetLowerLimit(math.degrees(_joints[i].LimitX.lower));
-                        bioIkJoint.y.SetUpperLimit(math.degrees(_joints[i].LimitX.upper));
+                        bioIkJoint.y.SetLowerLimit(math.degrees(j.LimitX.lower));
+                        bioIkJoint.y.SetUpperLimit(math.degrees(j.LimitX.upper));
                     }
                 }
                 else
@@ -245,19 +246,19 @@ namespace RapidSim
                     bioIkJoint.y.enabled = false;
                 }
 
-                if (_joints[i].YMotion)
+                if (j.YMotion)
                 {
                     motions.Add(bioIkJoint.z);
                     bioIkJoint.z.enabled = true;
                     if (!bioIkJoint.rotational)
                     {
-                        bioIkJoint.z.SetLowerLimit(_joints[i].LimitY.lower);
-                        bioIkJoint.z.SetUpperLimit(_joints[i].LimitY.upper);
+                        bioIkJoint.z.SetLowerLimit(j.LimitY.lower);
+                        bioIkJoint.z.SetUpperLimit(j.LimitY.upper);
                     }
                     else
                     {
-                        bioIkJoint.z.SetLowerLimit(math.degrees(_joints[i].LimitY.lower));
-                        bioIkJoint.z.SetUpperLimit(math.degrees(_joints[i].LimitY.upper));
+                        bioIkJoint.z.SetLowerLimit(math.degrees(j.LimitY.lower));
+                        bioIkJoint.z.SetUpperLimit(math.degrees(j.LimitY.upper));
                     }
                 }
                 else
@@ -265,19 +266,19 @@ namespace RapidSim
                     bioIkJoint.z.enabled = false;
                 }
                 
-                if (_joints[i].ZMotion)
+                if (j.ZMotion)
                 {
                     motions.Add(bioIkJoint.x);
                     bioIkJoint.x.enabled = true;
                     if (!bioIkJoint.rotational)
                     {
-                        bioIkJoint.x.SetLowerLimit(_joints[i].LimitZ.lower);
-                        bioIkJoint.x.SetUpperLimit(_joints[i].LimitZ.upper);
+                        bioIkJoint.x.SetLowerLimit(j.LimitZ.lower);
+                        bioIkJoint.x.SetUpperLimit(j.LimitZ.upper);
                     }
                     else
                     {
-                        bioIkJoint.x.SetLowerLimit(math.degrees(_joints[i].LimitZ.lower));
-                        bioIkJoint.x.SetUpperLimit(math.degrees(_joints[i].LimitZ.upper));
+                        bioIkJoint.x.SetLowerLimit(math.degrees(j.LimitZ.lower));
+                        bioIkJoint.x.SetUpperLimit(math.degrees(j.LimitZ.upper));
                     }
                 }
                 else
@@ -314,8 +315,11 @@ namespace RapidSim
                 return;
             }
             
-            _mlAgentsPos = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * _chainLength + transform.position;
+            _mlAgentsPos = Random.insideUnitSphere * _chainLength + transform.position;
             _mlAgentsRot = Random.rotation;
+            
+            SetRandomJoints();
+            PhysicsStep();
             
             RequestDecision();
         }
@@ -344,8 +348,6 @@ namespace RapidSim
                 SnapRadians(joints);
                 return;
             }
-            
-            SnapRadians(joints);
 
             Evaluate(joints);
         }
@@ -357,14 +359,12 @@ namespace RapidSim
         private void Evaluate(List<float> joints)
         {
             SnapRadians(joints);
-            Physics.autoSimulation = false;
-            Physics.Simulate(1);
-            Physics.autoSimulation = false;
+            PhysicsStep();
         
             const float accuracyValue = 100;
             const float timeValue = 10;
 
-            float accuracy = (float) Accuracy(LastJoint.position, _mlAgentsPos, Root.transform.rotation, LastJoint.rotation, _mlAgentsRot);
+            float accuracy = Accuracy(LastJoint.position, _mlAgentsPos, Root.transform.rotation, LastJoint.rotation, _mlAgentsRot);
 
             bool meetsRepeatability = accuracy <= repeatability;
 
@@ -528,26 +528,26 @@ namespace RapidSim
         {
             List<float> speeds = new();
             
-            for (int i = 0; i < _joints.Length; i++)
+            foreach (RobotJoint j in _joints)
             {
-                if (!_joints[i].HasMotion)
+                if (!j.HasMotion)
                 {
                     continue;
                 }
 
-                if (_joints[i].XMotion)
+                if (j.XMotion)
                 {
-                    speeds.Add(_joints[i].SpeedX);
+                    speeds.Add(j.SpeedX);
                 }
 
-                if (_joints[i].YMotion)
+                if (j.YMotion)
                 {
-                    speeds.Add(_joints[i].SpeedY);
+                    speeds.Add(j.SpeedY);
                 }
 
-                if (_joints[i].ZMotion)
+                if (j.ZMotion)
                 {
-                    speeds.Add(_joints[i].SpeedZ);
+                    speeds.Add(j.SpeedZ);
                 }
             }
 
@@ -622,21 +622,6 @@ namespace RapidSim
             return degrees;
         }
 
-        private double[] PrepareInputs(Vector3 position, Quaternion rotation)
-        {
-            double[] inputs = new double[7];
-            position = RelativePosition(position);
-            inputs[0] = (position.x + 1) / 2;
-            inputs[1] = (position.y + 1) / 2;
-            inputs[2] = (position.z + 1) / 2;
-            rotation = RelativeRotation(rotation);
-            inputs[3] = (rotation.x + 1) / 2;
-            inputs[4] = (rotation.y + 1) / 2;
-            inputs[5] = (rotation.z + 1) / 2;
-            inputs[6] = (rotation.w + 1) / 2;
-            return inputs;
-        }
-
         private List<float> JointsScaled(List<float> joints)
         {
             for (int i = 0; i < joints.Count; i++)
@@ -649,34 +634,32 @@ namespace RapidSim
 
         private Vector3 RelativePosition(Vector3 position) => Root.transform.InverseTransformPoint(position) / _chainLength;
 
-        private Vector3 GlobalPosition(Vector3 position) => _chainLength * Root.transform.TransformPoint(position);
-
         private Quaternion RelativeRotation(Quaternion rotation) => Quaternion.Inverse(Root.transform.rotation) * rotation;
 
-        public double[] BioIkOptimize(Vector3 position, Quaternion orientation)
+        public List<float> BioIkOptimize(Vector3 position, Quaternion orientation)
         {
             List<float> joints = GetJoints();
-            double[] starting = new double[joints.Count];
-            double[] best = new double[joints.Count];
-            double[] maxSpeeds = new double[joints.Count];
+            
+            List<float> best = new();
+            best.AddRange(joints);
+            
+            float[] maxSpeeds = new float[joints.Count];
             for (int i = 0; i < joints.Count; i++)
             {
-                starting[i] = joints[i];
-                best[i] = starting[i];
                 maxSpeeds[i] = _maxSpeeds[i];
             }
 
-            double bestAccuracy = double.MaxValue;
-            double bestTime = double.MaxValue;
+            float bestAccuracy = float.MaxValue;
+            float bestTime = float.MaxValue;
 
             for (int attempt = 0; attempt < optimizeAttempts; attempt++)
             {
-                double[] solution = BioIkSolve(position, orientation, starting);
+                List<float> solution = BioIkSolve(position, orientation, joints);
 
                 ProcessMotion();
 
-                double accuracy = Accuracy(_lastBioIkJoint.position, position, Root.transform.rotation, _lastBioIkJoint.rotation, orientation);
-                double time = CalculateTime(starting, solution, maxSpeeds);
+                float accuracy = Accuracy(_lastBioIkJoint.position, position, Root.transform.rotation, _lastBioIkJoint.rotation, orientation);
+                float time = CalculateTime(joints, solution, maxSpeeds);
 
                 if (bestAccuracy > repeatability && accuracy < bestAccuracy)
                 {
@@ -697,45 +680,31 @@ namespace RapidSim
             return best;
         }
         
-        public double[] BioIkSolve(Vector3 position, Quaternion orientation)
+        public List<float> BioIkSolve(Vector3 position, Quaternion orientation)
         {
-            List<float> joints = GetJoints();
-            double[] starting = new double[joints.Count];
-            for (int i = 0; i < starting.Length; i++)
-            {
-                starting[i] = joints[i];
-            }
-
-            return BioIkSolve(position, orientation, starting);
+            return BioIkSolve(position, orientation, GetJoints());
         }
 
-        private double[] BioIkSolve(Vector3 position, Quaternion orientation, double[] starting)
+        private List<float> BioIkSolve(Vector3 position, Quaternion orientation, IReadOnlyList<float> starting)
         {
-            for (int i = 0; i < starting.Length; i++)
+            double[] doubles = new double[starting.Count];
+            for (int i = 0; i < starting.Count; i++)
             {
-                _motions[i].SetTargetValue(starting[i]);
+                doubles[i] = starting[i];
+                _motions[i].SetTargetValue(doubles[i]);
             }
-            return new BioIkEvolution(this).Optimise(generations, starting, position, orientation);
+            doubles = new BioIkEvolution(this).Optimise(generations, doubles, position, orientation);
+            return doubles.Select(t => (float) t).ToList();
         }
 
-        private static double Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
+        private static float Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
         {
             return Vector3.Distance(currentPosition, goalPosition) + Quaternion.Angle(goalEndRotation, Quaternion.Inverse(rootRotation) * currentEndRotation);
         }
         
-        private static double CalculateTime(double[] starting, double[] ending, double[] maxSpeeds)
+        private static float CalculateTime(IEnumerable<float> starting, IReadOnlyList<float> ending, IReadOnlyList<float> maxSpeeds)
         {
-            double longestTime = 0;
-            for (int i = 0; i < starting.Length; i++)
-            {
-                double time = Math.Abs(starting[i] - ending[i]) / maxSpeeds[i];
-                if (time> longestTime)
-                {
-                    longestTime = time;
-                }
-            }
-
-            return longestTime;
+            return starting.Select((t, i) => Math.Abs(t - ending[i]) / maxSpeeds[i]).Prepend(0).Max();
         }
 
         private void SetRandomJoints()
@@ -747,38 +716,6 @@ namespace RapidSim
             }
 
             SnapRadians(joints);
-        }
-
-        private void Generate()
-        {
-            //SetRandomJoints();
-            //Physics.Simulate(1);
-            
-            //Vector3 position = LastJoint.position;
-            //Quaternion orientation = LastJoint.rotation;
-
-            Vector3 position = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * _chainLength + transform.position;
-            Quaternion orientation = Random.rotation;
-            
-            Physics.autoSimulation = false;
-            
-            SnapRadians(_middle);
-            Physics.Simulate(1);
-            
-            //double[] solution = BioIkOptimize(position, orientation);
-            double[] solution = BioIkSolve(position, orientation);
-            List<float> joints = new();
-            for (int i = 0; i < solution.Length; i++)
-            {
-                joints.Add((float) solution[i]);
-            }
-            
-            SnapRadians(joints);
-            Physics.Simulate(1);
-            
-            Physics.autoSimulation = true;
-
-            // TODO: Pass to ML-Agents
         }
         
         private List<float> NetScaledJoints()
@@ -794,18 +731,25 @@ namespace RapidSim
 
         private void UpdateData()
         {
-            for (int i = 0; i < BioIkJoints.Length; i++)
+            foreach (BioIkJoint j in BioIkJoints)
             {
-                BioIkJoints[i].UpdateData();
+                j.UpdateData();
             }
         }
 
         private void ProcessMotion()
         {
-            for (int i = 0; i < BioIkJoints.Length; i++)
+            foreach (BioIkJoint j in BioIkJoints)
             {
-                BioIkJoints[i].ProcessMotion();
+                j.ProcessMotion();
             }
+        }
+
+        private static void PhysicsStep()
+        {
+            Physics.autoSimulation = false;
+            Physics.Simulate(1);
+            Physics.autoSimulation = true;
         }
     }
 }
