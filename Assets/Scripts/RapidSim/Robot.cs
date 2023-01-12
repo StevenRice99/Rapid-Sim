@@ -2,15 +2,19 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using RapidSim.BioIK;
-using RapidSim.Networks;
 using Unity.Mathematics;
+using Unity.MLAgents;
+using Unity.MLAgents.Actuators;
+using Unity.MLAgents.Policies;
+using Unity.MLAgents.Sensors;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace RapidSim
 {
+    [RequireComponent(typeof(BehaviorParameters))]
     [DisallowMultipleComponent]
-    public class Robot : MonoBehaviour
+    public class Robot : Agent
     {
         [Header("Robot Settings")]
         [Tooltip("How accurate in meters the robot can repeat a movement.")]
@@ -38,27 +42,6 @@ namespace RapidSim
         [Min(1)]
         [SerializeField]
         private int optimizeAttempts = 10;
-        
-        [Header("Neural Network Settings")]
-        [Tooltip("The neural network to control the robot.")]
-        [SerializeField]
-        private NeuralNetwork network;
-        
-        [Tooltip("Enable to generate training data for the robot. Will turn off once both datasets are complete.")]
-        [SerializeField]
-        private bool generate;
-
-        [Tooltip("Check the dataset values.")]
-        [SerializeField]
-        private bool checkData;
-        
-        [Tooltip("Enable to train the neural network to control the robot. Will turn off once network is trained for set epochs.")]
-        [SerializeField]
-        private bool train;
-
-        [Tooltip("Click to test the neural network.")]
-        [SerializeField]
-        private bool test;
 
         public int PopulationSize => populationSize;
 
@@ -95,6 +78,12 @@ namespace RapidSim
         private Transform _lastBioIkJoint;
 
         private float _chainLength;
+
+        private Vector3 _mlAgentsPos;
+
+        private Quaternion _mlAgentsRot;
+
+        private float _maxTime;
 
         private void OnValidate()
         {
@@ -180,15 +169,20 @@ namespace RapidSim
                 _currentSpeeds[i] = _maxSpeeds[i];
             }
 
+            _maxTime = float.MinValue;
+            for (int i = 0; i < _maxSpeeds.Length; i++)
+            {
+                float time = (_limits[i].upper - _limits[i].lower) / _maxSpeeds[i];
+                if (time > _maxTime)
+                {
+                    _maxTime = time;
+                }
+            }
+
             if (_home.Count != _maxSpeeds.Length)
             {
                 Debug.LogError($"{name} has {_home.Count} degrees of freedom but {_maxSpeeds.Length} speeds defined.");
                 Destroy(gameObject);
-                return;
-            }
-
-            if (!NeuralNetwork.Validate(this, network, 7, _limits.Length))
-            {
                 return;
             }
 
@@ -296,8 +290,105 @@ namespace RapidSim
             _motions = motions.ToArray();
 
             UpdateData();
+            
+            BehaviorParameters parameters = GetComponent<BehaviorParameters>();
+            if (parameters == null)
+            {
+                parameters = gameObject.AddComponent<BehaviorParameters>();
+            }
+
+            MaxStep = Academy.Instance.IsCommunicatorOn ? 1 : 0;
+
+            parameters.BrainParameters.VectorObservationSize = 7 + _limits.Length;
+            parameters.BrainParameters.NumStackedVectorObservations = 1;
+            ActionSpec spec = parameters.BrainParameters.ActionSpec;
+            spec.NumContinuousActions = _home.Count;
+            spec.BranchSizes = Array.Empty<int>();
+            parameters.BrainParameters.ActionSpec = spec;
         }
+
+        public override void OnEpisodeBegin()
+        {
+            if (!Academy.Instance.IsCommunicatorOn)
+            {
+                return;
+            }
+            
+            _mlAgentsPos = new Vector3(Random.Range(-1f, 1f), Random.Range(-1f, 1f), Random.Range(-1f, 1f)) * _chainLength + transform.position;
+            _mlAgentsRot = Random.rotation;
+            
+            RequestDecision();
+        }
+
+        public override void CollectObservations(VectorSensor sensor)
+        {
+            sensor.AddObservation(RelativePosition(_mlAgentsPos));
+            sensor.AddObservation(RelativeRotation(_mlAgentsRot));
+            sensor.AddObservation(NetScaledJoints());
+        }
+
+        public override void OnActionReceived(ActionBuffers actions)
+        {
+            List<float> joints = actions.ContinuousActions.ToList();
+
+            joints = JointsScaled(joints);
+
+            if (_move)
+            {
+                MoveRadians(joints);
+                return;
+            }
+            
+            if (!Academy.Instance.IsCommunicatorOn)
+            {
+                SnapRadians(joints);
+                return;
+            }
+            
+            SnapRadians(joints);
+
+            Evaluate(joints);
+        }
+
+        public override void Heuristic(in ActionBuffers actionsOut)
+        {
+        }
+
+        private void Evaluate(List<float> joints)
+        {
+            SnapRadians(joints);
+            Physics.autoSimulation = false;
+            Physics.Simulate(1);
+            Physics.autoSimulation = false;
         
+            const float accuracyValue = 100;
+            const float timeValue = 10;
+
+            float accuracy = (float) Accuracy(LastJoint.position, _mlAgentsPos, Root.transform.rotation, LastJoint.rotation, _mlAgentsRot);
+
+            bool meetsRepeatability = accuracy <= repeatability;
+
+            accuracy = (1 - accuracy) * accuracyValue;
+            
+            if (meetsRepeatability)
+            {
+                float maxTime = float.MinValue;
+                for (int i = 0; i < _middle.Count; i++)
+                {
+                    float distance = math.abs(_middle[i] - joints[i]);
+                    float time = distance / _maxSpeeds[i];
+                    if (time > maxTime)
+                    {
+                        maxTime = time;
+                    }
+                }
+
+                accuracy += (maxTime / _maxTime) * timeValue;
+            }
+            
+            SetReward(accuracy);
+        }
+
         public void Move(GameObject target)
         {
             Move(target.transform);
@@ -325,7 +416,10 @@ namespace RapidSim
 
         public void Move(Vector3 position, Quaternion rotation)
         {
-            MoveRadians(Solve(position, rotation));
+            _mlAgentsPos = position;
+            _mlAgentsRot = rotation;
+            _move = true;
+            RequestDecision();
         }
 
         public void Move(List<float> degrees)
@@ -386,7 +480,10 @@ namespace RapidSim
     
         public void Snap(Vector3 position, Quaternion rotation)
         {
-            SnapRadians(Solve(position, rotation));
+            _mlAgentsPos = position;
+            _mlAgentsRot = rotation;
+            _move = false;
+            RequestDecision();
         }
 
         public void Snap(List<float> degrees)
@@ -524,29 +621,6 @@ namespace RapidSim
 
             return degrees;
         }
-        
-        private List<float> Solve(Vector3 position, Quaternion rotation)
-        {
-            List<float> original = GetJoints();
-            double[] starting = new double[original.Count];
-            for (int i = 0; i < starting.Length; i++)
-            {
-                starting[i] = original[i];
-            }
-            
-            double[] results = JointsScaled(network.Forward(PrepareInputs(position, rotation)));
-
-            List<float> joints = new();
-
-            for (int i = 0; i < results.Length; i++)
-            {
-                joints.Add((float) math.clamp(results[i], _limits[i].lower, _limits[i].upper));
-            }
-        
-            // TODO: Finalize movement with Hybrid IK.
-
-            return joints;
-        }
 
         private double[] PrepareInputs(Vector3 position, Quaternion rotation)
         {
@@ -563,9 +637,9 @@ namespace RapidSim
             return inputs;
         }
 
-        private double[] JointsScaled(double[] joints)
+        private List<float> JointsScaled(List<float> joints)
         {
-            for (int i = 0; i < joints.Length; i++)
+            for (int i = 0; i < joints.Count; i++)
             {
                 joints[i] = math.clamp(joints[i] * (_limits[i].upper - _limits[i].lower) + _limits[i].lower, _limits[i].lower, _limits[i].upper);
             }
@@ -675,32 +749,6 @@ namespace RapidSim
             SnapRadians(joints);
         }
 
-        private void Update()
-        {
-            if (generate)
-            {
-                Generate();
-                return;
-            }
-
-            if (checkData)
-            {
-                checkData = false;
-                network.CheckData();
-            }
-            
-            if (train)
-            {
-                Train();
-                return;
-            }
-
-            if (test)
-            {
-                Test();
-            }
-        }
-
         private void Generate()
         {
             //SetRandomJoints();
@@ -730,30 +778,18 @@ namespace RapidSim
             
             Physics.autoSimulation = true;
 
-            network.Add(PrepareInputs(position, orientation), NetScaledJoints());
+            // TODO: Pass to ML-Agents
         }
         
-        private double[] NetScaledJoints()
+        private List<float> NetScaledJoints()
         {
             List<float> joints = GetJoints();
-            double[] doubles = new double[joints.Count];
             for (int i = 0; i < joints.Count; i++)
             {
-                doubles[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
+                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
             }
 
-            return doubles;
-        }
-
-        private void Train()
-        {
-            train = network.Train();
-        }
-
-        private void Test()
-        {
-            test = false;
-            network.Test();
+            return joints;
         }
 
         private void UpdateData()

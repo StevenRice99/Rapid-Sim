@@ -1837,6 +1837,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1634662495}
   - component: {fileID: 1634662496}
+  - component: {fileID: 1634662497}
   m_Layer: 0
   m_Name: ABB IRB 7600
   m_TagString: Untagged
@@ -1872,15 +1873,46 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e1e259900096a44a8aa8703705a7d42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  agentParameters:
+    maxStep: 0
+  hasUpgradedFromAgentParameters: 1
+  MaxStep: 1
   repeatability: 0.00008
   generations: 5
   populationSize: 120
   elites: 3
   optimizeAttempts: 10
-  network: {fileID: 11400000, guid: 716b7929ffe21d34db3fe54066eb8adc, type: 2}
-  generate: 0
-  train: 0
-  test: 0
+--- !u!114 &1634662497
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1634662494}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d1c4e0b1822b495aa52bc52839ecb30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_BrainParameters:
+    VectorObservationSize: 13
+    NumStackedVectorObservations: 1
+    m_ActionSpec:
+      m_NumContinuousActions: 6
+      BranchSizes: 
+    VectorActionSize: 06000000
+    VectorActionDescriptions: []
+    VectorActionSpaceType: 1
+    hasUpgradedBrainParametersWithActionSpec: 1
+  m_Model: {fileID: 0}
+  m_InferenceDevice: 0
+  m_BehaviorType: 0
+  m_BehaviorName: ABB IRB 7600
+  TeamId: 0
+  m_UseChildSensors: 1
+  m_UseChildActuators: 1
+  m_DeterministicInference: 0
+  m_ObservableAttributeHandling: 0
 --- !u!1 &1898101831
 GameObject:
   m_ObjectHideFlags: 0
