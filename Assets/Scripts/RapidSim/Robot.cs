@@ -16,36 +16,17 @@ namespace RapidSim
     [DisallowMultipleComponent]
     public class Robot : Agent
     {
-        [Header("Robot Settings")]
-        [Tooltip("How accurate in meters the robot can repeat a movement.")]
-        [Min(0)]
-        [SerializeField]
-        private float repeatability = 8e-5f;
+        public BioIkJoint[] BioIkJoints { get; private set; }
         
-        [Header("Bio IK Settings")]
-        [Tooltip("The number of generations for a Bio IK evolution.")]
-        [Min(1)]
-        [SerializeField]
-        private int generations = 5;
-        
-        [Tooltip("The population size of each generation during Bio IK evolution.")]
-        [Min(1)]
-        [SerializeField]
-        private int populationSize = 120;
-        
-        [Tooltip("The number of elites in each generation during Bio IK evolution.")]
-        [Min(1)]
-        [SerializeField]
-        private int elites = 3;
-        
-        [Tooltip("The number of times to run the Bio IK algorithm when attempting to find an optimal move.")]
-        [Min(1)]
-        [SerializeField]
-        private int optimizeAttempts = 10;
+        public float Rescaling { get; private set; }
 
-        public int PopulationSize => populationSize;
+        public int PopulationSize => robotProperties.PopulationSize;
 
-        public int Elites => elites;
+        public int Elites => robotProperties.Elites;
+
+        [Tooltip("The robot properties to use.")]
+        [SerializeField]
+        private RobotProperties robotProperties;
 
         private ArticulationBody Root => _joints[0].Joint;
 
@@ -67,10 +48,6 @@ namespace RapidSim
 
         private RobotJoint[] _joints;
 
-        public BioIkJoint[] BioIkJoints { get; private set; }
-        
-        public float Rescaling { get; private set; }
-
         private BioIkJoint.Motion[] _motions;
 
         private float _chainLength;
@@ -83,16 +60,15 @@ namespace RapidSim
 
         private float _maxTime;
 
-        private void OnValidate()
-        {
-            if (elites > populationSize)
-            {
-                elites = populationSize;
-            }
-        }
-
         public void Start()
         {
+            if (robotProperties == null)
+            {
+                Debug.LogError($"No robot properties attached to {name}.");
+                Destroy(gameObject);
+                return;
+            }
+            
             RobotJoint rootJoint = GetComponent<RobotJoint>();
         
             RobotJoint[] children = GetComponentsInChildren<RobotJoint>();
@@ -300,6 +276,9 @@ namespace RapidSim
             spec.NumContinuousActions = _home.Count;
             spec.BranchSizes = Array.Empty<int>();
             parameters.BrainParameters.ActionSpec = spec;
+            parameters.DeterministicInference = true;
+            parameters.UseChildSensors = false;
+            parameters.UseChildActuators = false;
         }
 
         public override void OnEpisodeBegin()
@@ -365,15 +344,12 @@ namespace RapidSim
             SnapRadians(joints);
             PhysicsStep();
             _move = move;
-        
-            const float accuracyValue = 100;
-            const float timeValue = 10;
 
             float accuracy = Accuracy(LastJoint.position, _mlAgentsPos, Root.transform.rotation, LastJoint.rotation, _mlAgentsRot);
 
-            accuracy = accuracy <= repeatability
-                ? accuracyValue + CalculateTime(_mlAgentsJoints, joints, _maxSpeeds) / _maxTime * timeValue
-                : (1 - accuracy) * accuracyValue;
+            accuracy = accuracy <= robotProperties.Repeatability
+                ? robotProperties.ValueAccuracy + CalculateTime(_mlAgentsJoints, joints, _maxSpeeds) / _maxTime * robotProperties.ValueTime
+                : (1 - accuracy) * robotProperties.ValueAccuracy;
 
             SetReward(accuracy);
         }
@@ -629,7 +605,7 @@ namespace RapidSim
 
             bool move = _move;
 
-            for (int attempt = 0; attempt < optimizeAttempts; attempt++)
+            for (int attempt = 0; attempt < robotProperties.OptimizeAttempts; attempt++)
             {
                 SnapRadians(BioIkSolve(position, orientation, starting));
                 PhysicsStep();
@@ -639,7 +615,7 @@ namespace RapidSim
                 float accuracy = Accuracy(LastJoint.position, position, Root.transform.rotation, LastJoint.rotation, orientation);
                 float time = CalculateTime(starting, solution, _maxSpeeds);
 
-                if ((bestAccuracy <= repeatability || accuracy >= bestAccuracy) && (accuracy > repeatability || time >= bestTime))
+                if ((bestAccuracy <= robotProperties.Repeatability || accuracy >= bestAccuracy) && (accuracy > robotProperties.Repeatability || time >= bestTime))
                 {
                     continue;
                 }
@@ -670,7 +646,7 @@ namespace RapidSim
                 doubles[i] = starting[i];
                 _motions[i].SetTargetValue(doubles[i]);
             }
-            doubles = new BioIkEvolution(this).Optimise(generations, doubles, position, orientation);
+            doubles = new BioIkEvolution(this).Optimise(robotProperties.Generations, doubles, position, orientation);
             return doubles.Select(t => (float) t).ToList();
         }
 

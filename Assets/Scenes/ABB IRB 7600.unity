@@ -1860,12 +1860,8 @@ MonoBehaviour:
   agentParameters:
     maxStep: 0
   hasUpgradedFromAgentParameters: 1
-  MaxStep: 1
-  repeatability: 0.00008
-  generations: 5
-  populationSize: 120
-  elites: 3
-  optimizeAttempts: 10
+  MaxStep: 0
+  robotProperties: {fileID: 11400000, guid: 785bff8a9fa739a4ca5fdbf16b4a203d, type: 2}
 --- !u!114 &1634662497
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1893,9 +1889,9 @@ MonoBehaviour:
   m_BehaviorType: 0
   m_BehaviorName: ABB IRB 7600
   TeamId: 0
-  m_UseChildSensors: 1
+  m_UseChildSensors: 0
   m_UseChildActuators: 1
-  m_DeterministicInference: 0
+  m_DeterministicInference: 1
   m_ObservableAttributeHandling: 0
 --- !u!1 &1898101831
 GameObject:
