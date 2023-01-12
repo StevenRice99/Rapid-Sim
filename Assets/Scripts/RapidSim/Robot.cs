@@ -24,7 +24,7 @@ namespace RapidSim
         
         public float Rescaling { get; private set; }
 
-        public int PopulationSize => robotProperties.PopulationSize;
+        public int PopulationSize => robotProperties.Population;
 
         public int Elites => robotProperties.Elites;
 
@@ -75,9 +75,9 @@ namespace RapidSim
                 Destroy(gameObject);
                 return;
             }
-            
+
             RobotJoint rootJoint = GetComponent<RobotJoint>();
-        
+
             RobotJoint[] children = GetComponentsInChildren<RobotJoint>();
 
             if (rootJoint == null)
@@ -525,7 +525,7 @@ namespace RapidSim
 
             bool move = _move;
 
-            for (int attempt = 0; attempt < robotProperties.OptimizeAttempts; attempt++)
+            for (int attempt = 0; attempt < robotProperties.Attempts; attempt++)
             {
                 SnapRadians(BioIkSolve(position, orientation, starting));
                 PhysicsStep();
@@ -591,8 +591,8 @@ namespace RapidSim
             float accuracy = Accuracy(LastJoint.position, _mlAgentsPos, Root.transform.rotation, LastJoint.rotation, _mlAgentsRot);
 
             accuracy = accuracy <= robotProperties.Repeatability
-                ? robotProperties.ValueAccuracy + CalculateTime(_mlAgentsJoints, joints, _maxSpeeds) / _maxTime * robotProperties.ValueTime
-                : (1 - accuracy) * robotProperties.ValueAccuracy;
+                ? robotProperties.Accuracy + CalculateTime(_mlAgentsJoints, joints, _maxSpeeds) / _maxTime * robotProperties.Time
+                : (1 - accuracy) * robotProperties.Accuracy;
 
             SetReward(accuracy);
         }

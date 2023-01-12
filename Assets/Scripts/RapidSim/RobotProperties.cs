@@ -9,15 +9,15 @@ namespace RapidSim
 
         public int Generations => generations;
 
-        public int PopulationSize => populationSize;
+        public int Population => population;
 
         public int Elites => elites;
 
-        public int OptimizeAttempts => optimizeAttempts;
+        public int Attempts => attempts;
 
-        public float ValueAccuracy => valueAccuracy;
+        public float Accuracy => accuracy;
         
-        public float ValueTime => valueTime;
+        public float Time => time;
         
         [Header("Movement")]
         [Tooltip("How accurate in meters the robot can repeat a movement.")]
@@ -34,7 +34,7 @@ namespace RapidSim
         [Tooltip("The population size of each generation during Bio IK evolution.")]
         [Min(1)]
         [SerializeField]
-        private int populationSize = 120;
+        private int population = 120;
         
         [Tooltip("The number of elites in each generation during Bio IK evolution.")]
         [Min(1)]
@@ -44,24 +44,24 @@ namespace RapidSim
         [Tooltip("The number of times to run the Bio IK algorithm when attempting to find an optimal move during heuristics.")]
         [Min(1)]
         [SerializeField]
-        private int optimizeAttempts = 10;
+        private int attempts = 10;
 
         [Header("Reinforcement Learning")]
         [Tooltip("The value to give during reinforcement learning for achieving an accuracy within the required repeatability.")]
         [Min(0)]
         [SerializeField]
-        private float valueAccuracy = 100;
+        private float accuracy = 100;
         
         [Tooltip("The value to give during reinforcement learning for a perfect (zero movement) time, meaning a perfect value will likely never happen. Only applies if repeatability is reached.")]
         [Min(0)]
         [SerializeField]
-        private float valueTime = 10;
+        private float time = 10;
         
         private void OnValidate()
         {
-            if (elites > populationSize)
+            if (elites > population)
             {
-                elites = populationSize;
+                elites = population;
             }
         }
     }
