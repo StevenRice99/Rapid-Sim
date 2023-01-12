@@ -116,7 +116,31 @@ namespace RapidSim
 
             _limits = limits.ToArray();
             _home = GetJoints();
-            GetMaxSpeeds();
+            
+            List<float> speeds = new();
+            foreach (RobotJoint j in _joints)
+            {
+                if (!j.HasMotion)
+                {
+                    continue;
+                }
+
+                if (j.XMotion)
+                {
+                    speeds.Add(j.SpeedX);
+                }
+
+                if (j.YMotion)
+                {
+                    speeds.Add(j.SpeedY);
+                }
+
+                if (j.ZMotion)
+                {
+                    speeds.Add(j.SpeedZ);
+                }
+            }
+            _maxSpeeds = speeds.ToArray();
 
             if (_home.Count != _limits.Length)
             {
@@ -270,6 +294,7 @@ namespace RapidSim
 
             MaxStep = Academy.Instance.IsCommunicatorOn ? 1 : 0;
 
+            parameters.BehaviorName = robotProperties.name;
             parameters.BrainParameters.VectorObservationSize = 7 + _limits.Length;
             parameters.BrainParameters.NumStackedVectorObservations = 1;
             ActionSpec spec = parameters.BrainParameters.ActionSpec;
@@ -277,8 +302,10 @@ namespace RapidSim
             spec.BranchSizes = Array.Empty<int>();
             parameters.BrainParameters.ActionSpec = spec;
             parameters.DeterministicInference = true;
+            parameters.TeamId = 0;
             parameters.UseChildSensors = false;
             parameters.UseChildActuators = false;
+            parameters.ObservableAttributeHandling = ObservableAttributeOptions.Ignore;
         }
 
         public override void OnEpisodeBegin()
@@ -289,8 +316,15 @@ namespace RapidSim
             }
 
             bool move = _move;
-            SetRandomJoints();
+            
+            List<float> joints = new();
+            for (int i = 0; i < _limits.Length; i++)
+            {
+                joints.Add(Random.Range(_limits[i].lower, _limits[i].upper));
+            }
+            SnapRadians(joints);
             PhysicsStep();
+            
             _move = move;
             
             _mlAgentsPos = Random.insideUnitSphere * _chainLength + transform.position;
@@ -309,7 +343,12 @@ namespace RapidSim
 
         public override void OnActionReceived(ActionBuffers actions)
         {
-            List<float> joints = JointsScaled(actions.ContinuousActions.ToList());
+            List<float> joints = actions.ContinuousActions.ToList();
+            
+            for (int i = 0; i < joints.Count; i++)
+            {
+                joints[i] = math.clamp(joints[i] * (_limits[i].upper - _limits[i].lower) + _limits[i].lower, _limits[i].lower, _limits[i].upper);
+            }
 
             if (_move)
             {
@@ -336,22 +375,6 @@ namespace RapidSim
             {
                 continuous[i] = solution[i];
             }
-        }
-
-        private void Evaluate(List<float> joints)
-        {
-            bool move = _move;
-            SnapRadians(joints);
-            PhysicsStep();
-            _move = move;
-
-            float accuracy = Accuracy(LastJoint.position, _mlAgentsPos, Root.transform.rotation, LastJoint.rotation, _mlAgentsRot);
-
-            accuracy = accuracy <= robotProperties.Repeatability
-                ? robotProperties.ValueAccuracy + CalculateTime(_mlAgentsJoints, joints, _maxSpeeds) / _maxTime * robotProperties.ValueTime
-                : (1 - accuracy) * robotProperties.ValueAccuracy;
-
-            SetReward(accuracy);
         }
 
         public void Move(GameObject target)
@@ -474,6 +497,90 @@ namespace RapidSim
             SnapRadians(_home);
         }
 
+        public List<float> BioIkOptimize(Vector3 position, Quaternion orientation)
+        {
+            List<float> starting = GetJoints();
+            
+            List<float> best = new();
+            best.AddRange(starting);
+
+            float bestAccuracy = float.MaxValue;
+            float bestTime = float.MaxValue;
+
+            bool move = _move;
+
+            for (int attempt = 0; attempt < robotProperties.OptimizeAttempts; attempt++)
+            {
+                SnapRadians(BioIkSolve(position, orientation, starting));
+                PhysicsStep();
+
+                List<float> solution = GetJoints();
+
+                float accuracy = Accuracy(LastJoint.position, position, Root.transform.rotation, LastJoint.rotation, orientation);
+                float time = CalculateTime(starting, solution, _maxSpeeds);
+
+                if ((bestAccuracy <= robotProperties.Repeatability || accuracy >= bestAccuracy) && (accuracy > robotProperties.Repeatability || time >= bestTime))
+                {
+                    continue;
+                }
+
+                best = solution;
+                bestAccuracy = accuracy;
+                bestTime = time;
+            }
+            
+            SnapRadians(starting);
+            PhysicsStep();
+
+            _move = move;
+
+            return best;
+        }
+        
+        public List<float> BioIkSolve(Vector3 position, Quaternion orientation)
+        {
+            return BioIkSolve(position, orientation, GetJoints());
+        }
+
+        private static void PhysicsStep()
+        {
+            Physics.autoSimulation = false;
+            Physics.Simulate(1);
+            Physics.autoSimulation = true;
+        }
+
+        private Vector3 RelativePosition(Vector3 position) => Root.transform.InverseTransformPoint(position) / _chainLength;
+
+        private Quaternion RelativeRotation(Quaternion rotation) => Quaternion.Inverse(Root.transform.rotation) * rotation;
+
+        private List<float> BioIkSolve(Vector3 position, Quaternion orientation, IReadOnlyList<float> starting)
+        {
+            double[] doubles = new double[starting.Count];
+            for (int i = 0; i < starting.Count; i++)
+            {
+                doubles[i] = starting[i];
+                _motions[i].SetTargetValue(doubles[i]);
+            }
+            doubles = new BioIkEvolution(this).Optimise(robotProperties.Generations, doubles, position, orientation);
+            return doubles.Select(t => (float) t).ToList();
+        }
+
+        private void Evaluate(List<float> joints)
+        {
+            bool move = _move;
+            SnapRadians(joints);
+            PhysicsStep();
+            _move = move;
+
+            float accuracy = Accuracy(LastJoint.position, _mlAgentsPos, Root.transform.rotation, LastJoint.rotation, _mlAgentsRot);
+
+            accuracy = accuracy <= robotProperties.Repeatability
+                ? robotProperties.ValueAccuracy + CalculateTime(_mlAgentsJoints, joints, _maxSpeeds) / _maxTime * robotProperties.ValueTime
+                : (1 - accuracy) * robotProperties.ValueAccuracy;
+
+            SetReward(accuracy);
+        }
+
         private List<float> GetJoints()
         {
             List<float> angles = new();
@@ -481,34 +588,44 @@ namespace RapidSim
             return angles;
         }
 
-        private void GetMaxSpeeds()
+        private void Stop(IEnumerable<float> radians)
         {
-            List<float> speeds = new();
-            
-            foreach (RobotJoint j in _joints)
+            List<float> list = radians.ToList();
+            Root.SetDriveTargets(list);
+            Root.SetJointVelocities(_zeros);
+            Root.SetJointAccelerations(_zeros);
+            Root.SetJointForces(_zeros);
+            Root.SetJointPositions(list);
+        }
+
+        private static List<float> DegreesToRadians(List<float> degrees)
+        {
+            for (int i = 0; i < degrees.Count; i++)
             {
-                if (!j.HasMotion)
-                {
-                    continue;
-                }
-
-                if (j.XMotion)
-                {
-                    speeds.Add(j.SpeedX);
-                }
-
-                if (j.YMotion)
-                {
-                    speeds.Add(j.SpeedY);
-                }
-
-                if (j.ZMotion)
-                {
-                    speeds.Add(j.SpeedZ);
-                }
+                degrees[i] = math.radians(degrees[i]);
             }
 
-            _maxSpeeds = speeds.ToArray();
+            return degrees;
+        }
+
+        private static float Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
+        {
+            return Vector3.Distance(currentPosition, goalPosition) + Quaternion.Angle(goalEndRotation, Quaternion.Inverse(rootRotation) * currentEndRotation);
+        }
+        
+        private static float CalculateTime(IEnumerable<float> starting, IReadOnlyList<float> ending, IReadOnlyList<float> maxSpeeds)
+        {
+            return starting.Select((t, i) => Math.Abs(t - ending[i]) / maxSpeeds[i]).Prepend(0).Max();
+        }
+        
+        private List<float> NetScaledJoints(List<float> joints)
+        {
+            for (int i = 0; i < joints.Count; i++)
+            {
+                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
+            }
+
+            return joints;
         }
 
         private void FixedUpdate()
@@ -557,135 +674,6 @@ namespace RapidSim
             {
                 Stop(delta);
             }
-        }
-
-        private void Stop(IEnumerable<float> radians)
-        {
-            List<float> list = radians.ToList();
-            Root.SetDriveTargets(list);
-            Root.SetJointVelocities(_zeros);
-            Root.SetJointAccelerations(_zeros);
-            Root.SetJointForces(_zeros);
-            Root.SetJointPositions(list);
-        }
-
-        private static List<float> DegreesToRadians(List<float> degrees)
-        {
-            for (int i = 0; i < degrees.Count; i++)
-            {
-                degrees[i] = math.radians(degrees[i]);
-            }
-
-            return degrees;
-        }
-
-        private List<float> JointsScaled(List<float> joints)
-        {
-            for (int i = 0; i < joints.Count; i++)
-            {
-                joints[i] = math.clamp(joints[i] * (_limits[i].upper - _limits[i].lower) + _limits[i].lower, _limits[i].lower, _limits[i].upper);
-            }
-
-            return joints;
-        }
-
-        private Vector3 RelativePosition(Vector3 position) => Root.transform.InverseTransformPoint(position) / _chainLength;
-
-        private Quaternion RelativeRotation(Quaternion rotation) => Quaternion.Inverse(Root.transform.rotation) * rotation;
-
-        public List<float> BioIkOptimize(Vector3 position, Quaternion orientation)
-        {
-            List<float> starting = GetJoints();
-            
-            List<float> best = new();
-            best.AddRange(starting);
-
-            float bestAccuracy = float.MaxValue;
-            float bestTime = float.MaxValue;
-
-            bool move = _move;
-
-            for (int attempt = 0; attempt < robotProperties.OptimizeAttempts; attempt++)
-            {
-                SnapRadians(BioIkSolve(position, orientation, starting));
-                PhysicsStep();
-
-                List<float> solution = GetJoints();
-
-                float accuracy = Accuracy(LastJoint.position, position, Root.transform.rotation, LastJoint.rotation, orientation);
-                float time = CalculateTime(starting, solution, _maxSpeeds);
-
-                if ((bestAccuracy <= robotProperties.Repeatability || accuracy >= bestAccuracy) && (accuracy > robotProperties.Repeatability || time >= bestTime))
-                {
-                    continue;
-                }
-
-                best = solution;
-                bestAccuracy = accuracy;
-                bestTime = time;
-            }
-            
-            SnapRadians(starting);
-            PhysicsStep();
-
-            _move = move;
-
-            return best;
-        }
-        
-        public List<float> BioIkSolve(Vector3 position, Quaternion orientation)
-        {
-            return BioIkSolve(position, orientation, GetJoints());
-        }
-
-        private List<float> BioIkSolve(Vector3 position, Quaternion orientation, IReadOnlyList<float> starting)
-        {
-            double[] doubles = new double[starting.Count];
-            for (int i = 0; i < starting.Count; i++)
-            {
-                doubles[i] = starting[i];
-                _motions[i].SetTargetValue(doubles[i]);
-            }
-            doubles = new BioIkEvolution(this).Optimise(robotProperties.Generations, doubles, position, orientation);
-            return doubles.Select(t => (float) t).ToList();
-        }
-
-        private static float Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
-        {
-            return Vector3.Distance(currentPosition, goalPosition) + Quaternion.Angle(goalEndRotation, Quaternion.Inverse(rootRotation) * currentEndRotation);
-        }
-        
-        private static float CalculateTime(IEnumerable<float> starting, IReadOnlyList<float> ending, IReadOnlyList<float> maxSpeeds)
-        {
-            return starting.Select((t, i) => Math.Abs(t - ending[i]) / maxSpeeds[i]).Prepend(0).Max();
-        }
-
-        private void SetRandomJoints()
-        {
-            List<float> joints = new();
-            for (int i = 0; i < _limits.Length; i++)
-            {
-                joints.Add(Random.Range(_limits[i].lower, _limits[i].upper));
-            }
-
-            SnapRadians(joints);
-        }
-        
-        private List<float> NetScaledJoints(List<float> joints)
-        {
-            for (int i = 0; i < joints.Count; i++)
-            {
-                joints[i] = (joints[i] - _limits[i].lower) / (_limits[i].upper - _limits[i].lower);
-            }
-
-            return joints;
-        }
-
-        private static void PhysicsStep()
-        {
-            Physics.autoSimulation = false;
-            Physics.Simulate(1);
-            Physics.autoSimulation = true;
         }
     }
 }
