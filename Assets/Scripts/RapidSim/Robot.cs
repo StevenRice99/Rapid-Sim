@@ -306,12 +306,26 @@ namespace RapidSim
         {
             return BioIkSolve(position, orientation, GetJoints());
         }
+        
+        private static float Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation) => Vector3.Distance(currentPosition, goalPosition) + Quaternion.Angle(goalEndRotation, Quaternion.Inverse(rootRotation) * currentEndRotation);
+
+        private static float CalculateTime(IEnumerable<float> starting, IReadOnlyList<float> ending, IReadOnlyList<float> maxSpeeds) => starting.Select((t, i) => Math.Abs(t - ending[i]) / maxSpeeds[i]).Prepend(0).Max();
 
         private static void PhysicsStep()
         {
             Physics.autoSimulation = false;
             Physics.Simulate(1);
             Physics.autoSimulation = true;
+        }
+
+        private static List<float> DegreesToRadians(List<float> degrees)
+        {
+            for (int i = 0; i < degrees.Count; i++)
+            {
+                degrees[i] = math.radians(degrees[i]);
+            }
+
+            return degrees;
         }
 
         private Vector3 RelativePosition(Vector3 position) => Root.transform.InverseTransformPoint(position) / _chainLength;
@@ -347,26 +361,6 @@ namespace RapidSim
             Root.SetJointPositions(list);
         }
 
-        private static List<float> DegreesToRadians(List<float> degrees)
-        {
-            for (int i = 0; i < degrees.Count; i++)
-            {
-                degrees[i] = math.radians(degrees[i]);
-            }
-
-            return degrees;
-        }
-
-        private static float Accuracy(Vector3 currentPosition, Vector3 goalPosition, Quaternion rootRotation, Quaternion currentEndRotation, Quaternion goalEndRotation)
-        {
-            return Vector3.Distance(currentPosition, goalPosition) + Quaternion.Angle(goalEndRotation, Quaternion.Inverse(rootRotation) * currentEndRotation);
-        }
-        
-        private static float CalculateTime(IEnumerable<float> starting, IReadOnlyList<float> ending, IReadOnlyList<float> maxSpeeds)
-        {
-            return starting.Select((t, i) => Math.Abs(t - ending[i]) / maxSpeeds[i]).Prepend(0).Max();
-        }
-        
         private List<float> NetScaledJoints(List<float> joints)
         {
             for (int i = 0; i < joints.Count; i++)
